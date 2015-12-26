@@ -26,6 +26,7 @@ class VClassLoader extends ClassLoader {
     if (t == Type.VOID_TYPE) t.getDescriptor
     else
       vclasstype
+
   def liftType(t: String): String =
     if (t == "V") t
     else
@@ -69,10 +70,14 @@ class VClassLoader extends ClassLoader {
     val cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES)
     //    liftClass(cn).accept(cw)
 
+    var lambdaClasses = List[Any]()
 
-    val cv = new ClassVisitor(Opcodes.ASM5, new TraceClassVisitor(cw, new PrintWriter (System.out))) {
+    val cv = new ClassVisitor(Opcodes.ASM5, new TraceClassVisitor(cw, new PrintWriter(System.out))) {
+      var thisClass = ""
+
       override def visit(version: Int, access: Int, name: String, signature: String, superName: String, interfaces: Array[String]) {
         println(s"Visit: $name")
+        thisClass = name
         super.visit(version, access, name, signature, superName, interfaces)
       }
 
@@ -84,19 +89,49 @@ class VClassLoader extends ClassLoader {
           new MethodVisitor(Opcodes.ASM5, super.visitMethod(access, name, liftMethodDescription(desc), signature, exceptions)) {
 
             def isTypeLifted(t: String): Boolean =
-              shouldLift(t.replace('/','.'))
+              shouldLift(t.replace('/', '.'))
+
+            val vmapClosureType = "(Ledu/cmu/cs/varex/V;)Ljava/util/function/Function;"
+            val vmapClosureName = "apply"
+            val vmapCallType = "(Ljava/util/function/Function;)Ledu/cmu/cs/varex/V;"
+            val vmapCallOwner = "edu/cmu/cs/varex/V"
+            val vmapCallName = "vflatMap"
+
+
+            def liftMethodCall(opcode: Int, owner: String, name: String, desc: String, itf: Boolean): Unit = {
+
+              //assuming that all the arguments have been pushed to the stack in a lifted
+              //from. now need to call flatMap on the first argument of those by
+              //creating a closure first
+              val funType = Type.getMethodType(desc)
+
+              val genName = "edu/cmu/cs/vbc/prog/VMain$vlamda$0"
+              lambdaClasses ::=(genName, opcode, owner, name, desc, itf)
+
+
+              //              super.visitInvokeDynamicInsn(vmapClosureName, vmapClosureType,
+              //                new Handle(Opcodes.INVOKESTATIC, "edu/cmu/cs/vbc/prog/VMain","lambda$run$0", "(Ledu/cmu/cs/varex/V;Ledu/cmu/cs/vbc/prog/VI;)Ledu/cmu/cs/varex/V;"))
+
+              super.visitMethodInsn(Opcodes.INVOKESPECIAL, genName, "<init>", "(Ledu/cmu/cs/varex/V;)V", false)
+              super.visitMethodInsn(Opcodes.INVOKEINTERFACE, vmapCallOwner, vmapCallName, vmapCallType, true)
+              //              super.visitMethodInsn(opcode, owner, name, liftMethodDescription( desc), itf)
+
+            }
 
             override def visitMethodInsn(opcode: Int, owner: String, name: String, desc: String, itf: Boolean): Unit = {
-              if (! isTypeLifted(owner))
+              if (!isTypeLifted(owner))
                 return super.visitMethodInsn(opcode, owner, name, desc, itf)
               println(s"\t\tVisit-Call: $owner->$name, $desc")
-              super.visitMethodInsn(opcode, owner, name, liftMethodDescription( desc), itf)
+              if (owner == thisClass)
+                return super.visitMethodInsn(opcode, owner, name, liftMethodDescription(desc), itf)
+              else //call on lifted value
+                liftMethodCall(opcode, owner, name, desc, itf)
             }
 
             override def visitLocalVariable(name: String, desc: String, signature: String,
-                                            start: Label, end: Label, index: Int): Unit ={
-              if (name=="this")
-              super.visitLocalVariable(name, desc, signature, start, end, index)
+                                            start: Label, end: Label, index: Int): Unit = {
+              if (name == "this")
+                super.visitLocalVariable(name, desc, signature, start, end, index)
               else
                 super.visitLocalVariable(name, liftType(desc), signature, start, end, index)
             }
