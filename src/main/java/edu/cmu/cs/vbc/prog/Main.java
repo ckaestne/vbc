@@ -25,7 +25,7 @@ public class Main {
     }
 
     private I foo() {
-        return new I(5);
+        return new I(15);
     }
 
 }
@@ -34,7 +34,7 @@ class I {
     private final int i;
 
     I(int i) {
-        System.out.println("creating I."+i+" "+this.getClass().getClassLoader().toString());
+//        System.out.println("creating I."+i+" "+this.getClass().getClassLoader().toString());
         this.i = i;
     }
 
