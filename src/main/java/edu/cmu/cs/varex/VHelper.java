@@ -1,4 +1,10 @@
-//package edu.cmu.cs.varex;
+package edu.cmu.cs.varex;
+
+import de.fosd.typechef.featureexpr.FeatureExpr;
+
+import java.util.HashMap;
+import java.util.Map;
+
 //
 //import com.caucho.quercus.env.Value;
 //import com.caucho.quercus.env.ValueOrVar;
@@ -15,7 +21,15 @@
 ///**
 // * Created by ckaestne on 11/27/2015.
 // */
-//public class VHelper {
+public class VHelper {
+
+  public static <T> Map<FeatureExpr, T> explode(FeatureExpr ctx, V<T> v) {
+    Map<FeatureExpr, T> result = new HashMap<>();
+    v.vforeach(ctx, (c, a) -> result.put(c, a));
+    return result;
+  }
+
+}
 //
 //  public static FeatureExpr True() {
 //    return FeatureExprFactory.True();
