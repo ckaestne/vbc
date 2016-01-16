@@ -34,5 +34,23 @@ class VBCControlFlowTest extends FunSuite with DiffTestInfrastructure {
         )
     }
 
+    test("nested conditional if") {
+        method(
+            Block(InstrLoadConfig("A"), InstrIFEQ(3)),
+            Block(InstrLoadConfig("B"), InstrIFEQ(3)),
+            Block(InstrICONST(3), InstrDBGIPrint()),
+            Block(InstrICONST(4), InstrDBGIPrint(), InstrRETURN())
+        )
+    }
+
+    test("nested conditional if2") {
+        method(
+            Block(InstrLoadConfig("A"), InstrIFEQ(2)),
+            Block(InstrLoadConfig("B"), InstrIFEQ(3)),
+            Block(InstrICONST(3), InstrDBGIPrint(), InstrGOTO(4)),
+            Block(InstrICONST(3), InstrDBGIPrint()),
+            Block(InstrICONST(4), InstrDBGIPrint(), InstrRETURN())
+        )
+    }
 
 }

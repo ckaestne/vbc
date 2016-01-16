@@ -66,7 +66,7 @@ trait DiffTestInfrastructure {
         val vbyte = vcw.toByteArray
 
         val configOptions: Set[String] =
-            (for (block <- m.body.nodes; instr <- block.instr; if instr.isInstanceOf[InstrLoadConfig]) yield instr.asInstanceOf[InstrLoadConfig].config).toSet
+            (for (block <- m.body.blocks; instr <- block.instr; if instr.isInstanceOf[InstrLoadConfig]) yield instr.asInstanceOf[InstrLoadConfig].config).toSet
 
 
         val printer = new TraceClassVisitor(new PrintWriter(System.out))
