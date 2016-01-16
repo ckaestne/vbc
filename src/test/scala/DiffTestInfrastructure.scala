@@ -129,7 +129,8 @@ trait DiffTestInfrastructure {
         TestOutput.output = Nil
         Config.configValues = Map()
         val testVObject = testVClass.newInstance()
-        testVClass.getMethod(method).invoke(testVObject)
+        val ctx = FeatureExprFactory.True
+        testVClass.getMethod(method, classOf[FeatureExpr]).invoke(testVObject, ctx)
         val vresult = TestOutput.output
         vresult
     }

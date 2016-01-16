@@ -3,7 +3,7 @@ package edu.cmu.cs.vbc.test
 
 import de.fosd.typechef.featureexpr.FeatureExprFactory
 import edu.cmu.cs.varex.{V, VHelper}
-import edu.cmu.cs.vbc.instructions.Instruction
+import edu.cmu.cs.vbc.instructions.{CFG, Instruction}
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
 
@@ -50,7 +50,7 @@ object TestOutput {
 }
 
 case class InstrLoadConfig(config: String) extends Instruction {
-    override def toByteCode(mv: MethodVisitor): Unit = {
+    override def toByteCode(mv: MethodVisitor, cfg: CFG): Unit = {
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/Config", config, "()I", false)
     }
 
@@ -61,7 +61,7 @@ case class InstrLoadConfig(config: String) extends Instruction {
 
 
 case class InstrDBGIPrint() extends Instruction {
-    override def toByteCode(mv: MethodVisitor): Unit = {
+    override def toByteCode(mv: MethodVisitor, cfg: CFG): Unit = {
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printI", "(I)V", false)
     }
 

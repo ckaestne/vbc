@@ -6,11 +6,11 @@ import org.objectweb.asm.Opcodes._
 import org.scalatest.FunSuite
 
 
-class VBCTest extends FunSuite with DiffTestInfrastructure {
+class VBCInstrTest extends FunSuite with DiffTestInfrastructure {
 
     private def simpleMethod(instrs: Instruction*) =
         testMethod(new MethodNode(ACC_PUBLIC, "test", "()V", "()V", Array.empty,
-            CFG(List(Block(instrs.toList)))))
+            CFG(List(Block(instrs: _*)))))
 
     test("simple method") {
         simpleMethod(InstrICONST(0), InstrDBGIPrint(), InstrRETURN())

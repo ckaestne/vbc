@@ -1,18 +1,18 @@
 package edu.cmu.cs.vbc.instructions
 
 import org.objectweb.asm.Opcodes._
-import org.objectweb.asm.{ClassVisitor, MethodVisitor, Type}
+import org.objectweb.asm.{ClassVisitor, Label, MethodVisitor, Type}
 
 
 trait Instruction extends LiftUtils {
-    def toByteCode(mv: MethodVisitor)
+    def toByteCode(mv: MethodVisitor, cfg: CFG)
 
     def toVByteCode(mv: MethodVisitor)
 
 }
 
 case class InstrIADD() extends Instruction {
-    override def toByteCode(mv: MethodVisitor): Unit = {
+    override def toByteCode(mv: MethodVisitor, cfg: CFG): Unit = {
         mv.visitInsn(IADD)
     }
 
@@ -21,10 +21,8 @@ case class InstrIADD() extends Instruction {
     }
 }
 
-//case class InstrILOAD() extends Instruction
-//case class InstrISTORE() extends Instruction
 case class InstrICONST(v: Int) extends Instruction {
-    override def toByteCode(mv: MethodVisitor): Unit = {
+    override def toByteCode(mv: MethodVisitor, cfg: CFG): Unit = {
         writeConstant(mv, v)
     }
 
@@ -37,63 +35,75 @@ case class InstrICONST(v: Int) extends Instruction {
 
 
 case class InstrRETURN() extends Instruction {
-    override def toByteCode(mv: MethodVisitor): Unit =
+    override def toByteCode(mv: MethodVisitor, cfg: CFG): Unit =
         mv.visitInsn(RETURN)
 
-    override def toVByteCode(mv: MethodVisitor): Unit = toByteCode(mv)
+    override def toVByteCode(mv: MethodVisitor): Unit =
+        mv.visitInsn(RETURN)
 }
 
 
 case class InstrIINC(variable: Int, increment: Int) extends Instruction {
-    override def toByteCode(mv: MethodVisitor): Unit =
+    override def toByteCode(mv: MethodVisitor, cfg: CFG): Unit =
         mv.visitIincInsn(variable, increment)
 
     override def toVByteCode(mv: MethodVisitor): Unit = {
-        mv.visitVarInsn(ALOAD, variable)
+        mv.visitVarInsn(ALOAD, variable + ctxParameterOffset)
         writeConstant(mv, increment)
         mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "IINC", "(Ledu/cmu/cs/varex/V;I)Ledu/cmu/cs/varex/V;", false)
-        mv.visitVarInsn(ASTORE, variable)
+        mv.visitVarInsn(ASTORE, variable + ctxParameterOffset)
     }
-
-
 }
 
 case class InstrISTORE(variable: Int) extends Instruction {
-    override def toByteCode(mv: MethodVisitor): Unit =
+    override def toByteCode(mv: MethodVisitor, cfg: CFG): Unit =
         mv.visitVarInsn(ISTORE, variable)
 
     override def toVByteCode(mv: MethodVisitor): Unit = {
-        mv.visitVarInsn(ASTORE, variable)
+        mv.visitVarInsn(ASTORE, variable + ctxParameterOffset)
     }
 }
 
 case class InstrILOAD(variable: Int) extends Instruction {
-    override def toByteCode(mv: MethodVisitor): Unit =
+    override def toByteCode(mv: MethodVisitor, cfg: CFG): Unit =
         mv.visitVarInsn(ILOAD, variable)
 
     override def toVByteCode(mv: MethodVisitor): Unit = {
-        mv.visitVarInsn(ALOAD, variable)
+        mv.visitVarInsn(ALOAD, variable + ctxParameterOffset)
     }
 }
 
-//case class InstrINVOKESTATIC() extends Instruction
-//case class InstrINVOKEVIRTUAL() extends Instruction
+case class InstrIFEQ(blockIdx: Int) extends Instruction {
+    override def toByteCode(mv: MethodVisitor, cfg: CFG): Unit = {
+        val targetBlock = cfg.nodes(blockIdx)
+        mv.visitJumpInsn(IFEQ, targetBlock.label)
+    }
+
+    override def toVByteCode(mv: MethodVisitor): Unit = {
+        //        mv.visitVarInsn(ASTORE, variable)
+    }
+}
 
 
-case class Block(instr: List[Instruction]) {
-    def toByteCode(mv: MethodVisitor) = {
-        instr.foreach(_.toByteCode(mv))
+case class Block(instr: Instruction*) {
+    val label = new Label()
+
+    def toByteCode(mv: MethodVisitor, cfg: CFG) = {
+        mv.visitLabel(label)
+        instr.foreach(_.toByteCode(mv, cfg))
     }
 
     def toVByteCode(mv: MethodVisitor) = {
+        //        mv.visitLabel(label)
         instr.foreach(_.toVByteCode(mv))
     }
+
 }
 
 case class CFG(nodes: List[Block]) {
 
     def toByteCode(mv: MethodVisitor) = {
-        nodes.foreach(_.toByteCode(mv))
+        nodes.foreach(_.toByteCode(mv, this))
     }
 
     def toVByteCode(mv: MethodVisitor) =
@@ -128,8 +138,10 @@ case class ClassNode(name: String, members: List[MethodNode])
 trait LiftUtils {
     //    val liftedPackagePrefixes = Set("edu.cmu.cs.vbc.test", "edu.cmu.cs.vbc.prog")
     val vclassname = "edu/cmu/cs/varex/V"
+    val fexprclassname = "de/fosd/typechef/featureexpr/FeatureExpr"
     val vopsclassname = "edu/cmu/cs/varex/VOps"
     val vclasstype = "L" + vclassname + ";"
+    val ctxParameterOffset = 1
 
     //    protected def shouldLift(classname: String) = liftedPackagePrefixes.exists(classname startsWith _)
 
@@ -140,7 +152,7 @@ trait LiftUtils {
 
     protected def liftMethodDescription(desc: String): String = {
         val mtype = Type.getMethodType(desc)
-        mtype.getArgumentTypes.map(liftType).mkString("(", "", ")") + liftType(mtype.getReturnType)
+        (Type.getObjectType(fexprclassname) +: mtype.getArgumentTypes.map(liftType)).mkString("(", "", ")") + liftType(mtype.getReturnType)
     }
 
     def writeConstant(mv: MethodVisitor, v: Int): Unit = {
