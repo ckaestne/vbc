@@ -13,7 +13,7 @@ class VBCTest extends FunSuite with DiffTestInfrastructure {
             CFG(List(Block(instrs.toList)))))
 
     test("simple method") {
-        simpleMethod(InstrICONST(), InstrDBGIPrint(), InstrRETURN())
+        simpleMethod(InstrICONST(0), InstrDBGIPrint(), InstrRETURN())
     }
 
     test("load condition") {
@@ -21,7 +21,7 @@ class VBCTest extends FunSuite with DiffTestInfrastructure {
     }
 
     test("conditional IADD") {
-        simpleMethod(InstrICONST(), InstrLoadConfig("A"), InstrIADD(), InstrDBGIPrint(), InstrRETURN())
+        simpleMethod(InstrICONST(4), InstrLoadConfig("A"), InstrIADD(), InstrDBGIPrint(), InstrRETURN())
     }
 
 
@@ -29,5 +29,12 @@ class VBCTest extends FunSuite with DiffTestInfrastructure {
         simpleMethod(InstrLoadConfig("B"), InstrLoadConfig("A"), InstrIADD(), InstrDBGIPrint(), InstrRETURN())
     }
 
+    test("LOAD, STORE") {
+        simpleMethod(InstrLoadConfig("A"), InstrISTORE(1), InstrILOAD(1), InstrDBGIPrint(), InstrRETURN())
+    }
+
+    test("LOAD, STORE, IINC") {
+        simpleMethod(InstrLoadConfig("A"), InstrISTORE(1), InstrIINC(1, 1), InstrILOAD(1), InstrDBGIPrint(), InstrRETURN())
+    }
 
 }

@@ -22,8 +22,6 @@ trait DiffTestInfrastructure {
         }
     }
 
-    val myClassLoader = new MyClassLoader
-    val myVClassLoader = new MyClassLoader
 
 
     case class TestClass(m: MethodNode) {
@@ -81,6 +79,8 @@ trait DiffTestInfrastructure {
 
         //        val testClass = myClassLoader.defineClass("Test", byte)
 
+        val myClassLoader = new MyClassLoader
+        val myVClassLoader = new MyClassLoader
 
         val testVClass = myVClassLoader.defineClass("Test", vbyte)
         val testClass = myClassLoader.defineClass("Test", byte)

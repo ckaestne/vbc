@@ -7,6 +7,6 @@ import edu.cmu.cs.varex.V;
  */
 public class Tmp {
   void test() {
-    System.out.println(V.one(0));
+    System.out.println(V.one(18));
   }
 }

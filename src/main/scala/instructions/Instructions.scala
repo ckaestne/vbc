@@ -23,13 +23,13 @@ case class InstrIADD() extends Instruction {
 
 //case class InstrILOAD() extends Instruction
 //case class InstrISTORE() extends Instruction
-case class InstrICONST() extends Instruction {
+case class InstrICONST(v: Int) extends Instruction {
     override def toByteCode(mv: MethodVisitor): Unit = {
-        mv.visitInsn(ICONST_0)
+        writeConstant(mv, v)
     }
 
     override def toVByteCode(mv: MethodVisitor): Unit = {
-        mv.visitInsn(ICONST_0)
+        writeConstant(mv, v)
         mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
         mv.visitMethodInsn(INVOKESTATIC, vclassname, "one", "(Ljava/lang/Object;)Ledu/cmu/cs/varex/V;", true)
     }
@@ -41,6 +41,39 @@ case class InstrRETURN() extends Instruction {
         mv.visitInsn(RETURN)
 
     override def toVByteCode(mv: MethodVisitor): Unit = toByteCode(mv)
+}
+
+
+case class InstrIINC(variable: Int, increment: Int) extends Instruction {
+    override def toByteCode(mv: MethodVisitor): Unit =
+        mv.visitIincInsn(variable, increment)
+
+    override def toVByteCode(mv: MethodVisitor): Unit = {
+        mv.visitVarInsn(ALOAD, variable)
+        writeConstant(mv, increment)
+        mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "IINC", "(Ledu/cmu/cs/varex/V;I)Ledu/cmu/cs/varex/V;", false)
+        mv.visitVarInsn(ASTORE, variable)
+    }
+
+
+}
+
+case class InstrISTORE(variable: Int) extends Instruction {
+    override def toByteCode(mv: MethodVisitor): Unit =
+        mv.visitVarInsn(ISTORE, variable)
+
+    override def toVByteCode(mv: MethodVisitor): Unit = {
+        mv.visitVarInsn(ASTORE, variable)
+    }
+}
+
+case class InstrILOAD(variable: Int) extends Instruction {
+    override def toByteCode(mv: MethodVisitor): Unit =
+        mv.visitVarInsn(ILOAD, variable)
+
+    override def toVByteCode(mv: MethodVisitor): Unit = {
+        mv.visitVarInsn(ALOAD, variable)
+    }
 }
 
 //case class InstrINVOKESTATIC() extends Instruction
@@ -108,5 +141,18 @@ trait LiftUtils {
     protected def liftMethodDescription(desc: String): String = {
         val mtype = Type.getMethodType(desc)
         mtype.getArgumentTypes.map(liftType).mkString("(", "", ")") + liftType(mtype.getReturnType)
+    }
+
+    def writeConstant(mv: MethodVisitor, v: Int): Unit = {
+        v match {
+            case 0 => mv.visitInsn(ICONST_0)
+            case 1 => mv.visitInsn(ICONST_1)
+            case 2 => mv.visitInsn(ICONST_2)
+            case 3 => mv.visitInsn(ICONST_3)
+            case 4 => mv.visitInsn(ICONST_4)
+            case 5 => mv.visitInsn(ICONST_5)
+            case v if v < Byte.MaxValue => mv.visitIntInsn(BIPUSH, v)
+            //TODO other push operation for larger constants
+        }
     }
 }
