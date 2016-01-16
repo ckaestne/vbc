@@ -11,8 +11,8 @@ import scala.collection.mutable
   */
 object CFGAndStackAnalysis extends App {
 
-    //    val cr = new ClassReader("edu.cmu.cs.vbc.VClassLoader")
-    val cr = new ClassReader("org.objectweb.asm.ClassReader")
+    val cr = new ClassReader("edu.cmu.cs.vbc.VClassLoader")
+    //    val cr = new ClassReader("org.objectweb.asm.ClassReader")
 
     val cn = new ClassNode()
     cr.accept(cn, 0)
@@ -29,18 +29,21 @@ object CFGAndStackAnalysis extends App {
         //        }
 
 
-        val cfg = toCFGNode(getCFG(a), method.instructions)
+        val cfg = toCFG(getCFG(a), method.instructions)
 
-        if (cfg.exists(_.dependsOnStackValues)) {
-            println(method.name)
-            for (n <- cfg) {
-                print(n)
-                print(" " + n.stackDiff)
-                if (n.dependsOnStackValues)
-                    print(" !!")
-                println()
-            }
-        }
+        if (cfg.hasCycles)
+            println("cycles: " + method.name + ":\n" + cfg.nodes.mkString("\n"))
+
+        //        if (cfg.nodes.exists(_.dependsOnStackValues)) {
+        //            println(method.name)
+        //            for (n <- cfg.nodes) {
+        //                print(n)
+        //                print(" " + n.stackDiff)
+        //                if (n.dependsOnStackValues)
+        //                    print(" !!")
+        //                println()
+        //            }
+        //        }
     }
 
 
@@ -74,7 +77,7 @@ object CFGAndStackAnalysis extends App {
     }
 
 
-    def toCFGNode(internalNodes: Set[_CFGNode], insts: InsnList): List[CFGNode] = {
+    def toCFG(internalNodes: Set[_CFGNode], insts: InsnList): CFG = {
         val nodes = internalNodes.toList.sortBy(_.instructions.min)
         var result: List[CFGNode] = Nil
         for (i <- 0 until nodes.size) {
@@ -84,7 +87,9 @@ object CFGAndStackAnalysis extends App {
         def findInstr(i: Int) = nodes.indexWhere(_.instructions contains i)
         for (i <- 0 until nodes.size)
             result(i).succ = nodes(i).succInstr.map(i => result(findInstr(i)))
-        result
+        for (n <- result)
+            n.succ.foreach(_.pred += n)
+        new CFG(result)
     }
 
     /** Internal representation for computing the graph */
@@ -99,9 +104,27 @@ object CFGAndStackAnalysis extends App {
     }
 
 
+    class CFG(var nodes: List[CFGNode]) {
+
+
+        def hasCycles: Boolean = {
+
+            def visit(n: CFGNode, knownNodes: Set[CFGNode]): Boolean = {
+                if (knownNodes contains n)
+                    false
+                else
+                    n.succ.map(visit(_, knownNodes + n)).fold(true)(_ && _)
+            }
+
+            !visit(nodes.head, Set())
+        }
+
+    }
+
     /** CFG representation for analysis */
     class CFGNode(val nodeIdx: Int, instructions: List[(AbstractInsnNode, (Integer, Integer))]) {
         var succ: Set[CFGNode] = Set()
+        var pred: Set[CFGNode] = Set()
 
         override def toString =
             "#" + nodeIdx + ":" +
