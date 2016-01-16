@@ -1,12 +1,12 @@
 package edu.cmu.cs.vbc;
 
-import edu.cmu.cs.varex.Config;
+import edu.cmu.cs.varex.V;
 
 /**
  * Created by ckaestne on 1/16/2016.
  */
 public class Tmp {
   void test() {
-    System.out.println(Config.A);
+    System.out.println(V.one(0));
   }
 }

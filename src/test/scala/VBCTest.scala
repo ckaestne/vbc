@@ -8,14 +8,26 @@ import org.scalatest.FunSuite
 
 class VBCTest extends FunSuite with DiffTestInfrastructure {
 
-    test("simple method") {
+    private def simpleMethod(instrs: Instruction*) =
         testMethod(new MethodNode(ACC_PUBLIC, "test", "()V", "()V", Array.empty,
-            CFG(List(Block(List(InstrICONST(), InstrDBGIPrint(), InstrRETURN()))))))
+            CFG(List(Block(instrs.toList)))))
+
+    test("simple method") {
+        simpleMethod(InstrICONST(), InstrDBGIPrint(), InstrRETURN())
     }
 
     test("load condition") {
-        testMethod(new MethodNode(ACC_PUBLIC, "test", "()V", "()V", Array.empty,
-            CFG(List(Block(List(InstrLoadConfig("A"), InstrDBGIPrint(), InstrRETURN()))))))
+        simpleMethod(InstrLoadConfig("A"), InstrDBGIPrint(), InstrRETURN())
     }
+
+    test("conditional IADD") {
+        simpleMethod(InstrICONST(), InstrLoadConfig("A"), InstrIADD(), InstrDBGIPrint(), InstrRETURN())
+    }
+
+
+    test("2 conditional IADD") {
+        simpleMethod(InstrLoadConfig("B"), InstrLoadConfig("A"), InstrIADD(), InstrDBGIPrint(), InstrRETURN())
+    }
+
 
 }

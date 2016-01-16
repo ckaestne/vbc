@@ -1,12 +1,15 @@
 package edu.cmu.cs.vbc
 
+import java.io.PrintWriter
+
 import de.fosd.typechef.conditional.{ConditionalLib, Opt}
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
 import edu.cmu.cs.vbc.instructions.MethodNode
 import edu.cmu.cs.vbc.test.TestOutput.TOpt
 import edu.cmu.cs.vbc.test.{Config, InstrLoadConfig, TestOutput}
-import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes._
+import org.objectweb.asm.util.TraceClassVisitor
+import org.objectweb.asm.{ClassReader, ClassWriter}
 
 /**
   * compares the execution of two classes
@@ -68,8 +71,8 @@ trait DiffTestInfrastructure {
             (for (block <- m.body.nodes; instr <- block.instr; if instr.isInstanceOf[InstrLoadConfig]) yield instr.asInstanceOf[InstrLoadConfig].config).toSet
 
 
-        //        val printer = new TraceClassVisitor(new PrintWriter(System.out))
-        //        new ClassReader(vbyte).accept(printer, 0)
+        val printer = new TraceClassVisitor(new PrintWriter(System.out))
+        new ClassReader(vbyte).accept(printer, 0)
 
         //        val resource: String = "edu.cmu.cs.vbc.Tmp".replace('.', '/') + ".class"
         //        val is: InputStream = myClassLoader.getResourceAsStream(resource)

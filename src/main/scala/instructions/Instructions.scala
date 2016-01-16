@@ -11,7 +11,16 @@ trait Instruction extends LiftUtils {
 
 }
 
-//case class InstrIADD() extends Instruction
+case class InstrIADD() extends Instruction {
+    override def toByteCode(mv: MethodVisitor): Unit = {
+        mv.visitInsn(IADD)
+    }
+
+    override def toVByteCode(mv: MethodVisitor): Unit = {
+        mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "IADD", "(Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Ledu/cmu/cs/varex/V;", false)
+    }
+}
+
 //case class InstrILOAD() extends Instruction
 //case class InstrISTORE() extends Instruction
 case class InstrICONST() extends Instruction {
@@ -21,6 +30,7 @@ case class InstrICONST() extends Instruction {
 
     override def toVByteCode(mv: MethodVisitor): Unit = {
         mv.visitInsn(ICONST_0)
+        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
         mv.visitMethodInsn(INVOKESTATIC, vclassname, "one", "(Ljava/lang/Object;)Ledu/cmu/cs/varex/V;", true)
     }
 }
@@ -85,6 +95,7 @@ case class ClassNode(name: String, members: List[MethodNode])
 trait LiftUtils {
     //    val liftedPackagePrefixes = Set("edu.cmu.cs.vbc.test", "edu.cmu.cs.vbc.prog")
     val vclassname = "edu/cmu/cs/varex/V"
+    val vopsclassname = "edu/cmu/cs/varex/VOps"
     val vclasstype = "L" + vclassname + ";"
 
     //    protected def shouldLift(classname: String) = liftedPackagePrefixes.exists(classname startsWith _)
