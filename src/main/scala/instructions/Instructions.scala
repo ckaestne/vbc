@@ -22,6 +22,18 @@ case class InstrIADD() extends Instruction {
     }
 }
 
+
+case class InstrDUP() extends Instruction {
+    override def toByteCode(mv: MethodVisitor, method: MethodNode, block: Block): Unit = {
+        mv.visitInsn(DUP)
+    }
+
+    override def toVByteCode(mv: MethodVisitor, method: MethodNode, block: Block): Unit = {
+        //TODO, when applied to LONG, use the int one instead of the 2byte one
+        mv.visitInsn(DUP)
+    }
+}
+
 case class InstrICONST(v: Int) extends Instruction {
     override def toByteCode(mv: MethodVisitor, method: MethodNode, block: Block): Unit = {
         writeConstant(mv, v)
@@ -30,7 +42,7 @@ case class InstrICONST(v: Int) extends Instruction {
     override def toVByteCode(mv: MethodVisitor, method: MethodNode, block: Block): Unit = {
         writeConstant(mv, v)
         mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
-        mv.visitMethodInsn(INVOKESTATIC, vclassname, "one", "(Ljava/lang/Object;)Ledu/cmu/cs/varex/V;", true)
+        writeVCreateOne(mv)
     }
 }
 
@@ -56,7 +68,7 @@ case class InstrIINC(variable: Int, increment: Int) extends Instruction {
         mv.visitVarInsn(ASTORE, variable + ctxParameterOffset)
     }
 
-    override def getVariables() = Set(variable)
+    override def getVariables() = Set(variable + ctxParameterOffset)
 }
 
 case class InstrISTORE(variable: Int) extends Instruction {
@@ -64,10 +76,19 @@ case class InstrISTORE(variable: Int) extends Instruction {
         mv.visitVarInsn(ISTORE, variable)
 
     override def toVByteCode(mv: MethodVisitor, method: MethodNode, block: Block): Unit = {
+        //TODO is it worth optimizing this in case ctx is TRUE (or the initial method's ctx)?
+
+        //new value is already on top of stack
+        mv.visitVarInsn(ALOAD, block.blockConditionVar)
+        mv.visitInsn(SWAP)
+        mv.visitVarInsn(ALOAD, variable + ctxParameterOffset)
+        //now ctx, newvalue, oldvalue on stack
+        writeVCreateChoice(mv)
+        //now new choice value on stack combining old and new value
         mv.visitVarInsn(ASTORE, variable + ctxParameterOffset)
     }
 
-    override def getVariables() = Set(variable)
+    override def getVariables() = Set(variable + ctxParameterOffset)
 }
 
 case class InstrILOAD(variable: Int) extends Instruction {
@@ -78,7 +99,7 @@ case class InstrILOAD(variable: Int) extends Instruction {
         mv.visitVarInsn(ALOAD, variable + ctxParameterOffset)
     }
 
-    override def getVariables() = Set(variable)
+    override def getVariables() = Set(variable + ctxParameterOffset)
 }
 
 

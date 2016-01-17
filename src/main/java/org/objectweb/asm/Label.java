@@ -257,8 +257,14 @@ public class Label {
     /**
      * Constructs a new label.
      */
-    public Label() {
+    public Label(String name) {
+        this.name = name;
     }
+    public Label() {
+        this.name = "<UNKNOWN>";
+    }
+
+    private final String name;
 
     // ------------------------------------------------------------------------
     // Methods to compute offsets and to manage forward references
@@ -560,6 +566,6 @@ public class Label {
      */
     @Override
     public String toString() {
-        return "L" + System.identityHashCode(this);
+        return "L" + System.identityHashCode(this) + "," + name;
     }
 }

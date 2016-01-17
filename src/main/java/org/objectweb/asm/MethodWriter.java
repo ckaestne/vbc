@@ -29,6 +29,8 @@
  */
 package org.objectweb.asm;
 
+import edu.cmu.cs.vbc.OpcodePrint;
+
 /**
  * A {@link MethodVisitor} that generates methods in bytecode form. Each visit
  * method of this class appends the bytecode corresponding to the visited
@@ -488,7 +490,7 @@ class MethodWriter extends MethodVisitor {
             maxLocals = size;
             currentLocals = size;
             // creates and visits the label for the first basic block
-            labels = new Label();
+            labels = new Label("<init>");
             labels.status |= Label.PUSHED;
             visitLabel(labels);
         }
@@ -816,7 +818,7 @@ class MethodWriter extends MethodVisitor {
             code.put11(opcode, var);
         }
         if (opcode >= Opcodes.ISTORE && compute == FRAMES && handlerCount > 0) {
-            visitLabel(new Label());
+            visitLabel(new Label("<visitVarInsn>"));
         }
     }
 
@@ -988,7 +990,7 @@ class MethodWriter extends MethodVisitor {
                 addSuccessor(Edge.NORMAL, label);
                 if (opcode != Opcodes.GOTO) {
                     // creates a Label for the next basic block
-                    nextInsn = new Label();
+                    nextInsn = new Label("<visitJumpInsn-" + OpcodePrint.print(opcode) + ">");
                 }
             } else {
                 if (opcode == Opcodes.JSR) {
@@ -999,7 +1001,7 @@ class MethodWriter extends MethodVisitor {
                     currentBlock.status |= Label.JSR;
                     addSuccessor(stackSize + 1, label);
                     // creates a Label for the next basic block
-                    nextInsn = new Label();
+                    nextInsn = new Label("<visitJumpInsn-JSR>");
                     /*
                      * note that, by construction in this method, a JSR block
                      * has at least two successors in the control flow graph:
@@ -1679,7 +1681,7 @@ class MethodWriter extends MethodVisitor {
      */
     private void noSuccessor() {
         if (compute == FRAMES) {
-            Label l = new Label();
+            Label l = new Label("<end>");
             l.frame = new Frame();
             l.frame.owner = l;
             l.resolve(this, code.length, code.data);

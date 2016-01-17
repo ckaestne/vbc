@@ -142,10 +142,10 @@ case class InstrGOTO(targetBlockIdx: Int) extends Instruction {
     override def toByteCode(mv: MethodVisitor, method: MethodNode, block: Block): Unit = {
         val cfg = method.body
         val targetBlock = cfg.blocks(targetBlockIdx)
-        assert(targetBlockIdx > block.idx, "not supporting backward jumps yet")
+        //        assert(targetBlockIdx > block.idx, "not supporting backward jumps yet")
         assert(targetBlockIdx < cfg.blocks.size, "attempting to jump beyond the last block")
-        assert(block.idx < cfg.blocks.size - 1, "attempting to jump from the last block")
-
+        //        assert(block.idx < cfg.blocks.size - 1, "attempting to jump from the last block")
+        //
         mv.visitJumpInsn(GOTO, targetBlock.label)
     }
 
@@ -178,15 +178,15 @@ case class Block(instr: Instruction*) extends LiftUtils {
         //load block condition (local variable for each block)
         //jump to next block if condition is contradictory
         //TODO properly deal with last block (may contain a jump) -- create an artificial last block for return values anyway
-        if (!isLastBlock) {
-            mv.visitVarInsn(ALOAD, blockConditionVar)
-            //            mv.visitInsn(DUP)
-            //            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
-            writeFExprIsContradiction(mv)
-            //            mv.visitInsn(DUP)
-            //            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printI", "(I)V", false)
-            mv.visitJumpInsn(IFNE, nextBlock.label)
-        }
+        //                if (!isLastBlock) {
+        //                    mv.visitVarInsn(ALOAD, blockConditionVar)
+        //                    //            mv.visitInsn(DUP)
+        //                    //            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
+        //                    writeFExprIsContradiction(mv)
+        //                    //            mv.visitInsn(DUP)
+        //                    //            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printI", "(I)V", false)
+        //                    mv.visitJumpInsn(IFNE, nextBlock.label)
+        //                }
 
         //generate block code
         instr.foreach(_.toVByteCode(mv, method, this))
@@ -208,11 +208,11 @@ case class Block(instr: Instruction*) extends LiftUtils {
             writeConstantFALSE(mv)
             mv.visitVarInsn(ASTORE, this.blockConditionVar)
 
-            //- if backward jump and target condition satisfiable, jump there
+            //- if backward jump, jump there (target condition is satisfiable, because this block's condition is and it's propagated)
             if (targetBlock.idx < this.idx) {
-                //value remembered with DUP up there to avoid loading it again
                 writeFExprIsSatisfiable(mv)
                 mv.visitJumpInsn(IFNE, targetBlock.label)
+                //                mv.visitJumpInsn(GOTO, targetBlock.label)
             }
 
         } else {
@@ -244,9 +244,16 @@ case class Block(instr: Instruction*) extends LiftUtils {
             writeConstantFALSE(mv)
             mv.visitVarInsn(ASTORE, this.blockConditionVar)
 
+            //            for (block<-method.body.blocks) {
+            //                mv.visitVarInsn(ALOAD, block.blockConditionVar)
+            //                mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
+            //            }
+
             //- if then-block is behind and its condition is satisfiable, jump there
             if (thenBlock.idx < this.idx) {
                 //value remembered with DUP up there to avoid loading it again
+                //                mv.visitInsn(DUP)
+                //                mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
                 writeFExprIsSatisfiable(mv)
                 mv.visitJumpInsn(IFNE, thenBlock.label)
             }
@@ -309,24 +316,27 @@ case class CFG(blocks: List[Block]) extends LiftUtils {
     blocks.foreach(_.computeSuccessors(this))
     blocks.foreach(_.computePredecessors(this))
 
+
     def toByteCode(mv: MethodVisitor, method: MethodNode) = {
         //hack: unfortunately necessary, since otherwise state inside the label is shared
         //across both toByteCode and toVByteCode with leads to obscure errors inside ASM
-        blocks.foreach(_.label = new Label())
+        for (i <- 0 until blocks.size) blocks(i).label = new Label("L" + i)
 
         blocks.foreach(_.toByteCode(mv, method))
     }
 
 
     def toVByteCode(mv: MethodVisitor, method: MethodNode) = {
-        //hack: unfortunately necessary, since otherwise state inside the label is shared
-        //across both toByteCode and toVByteCode with leads to obscure errors inside ASM
-        blocks.foreach(_.label = new Label())
-        blocks.foreach(_.blockConditionVar = method.getFreshVariable())
+        // hack: unfortunately necessary, since otherwise state inside the label is shared
+        // across both toByteCode and toVByteCode with leads to obscure errors inside ASM
+        for (i <- 0 until blocks.size) blocks(i).label = new Label("L" + i)
 
-        //TODO initialize all block variables to FALSE, except for the first one which is initialized to the ctx parameter
-        mv.visitVarInsn(ALOAD, method.ctxParameter)
-        mv.visitVarInsn(ASTORE, blocks.head.blockConditionVar)
+        // allocate a variable for each block, except for the first, which can reuse the parameter slot
+        blocks.headOption.map(_.blockConditionVar = method.ctxParameter)
+        blocks.tail.foreach(_.blockConditionVar = method.getFreshVariable())
+
+        // initialize all block variables to FALSE, except for the first one which is initialized
+        // to the ctx parameter (by using the parameter's slot in the stack)
         for (block <- blocks.tail) {
             writeConstantFALSE(mv)
             mv.visitVarInsn(ASTORE, block.blockConditionVar)

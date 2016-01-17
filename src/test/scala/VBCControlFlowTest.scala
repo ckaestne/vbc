@@ -53,4 +53,35 @@ class VBCControlFlowTest extends FunSuite with DiffTestInfrastructure {
         )
     }
 
+    test("conditional store") {
+        val localvar = 1
+        method(
+            Block(InstrICONST(5), InstrISTORE(localvar), InstrLoadConfig("A"), InstrIFEQ(2)),
+            Block(InstrICONST(1), InstrISTORE(localvar), InstrICONST(3), InstrDBGIPrint()),
+            Block(InstrILOAD(localvar), InstrDBGIPrint(), InstrRETURN())
+        )
+    }
+
+
+
+    test("plain loop") {
+        val localvar = 1
+        method(
+            Block(InstrICONST(3), InstrISTORE(localvar)),
+            Block(InstrILOAD(localvar), InstrDBGIPrint(), InstrIINC(localvar, -1), InstrILOAD(localvar), InstrIFEQ(3)),
+            Block(InstrGOTO(1)),
+            Block(InstrILOAD(localvar), InstrDBGIPrint(), InstrRETURN())
+        )
+    }
+
+    test("cond loop bound") {
+        val localvar = 1
+        method(
+            Block(InstrICONST(3), InstrLoadConfig("A"), InstrLoadConfig("B"), InstrIADD(), InstrIADD(), InstrISTORE(localvar)),
+            Block(InstrILOAD(localvar), InstrDBGIPrint(), InstrIINC(localvar, -1), InstrILOAD(localvar), InstrIFEQ(3)),
+            Block(InstrGOTO(1)),
+            Block(InstrILOAD(localvar), InstrDBGIPrint(), InstrRETURN())
+        )
+    }
+
 }

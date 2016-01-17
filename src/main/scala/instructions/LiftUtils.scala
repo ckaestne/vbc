@@ -58,6 +58,20 @@ trait LiftUtils {
     def writeFExprNot(mv: MethodVisitor) =
         mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "not", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
 
+    /**
+      * precondition: plain reference on top of stack
+      * postcondition: V reference on top of stack
+      */
+    def writeVCreateOne(mv: MethodVisitor) =
+        mv.visitMethodInsn(INVOKESTATIC, vclassname, "one", "(Ljava/lang/Object;)Ledu/cmu/cs/varex/V;", true)
+
+    /**
+      * precondition: feature expression and two V references on top of stack
+      * postcondition: V reference on top of stack
+      */
+    def writeVCreateChoice(mv: MethodVisitor) =
+        mv.visitMethodInsn(INVOKESTATIC, vclassname, "choice", "(Lde/fosd/typechef/featureexpr/FeatureExpr;Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Ledu/cmu/cs/varex/V;", true)
+
 
 
 }
