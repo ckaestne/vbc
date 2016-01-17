@@ -26,6 +26,7 @@ public class Tmp {
     FeatureExpr a = FeatureExprFactory.True();
     FeatureExpr b = FeatureExprFactory.createDefinedExternal("B");
     FeatureExpr c = a.and(b);
-    System.out.println(c);
+    if (c.isSatisfiable())
+      System.out.println(c);
   }
 }

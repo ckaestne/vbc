@@ -101,20 +101,18 @@ import org.objectweb.asm.{Label, MethodVisitor}
 case class InstrIFEQ(targetBlockIdx: Int) extends Instruction {
 
 
-    override def toByteCode(mv: MethodVisitor, method: MethodNode): Unit = {
+    override def toByteCode(mv: MethodVisitor, method: MethodNode, block: Block): Unit = {
         val cfg = method.body
         val targetBlock = cfg.blocks(targetBlockIdx)
-        val thisBlockIdx = findThisBlock(method).idx
-        assert(targetBlockIdx > thisBlockIdx, "not supporting backward jumps yet")
+        assert(targetBlockIdx > block.idx, "not supporting backward jumps yet")
         assert(targetBlockIdx < cfg.blocks.size, "attempting to jump beyond the last block")
-        assert(thisBlockIdx < cfg.blocks.size - 1, "attempting to jump from the last block")
+        assert(block.idx < cfg.blocks.size - 1, "attempting to jump from the last block")
 
         mv.visitJumpInsn(IFEQ, targetBlock.label)
     }
 
-    override def toVByteCode(mv: MethodVisitor, method: MethodNode): Unit = {
+    override def toVByteCode(mv: MethodVisitor, method: MethodNode, block: Block): Unit = {
         val cfg = method.body
-        val thisBlock = findThisBlock(method)
 
         /**
           * creating a variable for the decision
@@ -133,7 +131,7 @@ case class InstrIFEQ(targetBlockIdx: Int) extends Instruction {
         mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenEQ", "(Ledu/cmu/cs/varex/V;)Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
         //        mv.visitInsn(DUP)
         //        mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
-        mv.visitVarInsn(ASTORE, thisBlock.blockDecisionVar)
+        //        mv.visitVarInsn(ASTORE, block.blockConditionVar)
 
 
     }
@@ -141,18 +139,17 @@ case class InstrIFEQ(targetBlockIdx: Int) extends Instruction {
 
 
 case class InstrGOTO(targetBlockIdx: Int) extends Instruction {
-    override def toByteCode(mv: MethodVisitor, method: MethodNode): Unit = {
+    override def toByteCode(mv: MethodVisitor, method: MethodNode, block: Block): Unit = {
         val cfg = method.body
         val targetBlock = cfg.blocks(targetBlockIdx)
-        val thisBlockIdx = findThisBlock(method).idx
-        assert(targetBlockIdx > thisBlockIdx, "not supporting backward jumps yet")
+        assert(targetBlockIdx > block.idx, "not supporting backward jumps yet")
         assert(targetBlockIdx < cfg.blocks.size, "attempting to jump beyond the last block")
-        assert(thisBlockIdx < cfg.blocks.size - 1, "attempting to jump from the last block")
+        assert(block.idx < cfg.blocks.size - 1, "attempting to jump from the last block")
 
         mv.visitJumpInsn(GOTO, targetBlock.label)
     }
 
-    override def toVByteCode(mv: MethodVisitor, method: MethodNode): Unit = {
+    override def toVByteCode(mv: MethodVisitor, method: MethodNode, block: Block): Unit = {
 
     }
 
@@ -161,49 +158,44 @@ case class InstrGOTO(targetBlockIdx: Int) extends Instruction {
 case class Block(instr: Instruction*) extends LiftUtils {
     var label: Label = null
 
+    /**
+      * variable that refers to a condition/featureExpr
+      * with which this block is executed;
+      * value is initialized by the method
+      */
+    var blockConditionVar = -1
+
+
+
     def toByteCode(mv: MethodVisitor, method: MethodNode) = {
         mv.visitLabel(label)
-        instr.foreach(_.toByteCode(mv, method))
+        instr.foreach(_.toByteCode(mv, method, this))
     }
 
     def toVByteCode(mv: MethodVisitor, method: MethodNode) = {
         mv.visitLabel(label)
 
-        //TODO: optimize and do not recreate ctx if the previous block has the same condition
+        //load block condition (local variable for each block)
+        mv.visitVarInsn(ALOAD, blockConditionVar)
+        //jump to next block if condition is contradictory
+        writeIsContradiction(mv)
+        //        mv.visitJumpInsn()
 
-        //load ctx parameter the method received
-        mv.visitVarInsn(ALOAD, 1)
-        //load variables that store relevant previous decisions and connect them with ctx
-        //using and and andNot
-        val blockCondition = getBlockCondition()
-        if (blockCondition.pathConditions.size < 2)
-            for (pathCond <- blockCondition.pathConditions;
-                 decision <- pathCond.decisions) {
-                mv.visitVarInsn(ALOAD, decision.idx)
-                mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, if (decision.negated) "andNot" else "and", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
-            }
-        else {
-            var first = true
-            for (pathCond <- blockCondition.pathConditions) {
-                mv.visitMethodInsn(INVOKESTATIC, "de/fosd/typechef/featureexpr/FeatureExprFactory", "True", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
-                for (decision <- pathCond.decisions) {
-                    mv.visitVarInsn(ALOAD, decision.idx)
-                    mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, if (decision.negated) "andNot" else "and", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
-                }
-                if (!first)
-                    mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "or", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
-                first = false
-            }
-            mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "and", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
-        }
+        //generate block code
 
-        //set as ctx variable
-        mv.visitVarInsn(ASTORE, method.ctxLocalVar)
+        //if non-conditional jump
+        //- update next block's condition (disjunction with prior value)
+        //- set this block's condition to FALSE
+        //- if backward jump and target condition satisfiable, jump there
 
-        //TODO jump over block if condition unsatisfiable
+        //if conditional jump (then the last instruction left us a featureexpr on the stack)
+        //- update then-block's condition
+        //- update else-block's condition (ie. next block)
+        //- set this block's condition to FALSE
+        //- if then-block is behind and its condition is satisfiable, jump there
 
-        println("starting block " + idx + " with condition " + getBlockCondition())
-        instr.foreach(_.toVByteCode(mv, method))
+
+        instr.foreach(_.toVByteCode(mv, method, this))
     }
 
 
@@ -240,73 +232,14 @@ case class Block(instr: Instruction*) extends LiftUtils {
             yield block
     }
 
-    /**
-      * variable that refers to a condition/featureExpr
-      * regarding whether the first or the second
-      * successor block is chosen
-      */
-    var blockDecisionVar = -1
 
 
-    private def getBlockCondition(): BlockCondition = {
-        val conditions = for (pred <- predecessors) yield {
-            val c = pred.getBlockCondition()
-            //if previous block had a decision
-            if (pred.successors.size > 1) {
-                var decision = BlockDecision(pred.blockDecisionVar, false)
-                if (this == pred.successors.head)
-                    decision = decision.negate
-                if (c.pathConditions.isEmpty)
-                    BlockCondition(List(BlockPathCondition(List(decision))))
-                else
-                    BlockCondition(c.pathConditions.map(_.add(decision)))
-            } else c
-        }
-        conditions.fold(BlockCondition(Nil))(_ union _)
-    }
 
 
 }
 
-private[instructions] case class BlockCondition(pathConditions: List[BlockPathCondition]) {
 
-    /**
-      * this implementation is inefficient, but doesn't matter for now, since it's compiletime only anyway
-      *
-      * it removes conditions that are obsolete
-      */
-    private def removeRedundancy(conditions: List[BlockPathCondition]): List[BlockPathCondition] = {
-        var change = false
-        var cond = conditions
-        for (a <- conditions; b <- cond; if !(a eq b))
-            if (a.decisions.head == b.decisions.head.negate && a.decisions.tail == b.decisions.tail) {
-                cond = cond.filterNot(x => (x eq a) || (x eq b))
-                if (b.decisions.tail.nonEmpty)
-                    cond ::= BlockPathCondition(b.decisions.tail)
-                change = true
-            }
-        if (change) removeRedundancy(cond) else cond
-    }
-
-    def union(d: BlockCondition) = BlockCondition(removeRedundancy(d.pathConditions ++ this.pathConditions))
-
-    override def toString() = pathConditions.mkString(" || ")
-}
-
-private[instructions] case class BlockPathCondition(decisions: List[BlockDecision]) {
-    def add(d: BlockDecision) = BlockPathCondition(d :: decisions)
-
-    override def toString() = decisions.mkString("&&")
-}
-
-private[instructions] case class BlockDecision(idx: Int, negated: Boolean) {
-    def negate = BlockDecision(idx, !negated)
-
-    override def toString() = (if (negated) "!" else "") + idx
-}
-
-
-case class CFG(blocks: List[Block]) {
+case class CFG(blocks: List[Block]) extends LiftUtils {
 
     blocks.foreach(_.computeSuccessors(this))
     blocks.foreach(_.computePredecessors(this))
@@ -320,10 +253,20 @@ case class CFG(blocks: List[Block]) {
         blocks.foreach(_.toByteCode(mv, method))
     }
 
+
     def toVByteCode(mv: MethodVisitor, method: MethodNode) = {
         //hack: unfortunately necessary, since otherwise state inside the label is shared
         //across both toByteCode and toVByteCode with leads to obscure errors inside ASM
         blocks.foreach(_.label = new Label())
+        blocks.foreach(_.blockConditionVar = method.getFreshVariable())
+
+        //TODO initialize all block variables to FALSE, except for the first one which is initialized to the ctx parameter
+        mv.visitVarInsn(ALOAD, method.ctxParameter)
+        mv.visitVarInsn(ASTORE, blocks.head.blockConditionVar)
+        for (block <- blocks.tail) {
+            writeConstantFALSE(mv)
+            mv.visitVarInsn(ASTORE, block.blockConditionVar)
+        }
 
         blocks.foreach(_.toVByteCode(mv, method))
     }

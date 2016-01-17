@@ -37,7 +37,18 @@ trait LiftUtils {
         }
     }
 
-    protected def findThisBlock(method: MethodNode): Block =
-        method.body.blocks.find(_.instr.filter(_ eq this).nonEmpty).get
+    def writeConstantFALSE(mv: MethodVisitor) =
+        mv.visitMethodInsn(INVOKESTATIC, "de/fosd/typechef/featureexpr/FeatureExprFactory", "False", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
+
+    def writeConstantTRUE(mv: MethodVisitor) =
+        mv.visitMethodInsn(INVOKESTATIC, "de/fosd/typechef/featureexpr/FeatureExprFactory", "True", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
+
+    def writeIsSatisfiable(mv: MethodVisitor) =
+        mv.visitMethodInsn(INVOKEINTERFACE, "de/fosd/typechef/featureexpr/FeatureExpr", "isSatisfiable", "()Z", true)
+
+    def writeIsContradiction(mv: MethodVisitor) =
+        mv.visitMethodInsn(INVOKEINTERFACE, "de/fosd/typechef/featureexpr/FeatureExpr", "isContradiction", "()Z", true)
+
+
 
 }

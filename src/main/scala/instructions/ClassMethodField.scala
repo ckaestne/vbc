@@ -9,14 +9,13 @@ case class MethodNode(access: Int, name: String,
     // +2 for this and ctx
     var localVariableCount: Int = if (localVariables.isEmpty) 2 else Math.max(localVariables.max, 2)
     var ctxParameter: Int = 1
-    var ctxLocalVar: Int = getFreshVariable()
 
     def getFreshVariable(): Int = {
         localVariableCount += 1;
         localVariableCount
     }
 
-    for (b <- body.blocks; if b.isConditionalBlock()) b.blockDecisionVar = getFreshVariable()
+    //    for (b <- body.blocks; if b.isConditionalBlock()) b.blockConditionVar = getFreshVariable()
 
     def toByteCode(cw: ClassVisitor) = {
         val mv = cw.visitMethod(access, name, desc, signature, exceptions)
