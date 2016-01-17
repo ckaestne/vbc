@@ -176,34 +176,94 @@ case class Block(instr: Instruction*) extends LiftUtils {
         mv.visitLabel(label)
 
         //load block condition (local variable for each block)
-        mv.visitVarInsn(ALOAD, blockConditionVar)
         //jump to next block if condition is contradictory
-        writeIsContradiction(mv)
-        //        mv.visitJumpInsn()
+        //TODO properly deal with last block (may contain a jump) -- create an artificial last block for return values anyway
+        if (!isLastBlock) {
+            mv.visitVarInsn(ALOAD, blockConditionVar)
+            //            mv.visitInsn(DUP)
+            //            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
+            writeFExprIsContradiction(mv)
+            //            mv.visitInsn(DUP)
+            //            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printI", "(I)V", false)
+            mv.visitJumpInsn(IFNE, nextBlock.label)
+        }
 
         //generate block code
-
-        //if non-conditional jump
-        //- update next block's condition (disjunction with prior value)
-        //- set this block's condition to FALSE
-        //- if backward jump and target condition satisfiable, jump there
-
-        //if conditional jump (then the last instruction left us a featureexpr on the stack)
-        //- update then-block's condition
-        //- update else-block's condition (ie. next block)
-        //- set this block's condition to FALSE
-        //- if then-block is behind and its condition is satisfiable, jump there
-
-
         instr.foreach(_.toVByteCode(mv, method, this))
+
+        if (successors.isEmpty) {
+            //TODO deal with last block
+        } else if (!isConditionalBlock()) {
+            val targetBlock = successors.head
+            //if non-conditional jump
+            //- update next block's condition (disjunction with prior value)
+            mv.visitVarInsn(ALOAD, this.blockConditionVar)
+            mv.visitVarInsn(ALOAD, targetBlock.blockConditionVar)
+            writeFExprOr(mv)
+            if (targetBlock.idx < this.idx)
+                mv.visitInsn(DUP)
+            mv.visitVarInsn(ASTORE, targetBlock.blockConditionVar)
+
+            //- set this block's condition to FALSE
+            writeConstantFALSE(mv)
+            mv.visitVarInsn(ASTORE, this.blockConditionVar)
+
+            //- if backward jump and target condition satisfiable, jump there
+            if (targetBlock.idx < this.idx) {
+                //value remembered with DUP up there to avoid loading it again
+                writeFExprIsSatisfiable(mv)
+                mv.visitJumpInsn(IFNE, targetBlock.label)
+            }
+
+        } else {
+            //if conditional jump (then the last instruction left us a featureexpr on the stack)
+            val thenBlock = successors.tail.head
+            val elseBlock = successors.head
+            mv.visitInsn(DUP)
+            // -- stack: 2x Fexpr representing if condition
+
+            //- update else-block's condition (ie. next block)
+            writeFExprNot(mv)
+            mv.visitVarInsn(ALOAD, this.blockConditionVar)
+            writeFExprAnd(mv)
+            mv.visitVarInsn(ALOAD, elseBlock.blockConditionVar)
+            writeFExprOr(mv)
+            mv.visitVarInsn(ASTORE, elseBlock.blockConditionVar)
+
+
+            //- update then-block's condition to "then-successor.condition or (thisblock.condition and A)"
+            mv.visitVarInsn(ALOAD, this.blockConditionVar)
+            writeFExprAnd(mv)
+            mv.visitVarInsn(ALOAD, thenBlock.blockConditionVar)
+            writeFExprOr(mv)
+            if (thenBlock.idx < this.idx)
+                mv.visitInsn(DUP)
+            mv.visitVarInsn(ASTORE, thenBlock.blockConditionVar)
+
+            //- set this block's condition to FALSE
+            writeConstantFALSE(mv)
+            mv.visitVarInsn(ASTORE, this.blockConditionVar)
+
+            //- if then-block is behind and its condition is satisfiable, jump there
+            if (thenBlock.idx < this.idx) {
+                //value remembered with DUP up there to avoid loading it again
+                writeFExprIsSatisfiable(mv)
+                mv.visitJumpInsn(IFNE, thenBlock.label)
+            }
+        }
+
     }
 
 
     def isConditionalBlock() = instr.lastOption.map(_.isInstanceOf[InstrIFEQ]).getOrElse(false)
 
 
+    //successors and predecessors in the CFG
     var successors: List[Block] = Nil
     var predecessors: Set[Block] = Set()
+    //nextBlock is the next in the sequence, not necessarily a successor
+    var nextBlock: Block = null
+    var isLastBlock: Boolean = false
     var idx: Int = -1
 
     /**
@@ -213,16 +273,20 @@ case class Block(instr: Instruction*) extends LiftUtils {
       * one otherwise)
       */
     private[instructions] def computeSuccessors(cfg: CFG) = {
-        val thisBlockIdx = cfg.blocks.indexOf(this)
-        if (thisBlockIdx + 1 < cfg.blocks.size) {
+        if (idx + 1 < cfg.blocks.size) {
+            nextBlock = cfg.blocks(idx + 1)
+            isLastBlock = false
             if (isConditionalBlock())
-                successors = List(cfg.blocks(thisBlockIdx + 1), cfg.blocks(instr.last.asInstanceOf[InstrIFEQ].targetBlockIdx))
+                successors = List(nextBlock, cfg.blocks(instr.last.asInstanceOf[InstrIFEQ].targetBlockIdx))
             else if (instr.lastOption.map(_.isInstanceOf[InstrGOTO]).getOrElse(false))
                 successors = List(cfg.blocks(instr.last.asInstanceOf[InstrGOTO].targetBlockIdx))
             else
-                successors = List(cfg.blocks(thisBlockIdx + 1))
-        } else
+                successors = List(nextBlock)
+        } else {
             successors = Nil
+            nextBlock = null
+            isLastBlock = true
+        }
     }
 
     /** call after computing all successors */
@@ -241,9 +305,9 @@ case class Block(instr: Instruction*) extends LiftUtils {
 
 case class CFG(blocks: List[Block]) extends LiftUtils {
 
+    for (i <- 0 until blocks.size) blocks(i).idx = i
     blocks.foreach(_.computeSuccessors(this))
     blocks.foreach(_.computePredecessors(this))
-    for (i <- 0 until blocks.size) blocks(i).idx = i
 
     def toByteCode(mv: MethodVisitor, method: MethodNode) = {
         //hack: unfortunately necessary, since otherwise state inside the label is shared

@@ -32,7 +32,7 @@ trait LiftUtils {
             case 3 => mv.visitInsn(ICONST_3)
             case 4 => mv.visitInsn(ICONST_4)
             case 5 => mv.visitInsn(ICONST_5)
-            case v if v < Byte.MaxValue => mv.visitIntInsn(BIPUSH, v)
+            case v if v <= Byte.MaxValue && v >= Byte.MinValue => mv.visitIntInsn(BIPUSH, v)
             //TODO other push operation for larger constants
         }
     }
@@ -43,11 +43,20 @@ trait LiftUtils {
     def writeConstantTRUE(mv: MethodVisitor) =
         mv.visitMethodInsn(INVOKESTATIC, "de/fosd/typechef/featureexpr/FeatureExprFactory", "True", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
 
-    def writeIsSatisfiable(mv: MethodVisitor) =
-        mv.visitMethodInsn(INVOKEINTERFACE, "de/fosd/typechef/featureexpr/FeatureExpr", "isSatisfiable", "()Z", true)
+    def writeFExprIsSatisfiable(mv: MethodVisitor) =
+        mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "isSatisfiable", "()Z", true)
 
-    def writeIsContradiction(mv: MethodVisitor) =
-        mv.visitMethodInsn(INVOKEINTERFACE, "de/fosd/typechef/featureexpr/FeatureExpr", "isContradiction", "()Z", true)
+    def writeFExprIsContradiction(mv: MethodVisitor) =
+        mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "isContradiction", "()Z", true)
+
+    def writeFExprOr(mv: MethodVisitor) =
+        mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "or", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
+
+    def writeFExprAnd(mv: MethodVisitor) =
+        mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "and", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
+
+    def writeFExprNot(mv: MethodVisitor) =
+        mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "not", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
 
 
 
