@@ -5,28 +5,29 @@ import org.objectweb.asm.{ClassVisitor, Label, MethodVisitor, Type}
 
 
 trait Instruction extends LiftUtils {
-    def toByteCode(mv: MethodVisitor, cfg: CFG)
+    def toByteCode(mv: MethodVisitor, method: MethodNode)
 
-    def toVByteCode(mv: MethodVisitor, cfg: CFG)
+    def toVByteCode(mv: MethodVisitor, method: MethodNode)
 
+    def getVariables: Set[Integer] = Set()
 }
 
 case class InstrIADD() extends Instruction {
-    override def toByteCode(mv: MethodVisitor, cfg: CFG): Unit = {
+    override def toByteCode(mv: MethodVisitor, method: MethodNode): Unit = {
         mv.visitInsn(IADD)
     }
 
-    override def toVByteCode(mv: MethodVisitor, cfg: CFG): Unit = {
+    override def toVByteCode(mv: MethodVisitor, method: MethodNode): Unit = {
         mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "IADD", "(Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Ledu/cmu/cs/varex/V;", false)
     }
 }
 
 case class InstrICONST(v: Int) extends Instruction {
-    override def toByteCode(mv: MethodVisitor, cfg: CFG): Unit = {
+    override def toByteCode(mv: MethodVisitor, method: MethodNode): Unit = {
         writeConstant(mv, v)
     }
 
-    override def toVByteCode(mv: MethodVisitor, cfg: CFG): Unit = {
+    override def toVByteCode(mv: MethodVisitor, method: MethodNode): Unit = {
         writeConstant(mv, v)
         mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
         mv.visitMethodInsn(INVOKESTATIC, vclassname, "one", "(Ljava/lang/Object;)Ledu/cmu/cs/varex/V;", true)
@@ -35,43 +36,49 @@ case class InstrICONST(v: Int) extends Instruction {
 
 
 case class InstrRETURN() extends Instruction {
-    override def toByteCode(mv: MethodVisitor, cfg: CFG): Unit =
+    override def toByteCode(mv: MethodVisitor, method: MethodNode): Unit =
         mv.visitInsn(RETURN)
 
-    override def toVByteCode(mv: MethodVisitor, cfg: CFG): Unit =
+    override def toVByteCode(mv: MethodVisitor, method: MethodNode): Unit =
         mv.visitInsn(RETURN)
 }
 
 
 
 case class InstrIINC(variable: Int, increment: Int) extends Instruction {
-    override def toByteCode(mv: MethodVisitor, cfg: CFG): Unit =
+    override def toByteCode(mv: MethodVisitor, method: MethodNode): Unit =
         mv.visitIincInsn(variable, increment)
 
-    override def toVByteCode(mv: MethodVisitor, cfg: CFG): Unit = {
+    override def toVByteCode(mv: MethodVisitor, method: MethodNode): Unit = {
         mv.visitVarInsn(ALOAD, variable + ctxParameterOffset)
         writeConstant(mv, increment)
         mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "IINC", "(Ledu/cmu/cs/varex/V;I)Ledu/cmu/cs/varex/V;", false)
         mv.visitVarInsn(ASTORE, variable + ctxParameterOffset)
     }
+
+    override def getVariables() = Set(variable)
 }
 
 case class InstrISTORE(variable: Int) extends Instruction {
-    override def toByteCode(mv: MethodVisitor, cfg: CFG): Unit =
+    override def toByteCode(mv: MethodVisitor, method: MethodNode): Unit =
         mv.visitVarInsn(ISTORE, variable)
 
-    override def toVByteCode(mv: MethodVisitor, cfg: CFG): Unit = {
+    override def toVByteCode(mv: MethodVisitor, method: MethodNode): Unit = {
         mv.visitVarInsn(ASTORE, variable + ctxParameterOffset)
     }
+
+    override def getVariables() = Set(variable)
 }
 
 case class InstrILOAD(variable: Int) extends Instruction {
-    override def toByteCode(mv: MethodVisitor, cfg: CFG): Unit =
+    override def toByteCode(mv: MethodVisitor, method: MethodNode): Unit =
         mv.visitVarInsn(ILOAD, variable)
 
-    override def toVByteCode(mv: MethodVisitor, cfg: CFG): Unit = {
+    override def toVByteCode(mv: MethodVisitor, method: MethodNode): Unit = {
         mv.visitVarInsn(ALOAD, variable + ctxParameterOffset)
     }
+
+    override def getVariables() = Set(variable)
 }
 
 /**
@@ -86,9 +93,12 @@ case class InstrILOAD(variable: Int) extends Instruction {
   * for now, blocks need to be balanced wrt to the stack (not enforced yet)
   */
 case class InstrIFEQ(targetBlockIdx: Int) extends Instruction {
-    override def toByteCode(mv: MethodVisitor, cfg: CFG): Unit = {
+
+
+    override def toByteCode(mv: MethodVisitor, method: MethodNode): Unit = {
+        val cfg = method.body
         val targetBlock = cfg.blocks(targetBlockIdx)
-        val thisBlockIdx = cfg.blocks.indexWhere(_.instr contains this)
+        val thisBlockIdx = findThisBlock(method).idx
         assert(targetBlockIdx > thisBlockIdx, "not supporting backward jumps yet")
         assert(targetBlockIdx < cfg.blocks.size, "attempting to jump beyond the last block")
         assert(thisBlockIdx < cfg.blocks.size - 1, "attempting to jump from the last block")
@@ -96,20 +106,39 @@ case class InstrIFEQ(targetBlockIdx: Int) extends Instruction {
         mv.visitJumpInsn(IFEQ, targetBlock.label)
     }
 
-    override def toVByteCode(mv: MethodVisitor, cfg: CFG): Unit = {
-        val thisBlock = cfg.blocks.find(_.instr contains this).get
+    override def toVByteCode(mv: MethodVisitor, method: MethodNode): Unit = {
+        val cfg = method.body
+        val thisBlock = findThisBlock(method)
 
-        println("creating variable " + thisBlock.getBlockDecisionVar() + " for block " + thisBlock.idx)
+        /**
+          * creating a variable for the decision
+          *
+          * on top of the stack is the condition, which should be V[Int];
+          * that is, we want to know when that value is different from 0
+          *
+          * the condition is then stored as feature expression in a new
+          * variable. this variable is used at the beginning of the relevant
+          * blocks to modify the ctx
+          *
+          * the actual modification of ctx happens Block.toVByteCode
+          */
+        //        println("creating variable " + thisBlock.getBlockDecisionVar() + " for block " + thisBlock.idx)
 
-        //        mv.visitVarInsn(ASTORE, variable)
+        mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenEQ", "(Ledu/cmu/cs/varex/V;)Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
+        //        mv.visitInsn(DUP)
+        //        mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
+        mv.visitVarInsn(ASTORE, thisBlock.blockDecisionVar)
+
+
     }
 }
 
 
 case class InstrGOTO(targetBlockIdx: Int) extends Instruction {
-    override def toByteCode(mv: MethodVisitor, cfg: CFG): Unit = {
+    override def toByteCode(mv: MethodVisitor, method: MethodNode): Unit = {
+        val cfg = method.body
         val targetBlock = cfg.blocks(targetBlockIdx)
-        val thisBlockIdx = cfg.blocks.indexWhere(_.instr contains this)
+        val thisBlockIdx = findThisBlock(method).idx
         assert(targetBlockIdx > thisBlockIdx, "not supporting backward jumps yet")
         assert(targetBlockIdx < cfg.blocks.size, "attempting to jump beyond the last block")
         assert(thisBlockIdx < cfg.blocks.size - 1, "attempting to jump from the last block")
@@ -117,24 +146,57 @@ case class InstrGOTO(targetBlockIdx: Int) extends Instruction {
         mv.visitJumpInsn(GOTO, targetBlock.label)
     }
 
-    override def toVByteCode(mv: MethodVisitor, cfg: CFG): Unit = {
+    override def toVByteCode(mv: MethodVisitor, method: MethodNode): Unit = {
 
     }
 
 }
 
-case class Block(instr: Instruction*) {
-    val label = new Label()
+case class Block(instr: Instruction*) extends LiftUtils {
+    var label: Label = null
 
-    def toByteCode(mv: MethodVisitor, cfg: CFG) = {
+    def toByteCode(mv: MethodVisitor, method: MethodNode) = {
         mv.visitLabel(label)
-        instr.foreach(_.toByteCode(mv, cfg))
+        instr.foreach(_.toByteCode(mv, method))
     }
 
-    def toVByteCode(mv: MethodVisitor, cfg: CFG) = {
-        //        mv.visitLabel(label)
+    def toVByteCode(mv: MethodVisitor, method: MethodNode) = {
+        mv.visitLabel(label)
+
+        //TODO: optimize and do not recreate ctx if the previous block has the same condition
+
+        //load ctx parameter the method received
+        mv.visitVarInsn(ALOAD, 1)
+        //load variables that store relevant previous decisions and connect them with ctx
+        //using and and andNot
+        val blockCondition = getBlockCondition()
+        if (blockCondition.pathConditions.size < 2)
+            for (pathCond <- blockCondition.pathConditions;
+                 decision <- pathCond.decisions) {
+                mv.visitVarInsn(ALOAD, decision.idx)
+                mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, if (decision.negated) "andNot" else "and", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
+            }
+        else {
+            var first = true
+            for (pathCond <- blockCondition.pathConditions) {
+                mv.visitMethodInsn(INVOKESTATIC, "de/fosd/typechef/featureexpr/FeatureExprFactory", "True", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
+                for (decision <- pathCond.decisions) {
+                    mv.visitVarInsn(ALOAD, decision.idx)
+                    mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, if (decision.negated) "andNot" else "and", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
+                }
+                if (!first)
+                    mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "or", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
+                first = false
+            }
+            mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "and", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
+        }
+
+        //set as ctx variable
+        mv.visitVarInsn(ASTORE, method.ctxLocalVar)
+
+
         println("starting block " + idx + " with condition " + getBlockCondition())
-        instr.foreach(_.toVByteCode(mv, cfg))
+        instr.foreach(_.toVByteCode(mv, method))
     }
 
 
@@ -167,7 +229,7 @@ case class Block(instr: Instruction*) {
     /** call after computing all successors */
     private[instructions] def computePredecessors(cfg: CFG) = {
         predecessors = for (block <- cfg.blocks.toSet;
-                            if block.successors contains this)
+                            if block.successors.filter(_ eq this).nonEmpty)
             yield block
     }
 
@@ -176,7 +238,7 @@ case class Block(instr: Instruction*) {
       * regarding whether the first or the second
       * successor block is chosen
       */
-    private[instructions] def getBlockDecisionVar() = BlockDecision(idx, false)
+    var blockDecisionVar = -1
 
 
     private def getBlockCondition(): BlockCondition = {
@@ -184,8 +246,8 @@ case class Block(instr: Instruction*) {
             val c = pred.getBlockCondition()
             //if previous block had a decision
             if (pred.successors.size > 1) {
-                var decision = pred.getBlockDecisionVar()
-                if (this != pred.successors.head)
+                var decision = BlockDecision(pred.blockDecisionVar, false)
+                if (this == pred.successors.head)
                     decision = decision.negate
                 if (c.pathConditions.isEmpty)
                     BlockCondition(List(BlockPathCondition(List(decision))))
@@ -238,25 +300,47 @@ private[instructions] case class BlockDecision(idx: Int, negated: Boolean) {
 
 
 case class CFG(blocks: List[Block]) {
+
     blocks.foreach(_.computeSuccessors(this))
     blocks.foreach(_.computePredecessors(this))
     for (i <- 0 until blocks.size) blocks(i).idx = i
 
-    def toByteCode(mv: MethodVisitor) = {
-        blocks.foreach(_.toByteCode(mv, this))
+    def toByteCode(mv: MethodVisitor, method: MethodNode) = {
+        //hack: unfortunately necessary, since otherwise state inside the label is shared
+        //across both toByteCode and toVByteCode with leads to obscure errors inside ASM
+        blocks.foreach(_.label = new Label())
+
+        blocks.foreach(_.toByteCode(mv, method))
     }
 
-    def toVByteCode(mv: MethodVisitor) =
-        blocks.foreach(_.toVByteCode(mv, this))
+    def toVByteCode(mv: MethodVisitor, method: MethodNode) = {
+        //hack: unfortunately necessary, since otherwise state inside the label is shared
+        //across both toByteCode and toVByteCode with leads to obscure errors inside ASM
+        blocks.foreach(_.label = new Label())
+
+        blocks.foreach(_.toVByteCode(mv, method))
+    }
 }
 
 case class MethodNode(access: Int, name: String,
                       desc: String, signature: String, exceptions: Array[String], body: CFG) extends LiftUtils {
+    val localVariables = (for (b <- body.blocks; i <- b.instr; v <- i.getVariables) yield v).toSet
+    // +2 for this and ctx
+    var localVariableCount: Int = if (localVariables.isEmpty) 2 else Math.max(localVariables.max, 2)
+    var ctxParameter: Int = 1
+    var ctxLocalVar: Int = getFreshVariable()
+
+    def getFreshVariable(): Int = {
+        localVariableCount += 1;
+        localVariableCount
+    }
+
+    for (b <- body.blocks; if b.isConditionalBlock()) b.blockDecisionVar = getFreshVariable()
 
     def toByteCode(cw: ClassVisitor) = {
         val mv = cw.visitMethod(access, name, desc, signature, exceptions)
         mv.visitCode()
-        body.toByteCode(mv)
+        body.toByteCode(mv, this)
         mv.visitMaxs(0, 0)
         mv.visitEnd()
     }
@@ -264,8 +348,8 @@ case class MethodNode(access: Int, name: String,
     def toVByteCode(cw: ClassVisitor) = {
         val mv = cw.visitMethod(access, name, liftMethodDescription(desc), signature, exceptions)
         mv.visitCode()
-        body.toVByteCode(mv)
-        mv.visitMaxs(0, 0)
+        body.toVByteCode(mv, this)
+        mv.visitMaxs(5, 5)
         mv.visitEnd()
     }
 
@@ -307,4 +391,8 @@ trait LiftUtils {
             //TODO other push operation for larger constants
         }
     }
+
+    protected def findThisBlock(method: MethodNode): Block =
+        method.body.blocks.find(_.instr.filter(_ eq this).nonEmpty).get
+
 }

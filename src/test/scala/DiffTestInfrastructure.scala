@@ -87,10 +87,10 @@ trait DiffTestInfrastructure {
 
         val vresult: List[TOpt[String]] = executeV(testVClass, m.name)
         val bruteForceResult = executeBruteForce(testClass, m.name, configOptions)
-        println("expected " + bruteForceResult)
-        println("found    " + vresult)
+        println("expected " + bruteForceResult.reverse)
+        println("found    " + vresult.reverse)
 
-        compare(bruteForceResult, vresult)
+        compare(bruteForceResult.reverse, vresult.reverse)
     }
 
     private def compare(expected: List[TOpt[String]], result: List[TOpt[String]]): Unit = {

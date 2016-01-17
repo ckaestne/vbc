@@ -3,7 +3,7 @@ package edu.cmu.cs.vbc.test
 
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
 import edu.cmu.cs.varex.{V, VHelper}
-import edu.cmu.cs.vbc.instructions.{CFG, Instruction}
+import edu.cmu.cs.vbc.instructions.{Instruction, MethodNode}
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
 
@@ -47,26 +47,30 @@ object TestOutput {
         for ((c, v) <- VHelper.explode(ctx, i))
             output ::= de.fosd.typechef.conditional.Opt(c, v.asInstanceOf[Int].toString)
     }
+
+    def printFE(f: FeatureExpr): Unit = {
+        println(f)
+    }
 }
 
 case class InstrLoadConfig(config: String) extends Instruction {
-    override def toByteCode(mv: MethodVisitor, cfg: CFG): Unit = {
+    override def toByteCode(mv: MethodVisitor, method: MethodNode): Unit = {
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/Config", config, "()I", false)
     }
 
-    override def toVByteCode(mv: MethodVisitor, cfg: CFG): Unit =
+    override def toVByteCode(mv: MethodVisitor, method: MethodNode): Unit =
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/Config", "V" + config, "()Ledu/cmu/cs/varex/V;", false)
 
 }
 
 
 case class InstrDBGIPrint() extends Instruction {
-    override def toByteCode(mv: MethodVisitor, cfg: CFG): Unit = {
+    override def toByteCode(mv: MethodVisitor, method: MethodNode): Unit = {
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printI", "(I)V", false)
     }
 
-    override def toVByteCode(mv: MethodVisitor, cfg: CFG): Unit = {
-        mv.visitVarInsn(ALOAD, 1) // ctx
+    override def toVByteCode(mv: MethodVisitor, method: MethodNode): Unit = {
+        mv.visitVarInsn(ALOAD, method.ctxLocalVar) // ctx
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printVI", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
     }
 
