@@ -16,7 +16,7 @@ import org.objectweb.asm.{ClassReader, ClassWriter}
   */
 trait DiffTestInfrastructure {
 
-    class MyClassLoader extends ClassLoader {
+    class MyClassLoader extends ClassLoader(this.getClass.getClassLoader) {
         def defineClass(name: String, b: Array[Byte]): Class[_] = {
             return defineClass(name, b, 0, b.length)
         }

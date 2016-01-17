@@ -8,6 +8,8 @@ libraryDependencies += "de.fosd.typechef" % "conditionallib_2.11" % "0.4.1"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.6" % "test"
 
+parallelExecution in Test := false
+
 javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint")
 
 initialize := {
