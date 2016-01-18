@@ -342,6 +342,14 @@ case class CFG(blocks: List[Block]) extends LiftUtils {
             mv.visitVarInsn(ASTORE, block.blockConditionVar)
         }
 
+        //there might be a smarter way, but as we need to load an old value when
+        //conditionally storing an updated value, we need to initialize all lifted
+        //fields. here setting them all to null
+        for (v <- method.localVariables) {
+            mv.visitInsn(ACONST_NULL)
+            mv.visitVarInsn(ASTORE, v)
+        }
+
         blocks.foreach(_.toVByteCode(mv, method))
     }
 }

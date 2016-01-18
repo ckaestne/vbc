@@ -21,12 +21,14 @@ public class Tmp {
 //    System.out.println("5");
 
 
+    V<Integer> x = null;
+
 
     System.out.println(V.one(18));
     FeatureExpr a = FeatureExprFactory.True();
     FeatureExpr b = FeatureExprFactory.createDefinedExternal("B");
     FeatureExpr c = a.and(b);
     if (c.isSatisfiable())
-      System.out.println(c);
+      System.out.println(x);
   }
 }

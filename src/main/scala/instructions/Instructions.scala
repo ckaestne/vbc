@@ -65,6 +65,13 @@ case class InstrIINC(variable: Int, increment: Int) extends Instruction {
         mv.visitVarInsn(ALOAD, variable + ctxParameterOffset)
         writeConstant(mv, increment)
         mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "IINC", "(Ledu/cmu/cs/varex/V;I)Ledu/cmu/cs/varex/V;", false)
+
+        //create a choice with the original value
+        mv.visitVarInsn(ALOAD, block.blockConditionVar)
+        mv.visitInsn(SWAP)
+        mv.visitVarInsn(ALOAD, variable + ctxParameterOffset)
+        writeVCreateChoice(mv)
+
         mv.visitVarInsn(ASTORE, variable + ctxParameterOffset)
     }
 
