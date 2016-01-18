@@ -178,15 +178,15 @@ case class Block(instr: Instruction*) extends LiftUtils {
         //load block condition (local variable for each block)
         //jump to next block if condition is contradictory
         //TODO properly deal with last block (may contain a jump) -- create an artificial last block for return values anyway
-        //                if (!isLastBlock) {
-        //                    mv.visitVarInsn(ALOAD, blockConditionVar)
-        //                    //            mv.visitInsn(DUP)
-        //                    //            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
-        //                    writeFExprIsContradiction(mv)
-        //                    //            mv.visitInsn(DUP)
-        //                    //            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printI", "(I)V", false)
-        //                    mv.visitJumpInsn(IFNE, nextBlock.label)
-        //                }
+        if (!isLastBlock) {
+            mv.visitVarInsn(ALOAD, blockConditionVar)
+            //            mv.visitInsn(DUP)
+            //            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
+            writeFExprIsContradiction(mv)
+            //            mv.visitInsn(DUP)
+            //            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printI", "(I)V", false)
+            mv.visitJumpInsn(IFNE, nextBlock.label)
+        }
 
         //generate block code
         instr.foreach(_.toVByteCode(mv, method, this))
@@ -345,6 +345,8 @@ case class CFG(blocks: List[Block]) extends LiftUtils {
         //there might be a smarter way, but as we need to load an old value when
         //conditionally storing an updated value, we need to initialize all lifted
         //fields. here setting them all to null
+        //the same process occurs (not actually but as a potential case for the
+        //analysis when jumping over unsatisfiable blocks)
         for (v <- method.localVariables) {
             mv.visitInsn(ACONST_NULL)
             mv.visitVarInsn(ASTORE, v)
