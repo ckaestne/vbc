@@ -25,6 +25,8 @@ object Rewrite {
     }
 
     private def unifyReturnInstr(method: MethodNode, returnInstr: Instruction): MethodNode = {
+        //TODO technically, all methods will always return type V, so we should not have
+        //to worry really about what kind of store/load/return instruction we generate here
         val returnVariable = new LocalVar()
 
         var newReturnBlockInstr = List(returnInstr)
