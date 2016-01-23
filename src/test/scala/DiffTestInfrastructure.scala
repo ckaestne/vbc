@@ -54,23 +54,33 @@ trait DiffTestInfrastructure {
     }
 
 
-    def testMethod(m: MethodNode): Unit = {
-
+    def loadTestClass(clazz: TestClass): Class[_] = {
         val cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS)
-        val vcw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS)
-        val clazz = new TestClass(m)
-
         clazz.toByteCode(cw)
-        clazz.toVByteCode(vcw)
         val byte = cw.toByteArray
+        val myClassLoader = new MyClassLoader
+        myClassLoader.defineClass("Test", byte)
+    }
+
+    def loadVTestClass(clazz: TestClass): Class[_] = {
+        val vcw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS)
+        clazz.toVByteCode(vcw)
         val vbyte = vcw.toByteArray
-
-        val configOptions: Set[String] =
-            (for (block <- m.body.blocks; instr <- block.instr; if instr.isInstanceOf[InstrLoadConfig]) yield instr.asInstanceOf[InstrLoadConfig].config).toSet
-
 
         val printer = new TraceClassVisitor(new PrintWriter(System.out))
         new ClassReader(vbyte).accept(printer, 0)
+        val myVClassLoader = new MyClassLoader
+        myVClassLoader.defineClass("Test", vbyte)
+    }
+
+
+    def testMethod(m: MethodNode): Unit = {
+
+        val clazz = new TestClass(m)
+
+
+        val configOptions: Set[String] = getConfigOptions(m)
+
 
         //        val resource: String = "edu.cmu.cs.vbc.Tmp".replace('.', '/') + ".class"
         //        val is: InputStream = myClassLoader.getResourceAsStream(resource)
@@ -79,11 +89,8 @@ trait DiffTestInfrastructure {
 
         //        val testClass = myClassLoader.defineClass("Test", byte)
 
-        val myClassLoader = new MyClassLoader
-        val myVClassLoader = new MyClassLoader
-
-        val testVClass = myVClassLoader.defineClass("Test", vbyte)
-        val testClass = myClassLoader.defineClass("Test", byte)
+        val testClass = loadTestClass(clazz)
+        val testVClass = loadVTestClass(clazz)
 
         val vresult: List[TOpt[String]] = executeV(testVClass, m.name)
         val bruteForceResult = executeBruteForce(testClass, m.name, configOptions)
@@ -91,6 +98,14 @@ trait DiffTestInfrastructure {
         println("found    " + vresult.reverse)
 
         compare(bruteForceResult.reverse, vresult.reverse)
+
+        benchmark(testVClass, testClass, m.name, configOptions)
+    }
+
+    def getConfigOptions(m: MethodNode): Set[String] = {
+        val configOptions: Set[String] =
+            (for (block <- m.body.blocks; instr <- block.instr; if instr.isInstanceOf[InstrLoadConfig]) yield instr.asInstanceOf[InstrLoadConfig].config).toSet
+        configOptions
     }
 
     private def compare(expected: List[TOpt[String]], result: List[TOpt[String]]): Unit = {
@@ -146,5 +161,55 @@ trait DiffTestInfrastructure {
             r.map(x => (fs.head :: x._1, x._2)) ++ r.map(x => (x._1, fs.head :: x._2))
         }
     }
+
+
+    def benchmark(testVClass: Class[_], testClass: Class[_], method: String, configOptions: Set[String]): Unit = {
+        import org.scalameter._
+
+        //measure V execution
+        var testObject: Any = null
+        var _ctx: FeatureExpr = null
+        val vtime = config(
+            Key.exec.benchRuns -> 20
+        ) withWarmer {
+            new Warmer.Default
+            //        } withMeasurer {
+            //            new Measurer.IgnoringGC
+        } setUp { _ =>
+            TestOutput.output = Nil
+            Config.configValues = Map()
+            testObject = testVClass.newInstance()
+            _ctx = FeatureExprFactory.True
+        } measure {
+            testVClass.getMethod(method, classOf[FeatureExpr]).invoke(testObject, _ctx)
+        }
+        //        println(s"Total time V: $time")
+
+
+        //measure brute-force execution
+        val configs = explode(configOptions.toList)
+        val bftimes = for ((sel, desel) <- configs)
+            yield config(
+                Key.exec.benchRuns -> 20
+            ) withWarmer {
+                new Warmer.Default
+                //        } withMeasurer {
+                //            new Measurer.IgnoringGC
+            } setUp { _ =>
+                TestOutput.output = Nil
+                Config.configValues = (sel.map((_ -> 1)) ++ desel.map((_ -> 0))).toMap
+                testObject = testClass.newInstance()
+            } measure {
+                testClass.getMethod(method).invoke(testObject)
+            }
+
+
+        val avgTime = bftimes.map(_.value).sum / bftimes.size
+        println("VExecution time: " + vtime)
+        println("Execution time: " + avgTime + bftimes.mkString(" (", ",", ")"))
+        println("Slowdown: " + vtime.value / avgTime)
+
+    }
+
 
 }
