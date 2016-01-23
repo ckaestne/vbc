@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.instructions
 
-import org.objectweb.asm.ClassVisitor
+import org.objectweb.asm.{ClassVisitor, Type}
 
 
 case class MethodNode(access: Int, name: String,
@@ -21,6 +21,8 @@ case class MethodNode(access: Int, name: String,
         mv.visitMaxs(5, 5)
         mv.visitEnd()
     }
+
+    def returnsVoid() = Type.getMethodType(desc).getReturnType == Type.VOID_TYPE
 
 
 }

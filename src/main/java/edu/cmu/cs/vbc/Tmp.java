@@ -1,9 +1,5 @@
 package edu.cmu.cs.vbc;
 
-import de.fosd.typechef.featureexpr.FeatureExpr;
-import de.fosd.typechef.featureexpr.FeatureExprFactory;
-import edu.cmu.cs.varex.V;
-
 /**
  * Created by ckaestne on 1/16/2016.
  */
@@ -21,14 +17,21 @@ public class Tmp {
 //    System.out.println("5");
 
 
-    V<Integer> x = null;
+//    V<Integer> x = null;
+//
+//
+//    System.out.println(V.one(18));
+//    FeatureExpr a = FeatureExprFactory.True();
+//    FeatureExpr b = FeatureExprFactory.createDefinedExternal("B");
+//    FeatureExpr c = a.and(b);
+//    if (c.isSatisfiable())
+//      System.out.println(x);
 
-
-    System.out.println(V.one(18));
-    FeatureExpr a = FeatureExprFactory.True();
-    FeatureExpr b = FeatureExprFactory.createDefinedExternal("B");
-    FeatureExpr c = a.and(b);
-    if (c.isSatisfiable())
-      System.out.println(x);
+    int i = 5;
+    while (i > 0) {
+      i--;
+      System.out.println(i);
+    }
+    System.out.println("done");
   }
 }

@@ -87,4 +87,12 @@ class VBCControlFlowTest extends FunSuite with DiffTestInfrastructure {
         )
     }
 
+    test("two returns") {
+        method(
+            Block(InstrLoadConfig("A"), InstrIFEQ(2)),
+            Block(InstrICONST(3), InstrDBGIPrint(), InstrRETURN()),
+            Block(InstrICONST(4), InstrDBGIPrint(), InstrRETURN())
+        )
+    }
+
 }

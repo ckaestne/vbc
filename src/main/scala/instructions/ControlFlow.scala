@@ -154,6 +154,7 @@ case class Block(instr: Instruction*) extends LiftUtils {
     }
 
     def toVByteCode(mv: MethodVisitor, env: VMethodEnv) = {
+        vvalidate(env)
         mv.visitLabel(env.getBlockLabel(this))
 
         val thisBlockConditionVar = env.getBlockVar(this)

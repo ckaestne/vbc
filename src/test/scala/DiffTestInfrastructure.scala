@@ -4,7 +4,7 @@ import java.io.PrintWriter
 
 import de.fosd.typechef.conditional.{ConditionalLib, Opt}
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
-import edu.cmu.cs.vbc.instructions.MethodNode
+import edu.cmu.cs.vbc.instructions.{MethodNode, Rewrite}
 import edu.cmu.cs.vbc.test.TestOutput.TOpt
 import edu.cmu.cs.vbc.test.{Config, InstrLoadConfig, TestOutput}
 import org.objectweb.asm.Opcodes._
@@ -47,7 +47,7 @@ trait DiffTestInfrastructure {
 
         def toVByteCode(cw: ClassWriter) = {
             header(cw)
-            m.toVByteCode(cw)
+            Rewrite.rewrite(m).toVByteCode(cw)
             cw.visitEnd()
         }
 
