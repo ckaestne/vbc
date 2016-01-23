@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc
 
+import de.fosd.typechef.featureexpr.FeatureExprFactory
 import edu.cmu.cs.vbc.instructions._
 import edu.cmu.cs.vbc.test.{InstrDBGCtx, InstrDBGIPrint, InstrLoadConfig}
 import org.objectweb.asm.Opcodes._
@@ -7,6 +8,8 @@ import org.scalatest.FunSuite
 
 
 class VBCControlFlowTest extends FunSuite with DiffTestInfrastructure {
+
+    FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
 
     private def method(blocks: Block*) =
         testMethod(new MethodNode(ACC_PUBLIC, "test", "()V", "()V", Array.empty,
@@ -45,10 +48,10 @@ class VBCControlFlowTest extends FunSuite with DiffTestInfrastructure {
 
     test("nested conditional if2") {
         method(
-            Block(InstrLoadConfig("A"), InstrIFEQ(2)),
-            Block(InstrLoadConfig("B"), InstrIFEQ(3)),
+            Block(InstrDBGCtx("L0"), InstrLoadConfig("A"), InstrIFEQ(2)),
+            Block(InstrDBGCtx("L1"), InstrLoadConfig("B"), InstrIFEQ(3)),
             Block(InstrDBGCtx("L2"), InstrICONST(3), InstrDBGIPrint(), InstrGOTO(4)),
-            Block(InstrDBGCtx("L3"), InstrICONST(3), InstrDBGIPrint()),
+            Block(InstrDBGCtx("L3"), InstrICONST(5), InstrDBGIPrint()),
             Block(InstrDBGCtx("L4"), InstrICONST(4), InstrDBGIPrint(), InstrRETURN())
         )
     }

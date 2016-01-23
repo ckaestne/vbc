@@ -106,7 +106,7 @@ case class InstrIFEQ(targetBlockIdx: Int) extends JumpInstruction {
         mv.visitJumpInsn(IFEQ, env.getBlockLabel(targetBlock))
     }
 
-    override def toVByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
 
         /**
           * creating a variable for the decision
@@ -135,7 +135,7 @@ case class InstrGOTO(targetBlockIdx: Int) extends JumpInstruction {
         mv.visitJumpInsn(GOTO, env.getBlockLabel(targetBlock))
     }
 
-    override def toVByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
         //handled in block implementation
     }
 
@@ -153,7 +153,7 @@ case class Block(instr: Instruction*) extends LiftUtils {
         instr.foreach(_.toByteCode(mv, env, this))
     }
 
-    def toVByteCode(mv: MethodVisitor, env: MethodEnv) = {
+    def toVByteCode(mv: MethodVisitor, env: VMethodEnv) = {
         mv.visitLabel(env.getBlockLabel(this))
 
         val thisBlockConditionVar = env.getBlockVar(this)
@@ -251,14 +251,12 @@ case class Block(instr: Instruction*) extends LiftUtils {
         })
     }
 
-    def vvalidate(env: MethodEnv): Unit = {
+    def vvalidate(env: VMethodEnv): Unit = {
         validate()
         //additionally ensure that the last block is the only one that contains a return statement
         if (this != env.getLastBlock())
             assert(!instr.last.isReturnInstr, "only the last block may contain a return instruction in variational byte code")
     }
-
-    def getVar(env: MethodEnv): Variable = env.getBlockVar(this)
 
 
     override def equals(that: Any): Boolean = that match {
@@ -280,7 +278,7 @@ case class CFG(blocks: List[Block]) extends LiftUtils {
     }
 
 
-    def toVByteCode(mv: MethodVisitor, env: MethodEnv) = {
+    def toVByteCode(mv: MethodVisitor, env: VMethodEnv) = {
         // allocate a variable for each block, except for the first, which can reuse the parameter slot
         blocks.headOption.map(env.setBlockVar(_, env.ctxParameter))
         blocks.tail.foreach(env.setBlockVar(_, env.freshLocalVar()))

@@ -16,7 +16,6 @@ public class VOps {
   }
 
   public static FeatureExpr whenEQ(V<? extends Integer> a) {
-    System.out.println("whenEQ: " + a);
     return a.when(v -> v == 0);
   }
 

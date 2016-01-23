@@ -17,7 +17,7 @@ case class MethodNode(access: Int, name: String,
     def toVByteCode(cw: ClassVisitor) = {
         val mv = cw.visitMethod(access, name, liftMethodDescription(desc), signature, exceptions)
         mv.visitCode()
-        body.toVByteCode(mv, new MethodEnv(this))
+        body.toVByteCode(mv, new VMethodEnv(this))
         mv.visitMaxs(5, 5)
         mv.visitEnd()
     }

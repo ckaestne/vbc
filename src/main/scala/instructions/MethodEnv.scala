@@ -2,30 +2,26 @@ package edu.cmu.cs.vbc.instructions
 
 import org.objectweb.asm.Label
 
-/**
-  * environment used during generation of the byte code and variational
-  * byte code
-  */
 class MethodEnv(method: MethodNode) {
-
-
-    val blocks = method.body.blocks
+    protected val blocks = method.body.blocks
     assert(blocks.nonEmpty, "method with empty body not supported")
-    var labels: List[Label] = Nil
+
+    //find all local variables
+    protected val localVars: List[LocalVar] =
+        (for (block <- blocks; instr <- block.instr; v <- instr.getVariables) yield v).distinct
+
+    protected var labels: List[Label] = Nil
     //local variables refer to variables that are used in the byte code,
     //not to variables that are generated in the tranformation process;
     //the latter are stored separately as freshVars
     //(localVars and freshVars behave as sorted sets)
-    var parameters: Set[Parameter] = Set()
-    var maxParameterIdx = 0
-    var freshVars: List[LocalVar] = Nil
-    var blockVars: Map[Block, Variable] = Map()
-    var blockLabels: Map[Block, Label] = Map()
+    protected var parameters: Set[Parameter] = Set()
+    protected var maxParameterIdx = 0
+    protected var freshVars: List[LocalVar] = Nil
 
-    //find all local variables
-    val localVars: List[LocalVar] =
-        (for (block <- blocks; instr <- block.instr; v <- instr.getVariables) yield v).distinct
+    protected var blockLabels: Map[Block, Label] = Map()
 
+    val thisParameter: Parameter = new Parameter(0)
 
     def freshLabel(name: String = "<unknown>") = {
         val l = new Label(name)
@@ -39,22 +35,21 @@ class MethodEnv(method: MethodNode) {
         l
     }
 
-    val ctxParameter: Parameter = new Parameter(-1)
-    val thisParameter: Parameter = new Parameter(0)
-
-
-    def setBlockVar(block: Block, avar: Variable): Unit =
-        blockVars += (block -> avar)
-
-    def getBlockVar(block: Block): Variable = {
-        if (!(blockVars contains block))
-            blockVars += (block -> freshLocalVar())
-        blockVars(block)
+    def getVarIdx(variable: Variable): Int = variable match {
+        case p: Parameter =>
+            assert(p.idx >= 0, "parameter with negative index not supported")
+            p.idx
+        case l: LocalVar =>
+            val localIdxPos = localVars.reverse.indexOf(l)
+            if (localIdxPos >= 0)
+                maxParameterIdx + 1 + localIdxPos
+            else {
+                val freshIdxPos = freshVars.reverse.indexOf(l)
+                assert(freshIdxPos >= 0, "variable not found in environment")
+                maxParameterIdx + 1 + localVars.size + freshIdxPos
+            }
     }
 
-    def getBlockVarVIdx(block: Block): Int = getVVarIdx(getBlockVar(block))
-
-    def getLocalVariables() = localVars
 
     def getBlock(blockIdx: Int) = blocks(blockIdx)
 
@@ -114,29 +109,45 @@ class MethodEnv(method: MethodNode) {
         parameters += p
         maxParameterIdx = Math.max(maxParameterIdx, p.idx)
     }
+}
 
-    def getVarIdx(variable: Variable): Int = variable match {
-        case p: Parameter =>
-            assert(!(p eq ctxParameter), "ctx parameter not supported in nonvariational byte code")
-            p.idx
-        case l: LocalVar =>
-            val localIdxPos = localVars.reverse.indexOf(l)
-            if (localIdxPos >= 0)
-                maxParameterIdx + 1 + localIdxPos
-            else {
-                val freshIdxPos = freshVars.reverse.indexOf(l)
-                assert(freshIdxPos >= 0, "variable not found in environment")
-                maxParameterIdx + 1 + localVars.size + freshIdxPos
-            }
+/**
+  * environment used during generation of the byte code and variational
+  * byte code
+  */
+class VMethodEnv(method: MethodNode) extends MethodEnv(method) {
+
+
+    var blockVars: Map[Block, Variable] = Map()
+
+
+
+    val ctxParameter: Parameter = new Parameter(-1)
+
+
+    def setBlockVar(block: Block, avar: Variable): Unit =
+        blockVars += (block -> avar)
+
+    def getBlockVar(block: Block): Variable = {
+        if (!(blockVars contains block))
+            blockVars += (block -> freshLocalVar())
+        blockVars(block)
     }
+
+    def getBlockVarVIdx(block: Block): Int = getVarIdx(getBlockVar(block))
+
+    def getLocalVariables() = localVars
+
+
+
 
     /**
       * all values shifted by 1 by the ctx parameter
       */
-    def getVVarIdx(variable: Variable): Int =
+    override def getVarIdx(variable: Variable): Int =
         if (variable eq ctxParameter) 1
         else {
-            val idx = getVarIdx(variable: Variable)
+            val idx = super.getVarIdx(variable: Variable)
             if (idx > 0) idx + 1
             else idx
         }

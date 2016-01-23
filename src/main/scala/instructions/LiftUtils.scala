@@ -59,16 +59,16 @@ trait LiftUtils {
         mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "not", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
 
     def storeFExpr(mv: MethodVisitor, env: MethodEnv, v: Variable) =
-        mv.visitVarInsn(ASTORE, env.getVVarIdx(v))
+        mv.visitVarInsn(ASTORE, env.getVarIdx(v))
 
     def loadFExpr(mv: MethodVisitor, env: MethodEnv, v: Variable) =
-        mv.visitVarInsn(ALOAD, env.getVVarIdx(v))
+        mv.visitVarInsn(ALOAD, env.getVarIdx(v))
 
     def storeV(mv: MethodVisitor, env: MethodEnv, v: Variable) =
-        mv.visitVarInsn(ASTORE, env.getVVarIdx(v))
+        mv.visitVarInsn(ASTORE, env.getVarIdx(v))
 
     def loadV(mv: MethodVisitor, env: MethodEnv, v: Variable) =
-        mv.visitVarInsn(ALOAD, env.getVVarIdx(v))
+        mv.visitVarInsn(ALOAD, env.getVarIdx(v))
 
     /**
       * precondition: plain reference on top of stack

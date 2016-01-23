@@ -3,7 +3,7 @@ package edu.cmu.cs.vbc.test
 
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
 import edu.cmu.cs.varex.{V, VHelper}
-import edu.cmu.cs.vbc.instructions.{Block, Instruction, MethodEnv}
+import edu.cmu.cs.vbc.instructions.{Block, Instruction, MethodEnv, VMethodEnv}
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
 
@@ -62,7 +62,7 @@ case class InstrLoadConfig(config: String) extends Instruction {
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/Config", config, "()I", false)
     }
 
-    override def toVByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
+    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit =
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/Config", "V" + config, "()Ledu/cmu/cs/varex/V;", false)
 
 }
@@ -73,7 +73,7 @@ case class InstrDBGIPrint() extends Instruction {
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printI", "(I)V", false)
     }
 
-    override def toVByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
         loadFExpr(mv, env, env.getBlockVar(block)) //ctx
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printVI", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
     }
@@ -84,7 +84,7 @@ case class InstrDBGCtx(name: String) extends Instruction {
     override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     }
 
-    override def toVByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
         mv.visitLdcInsn(name)
         loadFExpr(mv, env, env.getBlockVar(block)) //ctx
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Ljava/lang/String;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
