@@ -30,11 +30,13 @@ class VBCInstrTest extends FunSuite with DiffTestInfrastructure {
     }
 
     test("LOAD, STORE") {
-        simpleMethod(InstrLoadConfig("A"), InstrISTORE(1), InstrILOAD(1), InstrDBGIPrint(), InstrRETURN())
+        val l = new LocalVar()
+        simpleMethod(InstrLoadConfig("A"), InstrISTORE(l), InstrILOAD(l), InstrDBGIPrint(), InstrRETURN())
     }
 
     test("LOAD, STORE, IINC") {
-        simpleMethod(InstrLoadConfig("A"), InstrISTORE(1), InstrIINC(1, 1), InstrILOAD(1), InstrDBGIPrint(), InstrRETURN())
+        val l = new LocalVar()
+        simpleMethod(InstrLoadConfig("A"), InstrISTORE(l), InstrIINC(l, 1), InstrILOAD(l), InstrDBGIPrint(), InstrRETURN())
     }
 
 }

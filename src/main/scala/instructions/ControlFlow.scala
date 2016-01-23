@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.instructions
 
+import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
-import org.objectweb.asm.{Label, MethodVisitor}
 
 
 /**
@@ -98,21 +98,15 @@ import org.objectweb.asm.{Label, MethodVisitor}
   *
   * for now, blocks need to be balanced wrt to the stack (not enforced yet)
   */
-case class InstrIFEQ(targetBlockIdx: Int) extends Instruction {
+case class InstrIFEQ(targetBlockIdx: Int) extends JumpInstruction {
 
 
-    override def toByteCode(mv: MethodVisitor, method: MethodNode, block: Block): Unit = {
-        val cfg = method.body
-        val targetBlock = cfg.blocks(targetBlockIdx)
-        assert(targetBlockIdx > block.idx, "not supporting backward jumps yet")
-        assert(targetBlockIdx < cfg.blocks.size, "attempting to jump beyond the last block")
-        assert(block.idx < cfg.blocks.size - 1, "attempting to jump from the last block")
-
-        mv.visitJumpInsn(IFEQ, targetBlock.label)
+    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+        val targetBlock = env.getBlock(targetBlockIdx)
+        mv.visitJumpInsn(IFEQ, env.getBlockLabel(targetBlock))
     }
 
-    override def toVByteCode(mv: MethodVisitor, method: MethodNode, block: Block): Unit = {
-        val cfg = method.body
+    override def toVByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
 
         /**
           * creating a variable for the decision
@@ -126,123 +120,112 @@ case class InstrIFEQ(targetBlockIdx: Int) extends Instruction {
           *
           * the actual modification of ctx happens Block.toVByteCode
           */
-        //        println("creating variable " + thisBlock.getBlockDecisionVar() + " for block " + thisBlock.idx)
 
         mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenEQ", "(Ledu/cmu/cs/varex/V;)Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
-        //        mv.visitInsn(DUP)
-        //        mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
-        //        mv.visitVarInsn(ASTORE, block.blockConditionVar)
-
-
+        //only evaluate condition, jump in block implementation
     }
+
+    override def getSuccessor() = (None, Some(targetBlockIdx))
 }
 
 
-case class InstrGOTO(targetBlockIdx: Int) extends Instruction {
-    override def toByteCode(mv: MethodVisitor, method: MethodNode, block: Block): Unit = {
-        val cfg = method.body
-        val targetBlock = cfg.blocks(targetBlockIdx)
-        //        assert(targetBlockIdx > block.idx, "not supporting backward jumps yet")
-        assert(targetBlockIdx < cfg.blocks.size, "attempting to jump beyond the last block")
-        //        assert(block.idx < cfg.blocks.size - 1, "attempting to jump from the last block")
-        //
-        mv.visitJumpInsn(GOTO, targetBlock.label)
+case class InstrGOTO(targetBlockIdx: Int) extends JumpInstruction {
+    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+        val targetBlock = env.getBlock(targetBlockIdx)
+        mv.visitJumpInsn(GOTO, env.getBlockLabel(targetBlock))
     }
 
-    override def toVByteCode(mv: MethodVisitor, method: MethodNode, block: Block): Unit = {
-
+    override def toVByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+        //handled in block implementation
     }
 
+
+    override def getSuccessor() = (Some(targetBlockIdx), None)
 }
 
 case class Block(instr: Instruction*) extends LiftUtils {
-    var label: Label = null
-
-    /**
-      * variable that refers to a condition/featureExpr
-      * with which this block is executed;
-      * value is initialized by the method
-      */
-    var blockConditionVar = -1
 
 
+    def toByteCode(mv: MethodVisitor, env: MethodEnv) = {
+        validate()
 
-    def toByteCode(mv: MethodVisitor, method: MethodNode) = {
-        mv.visitLabel(label)
-        instr.foreach(_.toByteCode(mv, method, this))
+        mv.visitLabel(env.getBlockLabel(this))
+        instr.foreach(_.toByteCode(mv, env, this))
     }
 
-    def toVByteCode(mv: MethodVisitor, method: MethodNode) = {
-        mv.visitLabel(label)
+    def toVByteCode(mv: MethodVisitor, env: MethodEnv) = {
+        mv.visitLabel(env.getBlockLabel(this))
+
+        val thisBlockConditionVar = env.getBlockVar(this)
+        val nextBlock = env.getNextBlock(this)
 
         //load block condition (local variable for each block)
         //jump to next block if condition is contradictory
-        //TODO properly deal with last block (may contain a jump) -- create an artificial last block for return values anyway
-        if (!isLastBlock) {
-            mv.visitVarInsn(ALOAD, blockConditionVar)
+        if (nextBlock.isDefined) {
+            loadFExpr(mv, env, thisBlockConditionVar)
             //            mv.visitInsn(DUP)
             //            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
-            writeFExprIsContradiction(mv)
+            callFExprIsContradiction(mv)
             //            mv.visitInsn(DUP)
             //            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printI", "(I)V", false)
-            mv.visitJumpInsn(IFNE, nextBlock.label)
+            mv.visitJumpInsn(IFNE, env.getBlockLabel(nextBlock.get))
         }
 
         //generate block code
-        instr.foreach(_.toVByteCode(mv, method, this))
+        instr.foreach(_.toVByteCode(mv, env, this))
 
-        if (successors.isEmpty) {
+        val successors = env.getSuccessors(this)
+        if (successors._1 == None) {
             //TODO deal with last block
-        } else if (!isConditionalBlock()) {
-            val targetBlock = successors.head
+        } else if (successors._2 == None) {
+            val targetBlock = successors._1.get
+            val targetBlockConditionVar = env.getBlockVar(targetBlock)
             //if non-conditional jump
             //- update next block's condition (disjunction with prior value)
-            mv.visitVarInsn(ALOAD, this.blockConditionVar)
-            mv.visitVarInsn(ALOAD, targetBlock.blockConditionVar)
-            writeFExprOr(mv)
-            if (targetBlock.idx < this.idx)
-                mv.visitInsn(DUP)
-            mv.visitVarInsn(ASTORE, targetBlock.blockConditionVar)
+            loadFExpr(mv, env, thisBlockConditionVar)
+            loadFExpr(mv, env, targetBlockConditionVar)
+            callFExprOr(mv)
+            storeFExpr(mv, env, targetBlockConditionVar)
 
             //- set this block's condition to FALSE
-            writeConstantFALSE(mv)
-            mv.visitVarInsn(ASTORE, this.blockConditionVar)
+            pushConstantFALSE(mv)
+            storeFExpr(mv, env, thisBlockConditionVar)
 
             //- if backward jump, jump there (target condition is satisfiable, because this block's condition is and it's propagated)
-            if (targetBlock.idx < this.idx) {
-                writeFExprIsSatisfiable(mv)
-                mv.visitJumpInsn(IFNE, targetBlock.label)
-                //                mv.visitJumpInsn(GOTO, targetBlock.label)
+            if (env.isBlockBefore(targetBlock, this)) {
+                mv.visitJumpInsn(GOTO, env.getBlockLabel(targetBlock))
             }
 
         } else {
             //if conditional jump (then the last instruction left us a featureexpr on the stack)
-            val thenBlock = successors.tail.head
-            val elseBlock = successors.head
+            val thenBlock = successors._2.get
+            val thenBlockConditionVar = env.getBlockVar(thenBlock)
+            val elseBlock = successors._1.get
+            val elseBlockConditionVar = env.getBlockVar(elseBlock)
             mv.visitInsn(DUP)
             // -- stack: 2x Fexpr representing if condition
 
             //- update else-block's condition (ie. next block)
-            writeFExprNot(mv)
-            mv.visitVarInsn(ALOAD, this.blockConditionVar)
-            writeFExprAnd(mv)
-            mv.visitVarInsn(ALOAD, elseBlock.blockConditionVar)
-            writeFExprOr(mv)
-            mv.visitVarInsn(ASTORE, elseBlock.blockConditionVar)
+            callFExprNot(mv)
+            loadFExpr(mv, env, thisBlockConditionVar)
+            callFExprAnd(mv)
+            loadFExpr(mv, env, elseBlockConditionVar)
+            callFExprOr(mv)
+            storeFExpr(mv, env, elseBlockConditionVar)
 
 
             //- update then-block's condition to "then-successor.condition or (thisblock.condition and A)"
-            mv.visitVarInsn(ALOAD, this.blockConditionVar)
-            writeFExprAnd(mv)
-            mv.visitVarInsn(ALOAD, thenBlock.blockConditionVar)
-            writeFExprOr(mv)
-            if (thenBlock.idx < this.idx)
+            loadFExpr(mv, env, thisBlockConditionVar)
+            callFExprAnd(mv)
+            loadFExpr(mv, env, thenBlockConditionVar)
+            callFExprOr(mv)
+            if (env.isBlockBefore(thenBlock, this))
                 mv.visitInsn(DUP)
-            mv.visitVarInsn(ASTORE, thenBlock.blockConditionVar)
+            storeFExpr(mv, env, thenBlockConditionVar)
 
             //- set this block's condition to FALSE
-            writeConstantFALSE(mv)
-            mv.visitVarInsn(ASTORE, this.blockConditionVar)
+            pushConstantFALSE(mv)
+            storeFExpr(mv, env, thisBlockConditionVar)
 
             //            for (block<-method.body.blocks) {
             //                mv.visitVarInsn(ALOAD, block.blockConditionVar)
@@ -250,59 +233,38 @@ case class Block(instr: Instruction*) extends LiftUtils {
             //            }
 
             //- if then-block is behind and its condition is satisfiable, jump there
-            if (thenBlock.idx < this.idx) {
+            if (env.isBlockBefore(thenBlock, this)) {
                 //value remembered with DUP up there to avoid loading it again
-                //                mv.visitInsn(DUP)
-                //                mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
-                writeFExprIsSatisfiable(mv)
-                mv.visitJumpInsn(IFNE, thenBlock.label)
+                callFExprIsSatisfiable(mv)
+                mv.visitJumpInsn(IFNE, env.getBlockLabel(thenBlock))
             }
         }
 
     }
 
 
-    def isConditionalBlock() = instr.lastOption.map(_.isInstanceOf[InstrIFEQ]).getOrElse(false)
-
-
-    //successors and predecessors in the CFG
-    var successors: List[Block] = Nil
-    var predecessors: Set[Block] = Set()
-    //nextBlock is the next in the sequence, not necessarily a successor
-    var nextBlock: Block = null
-    var isLastBlock: Boolean = false
-    var idx: Int = -1
-
-    /**
-      * returns successors (none if last,
-      * two if block ends with an if statement
-      * of which the second is the target of the if statement,
-      * one otherwise)
-      */
-    private[instructions] def computeSuccessors(cfg: CFG) = {
-        if (idx + 1 < cfg.blocks.size) {
-            nextBlock = cfg.blocks(idx + 1)
-            isLastBlock = false
-            if (isConditionalBlock())
-                successors = List(nextBlock, cfg.blocks(instr.last.asInstanceOf[InstrIFEQ].targetBlockIdx))
-            else if (instr.lastOption.map(_.isInstanceOf[InstrGOTO]).getOrElse(false))
-                successors = List(cfg.blocks(instr.last.asInstanceOf[InstrGOTO].targetBlockIdx))
-            else
-                successors = List(nextBlock)
-        } else {
-            successors = Nil
-            nextBlock = null
-            isLastBlock = true
-        }
+    def validate(): Unit = {
+        // ensure last statement is the only jump instruction, if any
+        instr.dropRight(1).foreach(i => {
+            assert(!i.isJumpInstr, "only the last instruction in a block may be a jump instruction (goto, if)")
+            assert(!i.isReturnInstr, "only the last instruction in a block may be a return instruction")
+        })
     }
 
-    /** call after computing all successors */
-    private[instructions] def computePredecessors(cfg: CFG) = {
-        predecessors = for (block <- cfg.blocks.toSet;
-                            if block.successors.filter(_ eq this).nonEmpty)
-            yield block
+    def vvalidate(env: MethodEnv): Unit = {
+        validate()
+        //additionally ensure that the last block is the only one that contains a return statement
+        if (this != env.getLastBlock())
+            assert(!instr.last.isReturnInstr, "only the last block may contain a return instruction in variational byte code")
     }
 
+    def getVar(env: MethodEnv): Variable = env.getBlockVar(this)
+
+
+    override def equals(that: Any): Boolean = that match {
+        case t: Block => t eq this
+        case _ => false
+    }
 
 
 
@@ -312,34 +274,22 @@ case class Block(instr: Instruction*) extends LiftUtils {
 
 case class CFG(blocks: List[Block]) extends LiftUtils {
 
-    for (i <- 0 until blocks.size) blocks(i).idx = i
-    blocks.foreach(_.computeSuccessors(this))
-    blocks.foreach(_.computePredecessors(this))
 
-
-    def toByteCode(mv: MethodVisitor, method: MethodNode) = {
-        //hack: unfortunately necessary, since otherwise state inside the label is shared
-        //across both toByteCode and toVByteCode with leads to obscure errors inside ASM
-        for (i <- 0 until blocks.size) blocks(i).label = new Label("L" + i)
-
-        blocks.foreach(_.toByteCode(mv, method))
+    def toByteCode(mv: MethodVisitor, env: MethodEnv) = {
+        blocks.foreach(_.toByteCode(mv, env))
     }
 
 
-    def toVByteCode(mv: MethodVisitor, method: MethodNode) = {
-        // hack: unfortunately necessary, since otherwise state inside the label is shared
-        // across both toByteCode and toVByteCode with leads to obscure errors inside ASM
-        for (i <- 0 until blocks.size) blocks(i).label = new Label("L" + i)
-
+    def toVByteCode(mv: MethodVisitor, env: MethodEnv) = {
         // allocate a variable for each block, except for the first, which can reuse the parameter slot
-        blocks.headOption.map(_.blockConditionVar = method.ctxParameter)
-        blocks.tail.foreach(_.blockConditionVar = method.getFreshVariable())
+        blocks.headOption.map(env.setBlockVar(_, env.ctxParameter))
+        blocks.tail.foreach(env.setBlockVar(_, env.freshLocalVar()))
 
         // initialize all block variables to FALSE, except for the first one which is initialized
         // to the ctx parameter (by using the parameter's slot in the stack)
         for (block <- blocks.tail) {
-            writeConstantFALSE(mv)
-            mv.visitVarInsn(ASTORE, block.blockConditionVar)
+            pushConstantFALSE(mv)
+            storeFExpr(mv, env, env.getBlockVar(block))
         }
 
         //there might be a smarter way, but as we need to load an old value when
@@ -347,11 +297,11 @@ case class CFG(blocks: List[Block]) extends LiftUtils {
         //fields. here setting them all to null
         //the same process occurs (not actually but as a potential case for the
         //analysis when jumping over unsatisfiable blocks)
-        for (v <- method.localVariables) {
+        for (v <- env.getLocalVariables()) {
             mv.visitInsn(ACONST_NULL)
-            mv.visitVarInsn(ASTORE, v)
+            storeV(mv, env, v)
         }
 
-        blocks.foreach(_.toVByteCode(mv, method))
+        blocks.foreach(_.toVByteCode(mv, env))
     }
 }

@@ -5,22 +5,11 @@ import org.objectweb.asm.ClassVisitor
 
 case class MethodNode(access: Int, name: String,
                       desc: String, signature: String, exceptions: Array[String], body: CFG) extends LiftUtils {
-    val localVariables = (for (b <- body.blocks; i <- b.instr; v <- i.getVariables) yield v).toSet
-    // +2 for this and ctx
-    var localVariableCount: Int = if (localVariables.isEmpty) 2 else Math.max(localVariables.max, 2)
-    var ctxParameter: Int = 1
-
-    def getFreshVariable(): Int = {
-        localVariableCount += 1;
-        localVariableCount
-    }
-
-    //    for (b <- body.blocks; if b.isConditionalBlock()) b.blockConditionVar = getFreshVariable()
 
     def toByteCode(cw: ClassVisitor) = {
         val mv = cw.visitMethod(access, name, desc, signature, exceptions)
         mv.visitCode()
-        body.toByteCode(mv, this)
+        body.toByteCode(mv, new MethodEnv(this))
         mv.visitMaxs(0, 0)
         mv.visitEnd()
     }
@@ -28,12 +17,27 @@ case class MethodNode(access: Int, name: String,
     def toVByteCode(cw: ClassVisitor) = {
         val mv = cw.visitMethod(access, name, liftMethodDescription(desc), signature, exceptions)
         mv.visitCode()
-        body.toVByteCode(mv, this)
+        body.toVByteCode(mv, new MethodEnv(this))
         mv.visitMaxs(5, 5)
         mv.visitEnd()
     }
 
 
 }
+
+
+/**
+  * Variable, Parameter, and LocalVar are to be used in the construction
+  * of the byte code
+  *
+  * In contrast EnvVariable, EnvParameter, and EnvLocalVar are used
+  * internally to refer to specific
+  */
+sealed trait Variable
+
+class Parameter(val idx: Int) extends Variable
+
+class LocalVar() extends Variable
+
 
 case class ClassNode(name: String, members: List[MethodNode])

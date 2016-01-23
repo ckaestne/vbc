@@ -24,8 +24,8 @@ trait LiftUtils {
         (Type.getObjectType(fexprclassname) +: mtype.getArgumentTypes.map(liftType)).mkString("(", "", ")") + liftType(mtype.getReturnType)
     }
 
-    def writeConstant(mv: MethodVisitor, v: Int): Unit = {
-        v match {
+    def pushConstant(mv: MethodVisitor, value: Int): Unit = {
+        value match {
             case 0 => mv.visitInsn(ICONST_0)
             case 1 => mv.visitInsn(ICONST_1)
             case 2 => mv.visitInsn(ICONST_2)
@@ -37,39 +37,51 @@ trait LiftUtils {
         }
     }
 
-    def writeConstantFALSE(mv: MethodVisitor) =
+    def pushConstantFALSE(mv: MethodVisitor) =
         mv.visitMethodInsn(INVOKESTATIC, "de/fosd/typechef/featureexpr/FeatureExprFactory", "False", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
 
-    def writeConstantTRUE(mv: MethodVisitor) =
+    def pushConstantTRUE(mv: MethodVisitor) =
         mv.visitMethodInsn(INVOKESTATIC, "de/fosd/typechef/featureexpr/FeatureExprFactory", "True", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
 
-    def writeFExprIsSatisfiable(mv: MethodVisitor) =
+    def callFExprIsSatisfiable(mv: MethodVisitor) =
         mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "isSatisfiable", "()Z", true)
 
-    def writeFExprIsContradiction(mv: MethodVisitor) =
+    def callFExprIsContradiction(mv: MethodVisitor) =
         mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "isContradiction", "()Z", true)
 
-    def writeFExprOr(mv: MethodVisitor) =
+    def callFExprOr(mv: MethodVisitor) =
         mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "or", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
 
-    def writeFExprAnd(mv: MethodVisitor) =
+    def callFExprAnd(mv: MethodVisitor) =
         mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "and", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
 
-    def writeFExprNot(mv: MethodVisitor) =
+    def callFExprNot(mv: MethodVisitor) =
         mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "not", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
+
+    def storeFExpr(mv: MethodVisitor, env: MethodEnv, v: Variable) =
+        mv.visitVarInsn(ASTORE, env.getVVarIdx(v))
+
+    def loadFExpr(mv: MethodVisitor, env: MethodEnv, v: Variable) =
+        mv.visitVarInsn(ALOAD, env.getVVarIdx(v))
+
+    def storeV(mv: MethodVisitor, env: MethodEnv, v: Variable) =
+        mv.visitVarInsn(ASTORE, env.getVVarIdx(v))
+
+    def loadV(mv: MethodVisitor, env: MethodEnv, v: Variable) =
+        mv.visitVarInsn(ALOAD, env.getVVarIdx(v))
 
     /**
       * precondition: plain reference on top of stack
       * postcondition: V reference on top of stack
       */
-    def writeVCreateOne(mv: MethodVisitor) =
+    def callVCreateOne(mv: MethodVisitor) =
         mv.visitMethodInsn(INVOKESTATIC, vclassname, "one", "(Ljava/lang/Object;)Ledu/cmu/cs/varex/V;", true)
 
     /**
       * precondition: feature expression and two V references on top of stack
       * postcondition: V reference on top of stack
       */
-    def writeVCreateChoice(mv: MethodVisitor) =
+    def callVCreateChoice(mv: MethodVisitor) =
         mv.visitMethodInsn(INVOKESTATIC, vclassname, "choice", "(Lde/fosd/typechef/featureexpr/FeatureExpr;Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Ledu/cmu/cs/varex/V;", true)
 
 
