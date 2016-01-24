@@ -5,78 +5,7 @@ import org.objectweb.asm.Opcodes._
 
 
 /**
-  * the design for control-flow lifting is as follows:
-  *
-  * every block (node in the CFG) has a condition that
-  * is initially FALSE
-  *
-  * when executing the method, the first block receives
-  * the ctx of the method as condition.
-  *
-  * when executing a block with a contradictory condition,
-  * one can jump to the next block
-  *
-  * after executing a block, this blocks condition is
-  * set to FALSE and the successor block's conditions are
-  * updated:
-  * - if there is an unconditional jump, the successor
-  * block's condition is "successor.condition or thisblock.condition"
-  * - if there is a condition that evaluates to true
-  * under condition A, the then-successor's condition is
-  * "then-successor.condition or (thisblock.condition and A)"
-  * and the else-successor's condition is
-  * "else-successor.condition or (thisblock.condition andNot A)"
-  *
-  * If either successor is before the current block and has
-  * a satisfiable condition, we jump back to the successor that
-  * is further back.
-  * If neither successor is before the current block, we
-  * proceed execution with the next block (not necessarily
-  * a successor). Note that only at most one successor can be before
-  * the current block.
-  *
-  *
-  *
-  * The intuition behind this approach is as follows:
-  *
-  * - we may execute everything multiple times, but we can
-  * split the context and the next block to execute might
-  * be in different locations.
-  *
-  * - two blocks with mutually exclusive conditions can be
-  * executed in any order
-  *
-  * - the current approach always jumps back to the earliest
-  * block that has a satisfiable condition. As after
-  * execution each block turns FALSE, we can just move
-  * forward until we make a block further back satisfiable -- that's
-  * where we jump to
-  *
-  * - we could fork the execution on every decision and
-  * execute the function to the end, jumping back from
-  * there to the last decision and exploring the next
-  * path under a missing condition, but this would forgo
-  * any joining.
-  *
-  * - we could also just go sequentially through the
-  * method multiple times until all blocks of a contradictory
-  * condition, but we may forgot sharing opportunities;
-  * we can also resort blocks for that purpose if we stick
-  * to the same strategy;
-  * there might also be a more efficient mechanism that
-  * we can chose at runtime, for example executing those
-  * blocks that are least merged yet, jumping back and forth
-  * until all blocks have contradictory conditions; or there might even
-  * be a static strategy to predict where joining is most
-  * likely
-  * TODO study this empirically
-  *
-  * Notes
-  *
-  * - each block should have either have more than one successor
-  * or more than one predecessor. otherwise blocks can be merged.
-  * TODO exploit this for optimization
-  *
+  * for design rationale, see https://github.com/ckaestne/vbc/wiki/ControlFlow
   */
 
 
