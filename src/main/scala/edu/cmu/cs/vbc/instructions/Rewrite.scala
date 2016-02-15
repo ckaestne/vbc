@@ -10,21 +10,21 @@ package edu.cmu.cs.vbc.instructions
 object Rewrite {
 
 
-    def rewrite(m: MethodNode): MethodNode =
+    def rewrite(m: MyMethodNode): MyMethodNode =
         ensureUniqueReturnInstr(m)
 
 
-    private def ensureUniqueReturnInstr(m: MethodNode): MethodNode = {
+    private def ensureUniqueReturnInstr(m: MyMethodNode): MyMethodNode = {
         //if the last instruction in the last block is the only return statement, we are happy
         val returnInstr = for (block <- m.body.blocks; instr <- block.instr if instr.isReturnInstr) yield instr
         assert(returnInstr.nonEmpty, "no return instruction found in method")
         assert(returnInstr.distinct.size == 1, "inconsistency: different kinds of return instructions found in method")
         if (returnInstr.size == 1 && returnInstr.head == m.body.blocks.last.instr.last)
             m
-        else unifyReturnInstr(m: MethodNode, returnInstr.head)
+        else unifyReturnInstr(m: MyMethodNode, returnInstr.head)
     }
 
-    private def unifyReturnInstr(method: MethodNode, returnInstr: Instruction): MethodNode = {
+    private def unifyReturnInstr(method: MyMethodNode, returnInstr: Instruction): MyMethodNode = {
         val returnVariable = new LocalVar()
 
         var newReturnBlockInstr = List(returnInstr)

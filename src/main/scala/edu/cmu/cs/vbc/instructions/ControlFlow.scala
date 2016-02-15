@@ -79,76 +79,13 @@ import org.objectweb.asm.Opcodes._
   *
   */
 
-
-
-
-
-
-
-
-
-/**
-  * assumptions (for now)
-  *
-  * the if statement is the last statement in a block, making a decision
-  * between the next block or the referenced block
-  *
-  * for now, jumps can only be made forward, not backward (loops not yet
-  * supported)
-  *
-  * for now, blocks need to be balanced wrt to the stack (not enforced yet)
-  */
-case class InstrIFEQ(targetBlockIdx: Int) extends JumpInstruction {
-
-
-    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-        val targetBlock = env.getBlock(targetBlockIdx)
-        mv.visitJumpInsn(IFEQ, env.getBlockLabel(targetBlock))
-    }
-
-    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-
-        /**
-          * creating a variable for the decision
-          *
-          * on top of the stack is the condition, which should be V[Int];
-          * that is, we want to know when that value is different from 0
-          *
-          * the condition is then stored as feature expression in a new
-          * variable. this variable is used at the beginning of the relevant
-          * blocks to modify the ctx
-          *
-          * the actual modification of ctx happens Block.toVByteCode
-          */
-
-        mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenEQ", "(Ledu/cmu/cs/varex/V;)Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
-        //only evaluate condition, jump in block implementation
-    }
-
-    override def getSuccessor() = (None, Some(targetBlockIdx))
-}
-
-
-case class InstrGOTO(targetBlockIdx: Int) extends JumpInstruction {
-    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-        val targetBlock = env.getBlock(targetBlockIdx)
-        mv.visitJumpInsn(GOTO, env.getBlockLabel(targetBlock))
-    }
-
-    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-        //handled in block implementation
-    }
-
-
-    override def getSuccessor() = (Some(targetBlockIdx), None)
-}
-
 case class Block(instr: Instruction*) extends LiftUtils {
 
 
     def toByteCode(mv: MethodVisitor, env: MethodEnv) = {
         validate()
 
+        //TODO: somehow some of these labels are missing in the end
         mv.visitLabel(env.getBlockLabel(this))
         instr.foreach(_.toByteCode(mv, env, this))
     }
@@ -176,9 +113,9 @@ case class Block(instr: Instruction*) extends LiftUtils {
         instr.foreach(_.toVByteCode(mv, env, this))
 
         val successors = env.getSuccessors(this)
-        if (successors._1 == None) {
+        if (successors._1.isEmpty) {
             //TODO deal with last block
-        } else if (successors._2 == None) {
+        } else if (successors._2.isEmpty) {
             val targetBlock = successors._1.get
             val targetBlockConditionVar = env.getBlockVar(targetBlock)
             //if non-conditional jump
@@ -264,9 +201,6 @@ case class Block(instr: Instruction*) extends LiftUtils {
         case t: Block => t eq this
         case _ => false
     }
-
-
-
 
 }
 

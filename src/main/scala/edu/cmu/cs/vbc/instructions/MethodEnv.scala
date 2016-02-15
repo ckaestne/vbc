@@ -2,7 +2,7 @@ package edu.cmu.cs.vbc.instructions
 
 import org.objectweb.asm.Label
 
-class MethodEnv(method: MethodNode) {
+class MethodEnv(method: MyMethodNode, labelList: List[Label] = Nil) {
     protected val blocks = method.body.blocks
     assert(blocks.nonEmpty, "method with empty body not supported")
 
@@ -12,7 +12,7 @@ class MethodEnv(method: MethodNode) {
 
     protected var labels: List[Label] = Nil
     //local variables refer to variables that are used in the byte code,
-    //not to variables that are generated in the tranformation process;
+    //not to variables that are generated in the transformation process;
     //the latter are stored separately as freshVars
     //(localVars and freshVars behave as sorted sets)
     protected var parameters: Set[Parameter] = Set()
@@ -115,7 +115,7 @@ class MethodEnv(method: MethodNode) {
   * environment used during generation of the byte code and variational
   * byte code
   */
-class VMethodEnv(method: MethodNode) extends MethodEnv(method) {
+class VMethodEnv(method: MyMethodNode) extends MethodEnv(method) {
 
 
     var blockVars: Map[Block, Variable] = Map()

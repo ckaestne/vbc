@@ -1,4 +1,4 @@
-package edu.cmu.cs.vbc;
+package edu.cmu.cs.vbc.prog;
 
 /**
  * Created by ckaestne on 1/16/2016.

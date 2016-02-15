@@ -4,7 +4,7 @@ import java.io.PrintWriter
 
 import de.fosd.typechef.conditional.{ConditionalLib, Opt}
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
-import edu.cmu.cs.vbc.instructions.{MethodNode, Rewrite}
+import edu.cmu.cs.vbc.instructions.{MyMethodNode, Rewrite}
 import edu.cmu.cs.vbc.test.TestOutput.TOpt
 import edu.cmu.cs.vbc.test.{Config, InstrLoadConfig, TestOutput}
 import org.objectweb.asm.Opcodes._
@@ -24,7 +24,7 @@ trait DiffTestInfrastructure {
 
 
 
-    case class TestClass(m: MethodNode) {
+    case class TestClass(m: MyMethodNode) {
         private def header(cw: ClassWriter): Unit = {
             cw.newClass("Test")
             cw.visit(V1_8, ACC_PUBLIC, "Test", null, "java/lang/Object", Array.empty)
@@ -74,7 +74,7 @@ trait DiffTestInfrastructure {
     }
 
 
-    def testMethod(m: MethodNode): Unit = {
+    def testMethod(m: MyMethodNode): Unit = {
 
         val clazz = new TestClass(m)
 
@@ -92,17 +92,17 @@ trait DiffTestInfrastructure {
         val testClass = loadTestClass(clazz)
         val testVClass = loadVTestClass(clazz)
 
-        val vresult: List[TOpt[String]] = executeV(testVClass, m.name)
-        val bruteForceResult = executeBruteForce(testClass, m.name, configOptions)
+        val vresult: List[TOpt[String]] = executeV(testVClass, m.myName)
+        val bruteForceResult = executeBruteForce(testClass, m.myName, configOptions)
         println("expected " + bruteForceResult.reverse)
         println("found    " + vresult.reverse)
 
         compare(bruteForceResult.reverse, vresult.reverse)
 
-        benchmark(testVClass, testClass, m.name, configOptions)
+        benchmark(testVClass, testClass, m.myName, configOptions)
     }
 
-    def getConfigOptions(m: MethodNode): Set[String] = {
+    def getConfigOptions(m: MyMethodNode): Set[String] = {
         val configOptions: Set[String] =
             (for (block <- m.body.blocks; instr <- block.instr; if instr.isInstanceOf[InstrLoadConfig]) yield instr.asInstanceOf[InstrLoadConfig].config).toSet
         configOptions
@@ -126,7 +126,7 @@ trait DiffTestInfrastructure {
         val configs = explode(configOptions.toList)
         for ((sel, desel) <- configs) {
             TestOutput.output = Nil
-            Config.configValues = (sel.map((_ -> 1)) ++ desel.map((_ -> 0))).toMap
+            Config.configValues = (sel.map(_ -> 1) ++ desel.map(_ -> 0)).toMap
             val config = (sel.map(FeatureExprFactory.createDefinedExternal(_))
                 ++ desel.map(FeatureExprFactory.createDefinedExternal(_).not)).
                 fold(FeatureExprFactory.True)(_ and _)

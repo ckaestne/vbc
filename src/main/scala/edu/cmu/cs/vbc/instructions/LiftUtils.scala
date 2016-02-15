@@ -84,6 +84,22 @@ trait LiftUtils {
     def callVCreateChoice(mv: MethodVisitor) =
         mv.visitMethodInsn(INVOKESTATIC, vclassname, "choice", "(Lde/fosd/typechef/featureexpr/FeatureExpr;Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Ledu/cmu/cs/varex/V;", true)
 
+    def box(t: String): String = {
+        t match {
+            case "Z" => "Ljava/lang/Boolean;"
+            case "C" => "Ljava/lang/Char;"
+            case "B" => "Ljava/lang/Byte;"
+            case "S" => "Ljava/lang/Short;"
+            case "I" => "Ljava/lang/Integer;"
+            case "F" => "Ljava/lang/Float;"
+            case "J" => "Ljava/lang/Long;"
+            case "D" => "Ljava/lang/Double"
+            case _ => t
+        }
+    }
 
+    def loadConditionalField(config: String) = {
+
+    }
 
 }
