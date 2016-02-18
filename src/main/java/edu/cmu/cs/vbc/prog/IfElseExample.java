@@ -14,7 +14,6 @@ public class IfElseExample {
     }
 
     public void simpleIfElse() {
-//        System.out.println(a);
         if (a) {
             System.out.println("then branch");
         }
@@ -22,4 +21,17 @@ public class IfElseExample {
             System.out.println("else branch");
         }
     }
+
+//    /**
+//     * previously only the last block may contain a return instruction
+//     * @return
+//     */
+//    public int twoReturn() {
+//        if (a) {
+//            return 1;
+//        }
+//        else {
+//            return 2;
+//        }
+//    }
 }

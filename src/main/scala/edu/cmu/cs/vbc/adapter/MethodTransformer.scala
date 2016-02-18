@@ -19,11 +19,11 @@ object MethodTransformer {
       a.validate()
       val ordered = (TreeSet[Int]() ++ a.blocks).toArray :+ m.instructions.size()
 
-      val blocks = for (i <- 0 to ordered.length - 2)
-        yield createBlock(m, ordered(i), ordered(i+1),a)
+      val blocks = (for (i <- 0 to ordered.length - 2) yield createBlock(m, ordered(i), ordered(i+1),a)).toArray
+      val blocks2 = addFieldInit(blocks, cn.name, m.name)
       val exceptions: Array[String] = m.exceptions.asScala.toArray
       val newM = new MyMethodNode(
-        m.access, m.name, m.desc, m.signature, exceptions, new CFG(blocks.toList), isLift
+        m.access, m.name, m.desc, m.signature, exceptions, new CFG(blocks2.toList), isLift
       )
       if (isLift) newM.transform(new VMethodEnv(newM))
       else newM.transform(new MethodEnv(newM))
@@ -36,11 +36,25 @@ object MethodTransformer {
     new Block(removeNOP(instrList.toArray): _*)
   }
 
+  def addFieldInit(blocks: Array[Block], cls: String, mtd: String): Array[Block] = {
+    if (mtd == "<init>") {
+      val lastBlock = blocks.last
+      assert(lastBlock.instr.last.isReturnInstr, "last instr of <init> is not return")
+      val ret = lastBlock.instr.last
+      val newInstrs = lastBlock.instr.dropRight(1) :+ InstrINIT_FIELDS(cls) :+ ret
+      blocks.dropRight(1) :+ new Block(newInstrs: _*)
+    }
+    else {
+      blocks
+    }
+  }
+
   def removeNOP(instList: Array[Instruction]): Array[Instruction] = {
     for (i <- instList if !i.isInstanceOf[InstrNOP]) yield i
   }
 
 
+  //TODO:a is only used to get block idx, using an object could avoid passing a around
   def transformBytecode(inst: AbstractInsnNode, a: MethodAnalyzer): Instruction = inst.getOpcode match {
     case NOP => UNKNOWN()
     case ACONST_NULL => UNKNOWN(ACONST_NULL)
@@ -93,7 +107,7 @@ object MethodTransformer {
     case BASTORE => UNKNOWN(BASTORE)
     case CASTORE => UNKNOWN(CASTORE)
     case SASTORE => UNKNOWN(SASTORE)
-    case POP => UNKNOWN(POP)
+    case POP => InstrPOP()
     case POP2 => UNKNOWN(POP2)
     case DUP => InstrDUP()
     case DUP_X1 => UNKNOWN(DUP_X1)
@@ -164,7 +178,11 @@ object MethodTransformer {
       val label = insIFEQ.label
       InstrIFEQ(a.label2Index(label))
     }
-    case IFNE => UNKNOWN(IFNE)
+    case IFNE => {
+      val i = inst.asInstanceOf[JumpInsnNode]
+      val label = i.label
+      InstrIFNE(a.label2Index(label))
+    }
     case IFLT => UNKNOWN(IFLT)
     case IFGE => UNKNOWN(IFGE)
     case IFGT => UNKNOWN(IFGT)
@@ -183,7 +201,7 @@ object MethodTransformer {
     case RET => UNKNOWN(RET)
     case TABLESWITCH => UNKNOWN(TABLESWITCH)
     case LOOKUPSWITCH => UNKNOWN(LOOKUPSWITCH)
-    case IRETURN => UNKNOWN(IRETURN)
+    case IRETURN => InstrIRETURN()
     case LRETURN => UNKNOWN(LRETURN)
     case FRETURN => UNKNOWN(FRETURN)
     case DRETURN => UNKNOWN(DRETURN)

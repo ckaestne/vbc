@@ -46,7 +46,7 @@ case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Bo
       mv.visitMethodInsn(INVOKEVIRTUAL, owner, name, desc, itf)
     }
     else {
-      loadFExpr(mv, env, env.getBlockVar(block))
+      if (env.isMain) pushConstantTRUE(mv) else loadFExpr(mv, env, env.getBlockVar(block))
       mv.visitMethodInsn(INVOKEVIRTUAL, owner, name, liftMethodDescription(desc), itf)
     }
   }

@@ -1,6 +1,7 @@
 package edu.cmu.cs.vbc.instructions
 
 import edu.cmu.cs.vbc.OpcodePrint
+import edu.cmu.cs.vbc.adapter.FieldTransformer
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
 
@@ -36,6 +37,19 @@ case class InstrNOP() extends Instruction {
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    // TODO
+  }
+}
+
+
+/**
+  * Helper instruciton for initializing conditional fields
+  */
+case class InstrINIT_FIELDS(owner: String) extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    // do nothing
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    for (i <- FieldTransformer.fields) initCondField(mv, i, owner)
   }
 }

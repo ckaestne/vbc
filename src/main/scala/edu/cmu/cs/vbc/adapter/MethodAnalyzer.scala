@@ -34,13 +34,13 @@ class MethodAnalyzer(owner: String, mn: MethodNode) extends Analyzer[BasicValue]
   })
 
   /**
-    * Validate that the start of each block is a Label,
-    * at the same time, construct a map between LabelNode and block index
+    * If the start of a block is a label, construct a map between LabelNode and block index.
+    *
     */
-  // TODO: Does this assumption hold for all cases?
   def validate() = blocks.foreach((x: Int) => {
     val i = mn.instructions.get(x)
-    assert(i.isInstanceOf[LabelNode], "start of the block is not a LabelNode")
-    label2Index += (i.asInstanceOf[LabelNode] -> blocks.toVector.indexOf(x))
+    if (i.isInstanceOf[LabelNode]) {
+      label2Index += (i.asInstanceOf[LabelNode] -> blocks.toVector.indexOf(x))
+    }
   })
 }

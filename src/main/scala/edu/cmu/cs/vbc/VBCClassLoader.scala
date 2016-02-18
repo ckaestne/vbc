@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc
 
-import java.io.PrintWriter
+import java.io.{File, FileOutputStream, PrintWriter}
 
 import edu.cmu.cs.vbc.adapter.{FieldTransformer, MethodTransformer, TreeClassAdapter, MethodAnalyzer}
 import org.objectweb.asm.util.{CheckClassAdapter, TraceClassVisitor}
@@ -23,6 +23,8 @@ class VBCClassLoader(isLift: Boolean = false) extends ClassLoader {
       0)
     val cr2 = new ClassReader(cw.toByteArray)
     cr2.accept(getCheckClassAdapter(getTraceClassVisitor(null)), 0)
+    // for debugging
+//    toFile(name, cw)
     defineClass(name, cw.toByteArray, 0, cw.toByteArray.length)
   }
 
@@ -56,5 +58,14 @@ class VBCClassLoader(isLift: Boolean = false) extends ClassLoader {
 
   def getFieldTransformer(next: ClassVisitor): ClassVisitor = {
     new FieldTransformer(next, isLift)
+  }
+
+  def toFile(name: String, cw: ClassWriter) = {
+    val replaced = name.replace(".", "/")
+    println(replaced)
+    val file = new File("lifted/" + replaced)
+    file.getParentFile.mkdirs()
+    val outFile = new FileOutputStream("lifted/" + replaced + ".class")
+    outFile.write(cw.toByteArray)
   }
 }

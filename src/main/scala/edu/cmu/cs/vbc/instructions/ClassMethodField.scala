@@ -12,7 +12,8 @@ case class MyMethodNode(myAccess: Int,
                         body: CFG,
                         isLift: Boolean = false) extends MethodNode(Opcodes.ASM5, myAccess, myName, myDesc, mySignature, myExceptions) with LiftUtils {
 
-  if (isLift && myName != "<init>") {
+  // TODO: filter here
+  if (isLift && myName != "<init>" && myName != "main") {
     desc = liftMethodDescription(myDesc)
   }
 

@@ -61,6 +61,24 @@ case class InstrIFEQ(targetBlockIdx: Int) extends JumpInstruction {
 }
 
 
+/**
+  * InstrIFNE: jump if the value on top of stack is not 0
+  * @param targetBlockIdx
+  */
+case class InstrIFNE(targetBlockIdx: Int) extends JumpInstruction {
+
+  override def getSuccessor(): (Option[Int], Option[Int]) = (None, Some(targetBlockIdx))
+
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitJumpInsn(IFNE, env.getBlockLabel(env.getBlock(targetBlockIdx)))
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenNE", "(Ledu/cmu/cs/varex/V;)Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
+  }
+}
+
+
 case class InstrGOTO(targetBlockIdx: Int) extends JumpInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     val targetBlock = env.getBlock(targetBlockIdx)

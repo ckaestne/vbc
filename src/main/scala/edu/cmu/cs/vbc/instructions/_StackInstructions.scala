@@ -19,3 +19,15 @@ case class InstrDUP() extends Instruction {
 }
 
 
+/**
+  * POP instruction
+  */
+case class InstrPOP() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitInsn(POP)
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    mv.visitInsn(POP)
+  }
+}

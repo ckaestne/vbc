@@ -19,5 +19,9 @@ public class VOps {
     return a.when(v -> v == 0);
   }
 
+  public static FeatureExpr whenNE(V<Integer> a) {
+    return a.when(v -> v != 0);
+  }
+
 
 }

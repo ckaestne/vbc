@@ -152,5 +152,13 @@ class VMethodEnv(method: MyMethodNode) extends MethodEnv(method) {
             else idx
         }
 
+    def isMain = {
+        method.name == "main"
+    }
+
+    def isInit = {
+        method.name == "<init>"
+    }
+
 
 }

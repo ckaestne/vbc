@@ -8,6 +8,7 @@ trait LiftUtils {
     //    val liftedPackagePrefixes = Set("edu.cmu.cs.vbc.test", "edu.cmu.cs.vbc.prog")
     val vclassname = "edu/cmu/cs/varex/V"
     val fexprclassname = "de/fosd/typechef/featureexpr/FeatureExpr"
+    val fexprFactoryClassName = "de/fosd/typechef/featureexpr/FeatureExprFactory"
     val vopsclassname = "edu/cmu/cs/varex/VOps"
     val vclasstype = "L" + vclassname + ";"
     val ctxParameterOffset = 1
@@ -83,6 +84,20 @@ trait LiftUtils {
       */
     def callVCreateChoice(mv: MethodVisitor) =
         mv.visitMethodInsn(INVOKESTATIC, vclassname, "choice", "(Lde/fosd/typechef/featureexpr/FeatureExpr;Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Ledu/cmu/cs/varex/V;", true)
+
+    def initCondField(mv: MethodVisitor, name: String, owner: String) = {
+        mv.visitVarInsn(ALOAD, 0)
+        mv.visitLdcInsn(name)
+        mv.visitMethodInsn(INVOKESTATIC, fexprFactoryClassName, "createDefinedExternal", "(Ljava/lang/String;)Lde/fosd/typechef/featureexpr/SingleFeatureExpr;", false)
+        mv.visitInsn(ICONST_1)
+        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
+        callVCreateOne(mv)
+        mv.visitInsn(ICONST_0)
+        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
+        callVCreateOne(mv)
+        callVCreateChoice(mv)
+        mv.visitFieldInsn(PUTFIELD, owner, name, "Ledu/cmu/cs/varex/V;")
+    }
 
     def box(t: String): String = {
         t match {
