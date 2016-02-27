@@ -33,6 +33,11 @@ case class InstrLDC(o: Object) extends Instruction {
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, blockA: Block): Unit = {
     mv.visitLdcInsn(o)
     //TODO: wrap into a V
-//    callVCreateOne(mv)
+    if (!o.isInstanceOf[String]) {
+      if (o.isInstanceOf[Integer]) {
+        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", getMtdDesc("I", JavaType("I")), false)
+      }
+      callVCreateOne(mv)
+    }
   }
 }

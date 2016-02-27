@@ -5,9 +5,10 @@ import org.objectweb.asm.Opcodes._
 
 /**
   * ISTORE instruction
+  *
   * @param variable
   */
-case class InstrISTORE(variable: LocalVar) extends Instruction {
+case class InstrISTORE(variable: Variable) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
     mv.visitVarInsn(ISTORE, env.getVarIdx(variable))
 
@@ -24,15 +25,21 @@ case class InstrISTORE(variable: LocalVar) extends Instruction {
     storeV(mv, env, variable)
   }
 
-  override def getVariables() = Set(variable)
+  override def getVariables() = {
+    variable match {
+      case p: Parameter => Set()
+      case lv: LocalVar => Set(lv)
+    }
+  }
 }
 
 
 /**
   * ILOAD instruction
+  *
   * @param variable
   */
-case class InstrILOAD(variable: LocalVar) extends Instruction {
+case class InstrILOAD(variable: Variable) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
     mv.visitVarInsn(ILOAD, env.getVarIdx(variable))
 
@@ -40,16 +47,22 @@ case class InstrILOAD(variable: LocalVar) extends Instruction {
     loadV(mv, env, variable)
   }
 
-  override def getVariables() = Set(variable)
+  override def getVariables() = {
+    variable match {
+      case p: Parameter => Set()
+      case lv: LocalVar => Set(lv)
+    }
+  }
 }
 
 
 /**
   * IINC instruction
+  *
   * @param variable
   * @param increment
   */
-case class InstrIINC(variable: LocalVar, increment: Int) extends Instruction {
+case class InstrIINC(variable: Variable, increment: Int) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
     mv.visitIincInsn(env.getVarIdx(variable), increment)
 
@@ -67,19 +80,60 @@ case class InstrIINC(variable: LocalVar, increment: Int) extends Instruction {
     storeV(mv, env, variable)
   }
 
-  override def getVariables() = Set(variable)
+  override def getVariables() = {
+    variable match {
+      case p: Parameter => Set()
+      case lv: LocalVar => Set(lv)
+    }
+  }
 }
 
 
 /**
   * ALOAD instruction
   */
-case class InstrALOAD(variable: Int) extends Instruction {
+case class InstrALOAD(variable: Variable) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitVarInsn(ALOAD, variable)
+    val idx = env.getVarIdx(variable)
+    mv.visitVarInsn(ALOAD, idx)
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    mv.visitVarInsn(ALOAD, variable)
+    val idx = env.getVarIdx(variable)
+    mv.visitVarInsn(ALOAD, idx)
+  }
+
+  override def getVariables() = {
+    variable match {
+      case p: Parameter => Set()
+      case lv: LocalVar => Set(lv)
+    }
   }
 }
+
+
+/**
+  * ASTORE: store reference into local variable
+ *
+  * @param variable
+  */
+case class InstrASTORE(variable: Variable) extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    val idx = env.getVarIdx(variable)
+    mv.visitVarInsn(ASTORE, idx)
+  }
+
+  //TODO: make this variational
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    val idx = env.getVarIdx(variable)
+    mv.visitVarInsn(ASTORE, idx)
+  }
+
+  override def getVariables = {
+    variable match {
+      case p: Parameter => Set()
+      case lv: LocalVar => Set(lv)
+    }
+  }
+}
+

@@ -9,14 +9,18 @@ import org.objectweb.asm.tree.analysis.{Analyzer, BasicInterpreter, BasicValue, 
   * @param mn method under analysis
   */
 class MethodAnalyzer(owner: String, mn: MethodNode) extends Analyzer[BasicValue](new BasicInterpreter()) {
+  //TODO handle unbalanced stack
   /**
     * Each element of the list represents the first instruction of a block
     */
   var blocks: scala.collection.mutable.SortedSet[Int] = scala.collection.mutable.SortedSet()
-  var label2Index = Map[LabelNode, Int]()
+  /**
+    * LabelNode -> Block Index
+    */
+  var label2BlockIdx = Map[LabelNode, Int]()
 
   def analyze(): Array[Frame[BasicValue]] = {
-    println("Method: " + mn.name)
+//    println("Method: " + mn.name)
     analyze(owner, mn)
   }
 
@@ -40,7 +44,7 @@ class MethodAnalyzer(owner: String, mn: MethodNode) extends Analyzer[BasicValue]
   def validate() = blocks.foreach((x: Int) => {
     val i = mn.instructions.get(x)
     if (i.isInstanceOf[LabelNode]) {
-      label2Index += (i.asInstanceOf[LabelNode] -> blocks.toVector.indexOf(x))
+      label2BlockIdx += (i.asInstanceOf[LabelNode] -> blocks.toVector.indexOf(x))
     }
   })
 }

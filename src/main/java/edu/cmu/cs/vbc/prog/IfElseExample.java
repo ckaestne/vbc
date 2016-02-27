@@ -3,6 +3,7 @@ package edu.cmu.cs.vbc.prog;
 import edu.cmu.cs.varex.annotation.VConditional;
 
 /**
+ * TODO: make this a test case
  * @author: chupanw
  */
 public class IfElseExample {

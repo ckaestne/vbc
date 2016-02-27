@@ -7,17 +7,23 @@ import org.objectweb.asm.Opcodes._
 
 import scala.collection.immutable.TreeSet
 import scala.collection.JavaConverters._
+import scala.collection.mutable.ListBuffer
 
 
 object MethodTransformer {
 
+  var variables: Array[Variable] = null
+
   val transformMethod = (cn: ClassNode, isLift: Boolean) => {
+    println("Transforming Class: " + cn.name)
     for (i <- 0 until cn.methods.size()) {
       val m = cn.methods.get(i)
+      println("\tMethod: " + m.name)
       val a = new MethodAnalyzer(cn.name, m)
       a.analyze()
       a.validate()
       val ordered = (TreeSet[Int]() ++ a.blocks).toArray :+ m.instructions.size()
+      variables = getVariableArray(m)
 
       val blocks = (for (i <- 0 to ordered.length - 2) yield createBlock(m, ordered(i), ordered(i+1),a)).toArray
       val blocks2 = addFieldInit(blocks, cn.name, m.name)
@@ -25,10 +31,44 @@ object MethodTransformer {
       val newM = new MyMethodNode(
         m.access, m.name, m.desc, m.signature, exceptions, new CFG(blocks2.toList), isLift
       )
-      if (isLift) newM.transform(new VMethodEnv(newM))
-      else newM.transform(new MethodEnv(newM))
-      cn.methods.set(i, newM)
+
+      val lb = getLocalVarListBuffer()
+      val rewritten = rewrite(isLift, newM, lb)
+      val env = createMethodEnv(isLift, rewritten, lb.toList)
+      rewritten.transform(env)
+      cn.methods.set(i, rewritten)
     }
+  }
+
+  def createMethodEnv(isLift: Boolean, mtd: MyMethodNode, lv: List[LocalVar]): MethodEnv = {
+    if (isLift) new VMethodEnv(mtd, lv)
+    else new MethodEnv(mtd, lv)
+  }
+
+  def rewrite(isLift: Boolean, mtd: MyMethodNode, lb: ListBuffer[LocalVar]): MyMethodNode =
+    if (isLift) Rewrite.rewrite(mtd, lb) else mtd
+
+  def getLocalVarListBuffer():ListBuffer[LocalVar] = {
+    val lb = new ListBuffer[LocalVar]
+    for (v <- variables.toList if v.isInstanceOf[LocalVar]) lb += v.asInstanceOf[LocalVar]
+    lb
+  }
+
+  def getVariableArray(mn: MethodNode) = {
+    val variables = new Array[Variable](mn.maxLocals)
+    for (i <- 0 until mn.instructions.size()) {
+      val inst = mn.instructions.get(i)
+      inst match {
+        case node: VarInsnNode =>
+          val idx = node.`var`
+          if (variables(idx) == null){
+            if (idx == 0) variables(idx) = new Parameter(0)
+            else variables(idx) = new LocalVar()
+          }
+        case _ =>
+      }
+    }
+    variables
   }
 
   def createBlock(mn: MethodNode, start: Int, end: Int, a: MethodAnalyzer): Block = {
@@ -54,11 +94,11 @@ object MethodTransformer {
   }
 
 
-  //TODO:a is only used to get block idx, using an object could avoid passing a around
+  //TODO: a is only used to get block idx, using an object could avoid passing a around
   def transformBytecode(inst: AbstractInsnNode, a: MethodAnalyzer): Instruction = inst.getOpcode match {
     case NOP => UNKNOWN()
     case ACONST_NULL => UNKNOWN(ACONST_NULL)
-    case ICONST_M1 => UNKNOWN(ICONST_M1)
+    case ICONST_M1 => InstrICONST(-1)
     case ICONST_0 => InstrICONST(0)
     case ICONST_1 => InstrICONST(1)
     case ICONST_2 => InstrICONST(2)
@@ -72,19 +112,28 @@ object MethodTransformer {
     case FCONST_2 => UNKNOWN(FCONST_2)
     case DCONST_0 => UNKNOWN(DCONST_0)
     case DCONST_1 => UNKNOWN(DCONST_1)
-    case BIPUSH => UNKNOWN(BIPUSH)
-    case SIPUSH => UNKNOWN(SIPUSH)
+    case BIPUSH => {
+      val i = inst.asInstanceOf[IntInsnNode]
+      InstrBIPUSH(i.operand)
+    }
+    case SIPUSH => {
+      val i = inst.asInstanceOf[IntInsnNode]
+      InstrSIPUSH(i.operand)
+    }
     case LDC => {
       val i = inst.asInstanceOf[LdcInsnNode]
       InstrLDC(i.cst)
     }
-    case ILOAD => UNKNOWN(ILOAD)
+    case ILOAD => {
+      val i = inst.asInstanceOf[VarInsnNode]
+      InstrILOAD(variables(i.`var`))
+    }
     case LLOAD => UNKNOWN(LLOAD)
     case FLOAD => UNKNOWN(FLOAD)
     case DLOAD => UNKNOWN(DLOAD)
     case ALOAD => {
       val i = inst.asInstanceOf[VarInsnNode]
-      InstrALOAD(i.`var`)
+      InstrALOAD(variables(i.`var`))
     }
     case IALOAD => UNKNOWN(IALOAD)
     case LALOAD => UNKNOWN(LALOAD)
@@ -94,11 +143,17 @@ object MethodTransformer {
     case BALOAD => UNKNOWN(BALOAD)
     case CALOAD => UNKNOWN(CALOAD)
     case SALOAD => UNKNOWN(SALOAD)
-    case ISTORE => UNKNOWN(ISTORE)
+    case ISTORE => {
+      val i = inst.asInstanceOf[VarInsnNode]
+      InstrISTORE(variables(i.`var`))
+    }
     case LSTORE => UNKNOWN(LSTORE)
     case FSTORE => UNKNOWN(FSTORE)
     case DSTORE => UNKNOWN(DSTORE)
-    case ASTORE => UNKNOWN(ASTORE)
+    case ASTORE => {
+      val i = inst.asInstanceOf[VarInsnNode]
+      InstrASTORE(variables(i.`var`))
+    }
     case IASTORE => UNKNOWN(IASTORE)
     case LASTORE => UNKNOWN(LASTORE)
     case FASTORE => UNKNOWN(FASTORE)
@@ -120,15 +175,15 @@ object MethodTransformer {
     case LADD => UNKNOWN(LADD)
     case FADD => UNKNOWN(FADD)
     case DADD => UNKNOWN(DADD)
-    case ISUB => UNKNOWN(ISUB)
+    case ISUB => InstrISUB()
     case LSUB => UNKNOWN(LSUB)
     case FSUB => UNKNOWN(FSUB)
     case DSUB => UNKNOWN(DSUB)
-    case IMUL => UNKNOWN(IMUL)
+    case IMUL => InstrIMUL()
     case LMUL => UNKNOWN(LMUL)
     case FMUL => UNKNOWN(FMUL)
     case DMUL => UNKNOWN(DMUL)
-    case IDIV => UNKNOWN(IDIV)
+    case IDIV => InstrIDIV()
     case LDIV => UNKNOWN(LDIV)
     case FDIV => UNKNOWN(FDIV)
     case DDIV => UNKNOWN(DDIV)
@@ -176,26 +231,41 @@ object MethodTransformer {
     case IFEQ => {
       val insIFEQ = inst.asInstanceOf[JumpInsnNode]
       val label = insIFEQ.label
-      InstrIFEQ(a.label2Index(label))
+      InstrIFEQ(a.label2BlockIdx(label))
     }
     case IFNE => {
       val i = inst.asInstanceOf[JumpInsnNode]
       val label = i.label
-      InstrIFNE(a.label2Index(label))
+      InstrIFNE(a.label2BlockIdx(label))
     }
     case IFLT => UNKNOWN(IFLT)
-    case IFGE => UNKNOWN(IFGE)
-    case IFGT => UNKNOWN(IFGT)
+    case IFGE => {
+      val i = inst.asInstanceOf[JumpInsnNode]
+      InstrIFGE(a.label2BlockIdx(i.label))
+    }
+    case IFGT => {
+      val i = inst.asInstanceOf[JumpInsnNode]
+      InstrIFGT(a.label2BlockIdx(i.label))
+    }
     case IFLE => UNKNOWN(IFLE)
-    case IF_ICMPEQ => UNKNOWN(IF_ICMPEQ)
+    case IF_ICMPEQ => {
+      val i = inst.asInstanceOf[JumpInsnNode]
+      InstrIF_ICMPEQ(a.label2BlockIdx(i.label))
+    }
     case IF_ICMPNE => UNKNOWN(IF_ICMPNE)
-    case IF_ICMPLT => UNKNOWN(IF_ICMPLT)
-    case IF_ICMPGE => UNKNOWN(IF_ICMPGE)
+    case IF_ICMPLT => {
+      val i = inst.asInstanceOf[JumpInsnNode]
+      InstrIF_ICMPLT(a.label2BlockIdx(i.label))
+    }
+    case IF_ICMPGE => {
+      val i = inst.asInstanceOf[JumpInsnNode]
+      InstrIF_ICMPGE(a.label2BlockIdx(i.label))
+    }
     case IF_ICMPGT => UNKNOWN(IF_ICMPGT)
     case IF_ICMPLE => UNKNOWN(IF_ICMPLE)
     case GOTO => {
       val i = inst.asInstanceOf[JumpInsnNode]
-      InstrGOTO(a.label2Index(i.label))
+      InstrGOTO(a.label2BlockIdx(i.label))
     }
     case JSR => UNKNOWN(JSR)
     case RET => UNKNOWN(RET)

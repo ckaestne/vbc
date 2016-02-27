@@ -2,13 +2,15 @@ package edu.cmu.cs.vbc.instructions
 
 import org.objectweb.asm.Label
 
-class MethodEnv(method: MyMethodNode, labelList: List[Label] = Nil) {
+class MethodEnv(method: MyMethodNode, lvList: List[LocalVar]= Nil) {
     protected val blocks = method.body.blocks
     assert(blocks.nonEmpty, "method with empty body not supported")
 
     //find all local variables
     protected val localVars: List[LocalVar] =
-        (for (block <- blocks; instr <- block.instr; v <- instr.getVariables) yield v).distinct
+        if (lvList == Nil)
+          (for (block <- blocks; instr <- block.instr; v <- instr.getVariables) yield v).distinct
+        else lvList
 
     protected var labels: List[Label] = Nil
     //local variables refer to variables that are used in the byte code,
@@ -40,7 +42,8 @@ class MethodEnv(method: MyMethodNode, labelList: List[Label] = Nil) {
             assert(p.idx >= 0, "parameter with negative index not supported")
             p.idx
         case l: LocalVar =>
-            val localIdxPos = localVars.reverse.indexOf(l)
+//            val localIdxPos = localVars.reverse.indexOf(l)
+            val localIdxPos = localVars.indexOf(l)
             if (localIdxPos >= 0)
                 maxParameterIdx + 1 + localIdxPos
             else {
@@ -115,7 +118,7 @@ class MethodEnv(method: MyMethodNode, labelList: List[Label] = Nil) {
   * environment used during generation of the byte code and variational
   * byte code
   */
-class VMethodEnv(method: MyMethodNode) extends MethodEnv(method) {
+class VMethodEnv(method: MyMethodNode, lvList: List[LocalVar]= Nil) extends MethodEnv(method, lvList) {
 
 
     var blockVars: Map[Block, Variable] = Map()

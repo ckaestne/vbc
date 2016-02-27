@@ -63,6 +63,7 @@ case class InstrIFEQ(targetBlockIdx: Int) extends JumpInstruction {
 
 /**
   * InstrIFNE: jump if the value on top of stack is not 0
+  *
   * @param targetBlockIdx
   */
 case class InstrIFNE(targetBlockIdx: Int) extends JumpInstruction {
@@ -91,4 +92,89 @@ case class InstrGOTO(targetBlockIdx: Int) extends JumpInstruction {
 
 
   override def getSuccessor() = (Some(targetBlockIdx), None)
+}
+
+
+case class InstrIF_ICMPEQ(targetBlockIdx: Int) extends JumpInstruction {
+  /**
+    * (Unconditional target, Conditional target)
+    * None if next block for unconditional target
+    */
+  override def getSuccessor(): (Option[Int], Option[Int]) = (None, Some(targetBlockIdx))
+
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitJumpInsn(IF_ICMPEQ, env.getBlockLabel(env.getBlock(targetBlockIdx)))
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenIEQ", "(Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
+  }
+}
+
+
+case class InstrIF_ICMPGE(targetBlockIdx: Int) extends JumpInstruction {
+  /**
+    * (Unconditional target, Conditional target)
+    * None if next block for unconditional target
+    */
+  override def getSuccessor(): (Option[Int], Option[Int]) = (None, Some(targetBlockIdx))
+
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitJumpInsn(IF_ICMPGE, env.getBlockLabel(env.getBlock(targetBlockIdx)))
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenIGE", "(Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
+  }
+}
+
+
+case class InstrIFGE(targetBlockIdx: Int) extends JumpInstruction {
+  /**
+    * (Unconditional target, Conditional target)
+    * None if next block for unconditional target
+    */
+  override def getSuccessor(): (Option[Int], Option[Int]) = (None, Some(targetBlockIdx))
+
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitJumpInsn(IFGE, env.getBlockLabel(env.getBlock(targetBlockIdx)))
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenGE", getMtdDesc(VType, FEType), false)
+  }
+}
+
+
+case class InstrIF_ICMPLT(targetBlockIdx: Int) extends JumpInstruction {
+  /**
+    * (Unconditional target, Conditional target)
+    * None if next block for unconditional target
+    */
+  override def getSuccessor(): (Option[Int], Option[Int]) = (None, Some(targetBlockIdx))
+
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitJumpInsn(IF_ICMPLT, env.getBlockLabel(env.getBlock(targetBlockIdx)))
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenILT", getMtdDesc(VType, VType, FEType), false)
+  }
+}
+
+
+case class InstrIFGT(targetBlockIdx: Int) extends JumpInstruction {
+  /**
+    * (Unconditional target, Conditional target)
+    * None if next block for unconditional target
+    */
+  override def getSuccessor(): (Option[Int], Option[Int]) = (None, Some(targetBlockIdx))
+
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitJumpInsn(IFGT, env.getBlockLabel(env.getBlock(targetBlockIdx)))
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenGT", getMtdDesc(VType, FEType), false)
+  }
 }

@@ -24,7 +24,8 @@ case class InstrIRETURN() extends Instruction {
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    mv.visitInsn(IRETURN)
+    // Instead of returning an Integer, we return a reference
+    mv.visitInsn(ARETURN)
   }
 
   override def isReturnInstr: Boolean = true

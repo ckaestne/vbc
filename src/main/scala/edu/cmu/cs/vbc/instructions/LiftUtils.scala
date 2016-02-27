@@ -99,7 +99,7 @@ trait LiftUtils {
         mv.visitFieldInsn(PUTFIELD, owner, name, "Ledu/cmu/cs/varex/V;")
     }
 
-    def box(t: String): String = {
+    def JavaType(t: String): String = {
         t match {
             case "Z" => "Ljava/lang/Boolean;"
             case "C" => "Ljava/lang/Char;"
@@ -108,13 +108,32 @@ trait LiftUtils {
             case "I" => "Ljava/lang/Integer;"
             case "F" => "Ljava/lang/Float;"
             case "J" => "Ljava/lang/Long;"
-            case "D" => "Ljava/lang/Double"
+            case "D" => "Ljava/lang/Double;"
+            case "O" => "Ljava/lang/Object;"
             case _ => t
         }
     }
 
-    def loadConditionalField(config: String) = {
+    def VType = "Ledu/cmu/cs/varex/V;"
 
+    def FEType = "Lde/fosd/typechef/featureexpr/FeatureExpr;"
+
+  /**
+    * Helper function to get the method descriptor
+    * @param strs strs.last is the return type, the rest is parameter list
+    * @return method descriptor according to ASM library standard
+    */
+    def getMtdDesc(strs: String*): String = {
+        getParaList(strs.dropRight(1):_*) + strs.last
     }
 
+    def getParaList(strs: String*): String = {
+
+        def toList(array: String*): String = {
+            if (array.isEmpty) ""
+            else array(0) + toList(array.tail:_*)
+        }
+
+        "(" + toList(strs:_*) + ")"
+    }
 }

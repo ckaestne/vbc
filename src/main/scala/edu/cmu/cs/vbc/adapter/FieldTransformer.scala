@@ -43,12 +43,12 @@ class FieldTransformer(next: ClassVisitor, isLift: Boolean = false) extends Clas
   }
 
   override def visitField(access: Int, name: String, desc: String, signature: String, value: scala.Any): FieldVisitor = {
-    val mv = super.visitField(access, name, desc, signature, value)
-    if (mv != null) {
-      new FieldAnnotationScanner(name, mv)
+    val fv = super.visitField(access, name, desc, signature, value)
+    if (fv != null) {
+      new FieldAnnotationScanner(name, fv)
     }
     else {
-      mv
+      fv
     }
   }
 }

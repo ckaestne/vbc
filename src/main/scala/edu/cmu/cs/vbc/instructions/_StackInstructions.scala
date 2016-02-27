@@ -31,3 +31,37 @@ case class InstrPOP() extends Instruction {
     mv.visitInsn(POP)
   }
 }
+
+
+/**
+  * Push byte
+  * @param value
+  */
+case class InstrBIPUSH(value: Int) extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitIntInsn(BIPUSH, value)
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    pushConstant(mv, value)
+    mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
+    callVCreateOne(mv)
+  }
+}
+
+
+/**
+  * SIPUSH: Push short
+  * @param value
+  */
+case class InstrSIPUSH(value: Int) extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitIntInsn(SIPUSH, value)
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    mv.visitIntInsn(SIPUSH, value)
+    mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", getMtdDesc("I", JavaType("I")), false)
+    callVCreateOne(mv)
+  }
+}
