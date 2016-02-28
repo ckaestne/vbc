@@ -2,8 +2,8 @@ package edu.cmu.cs.vbc.loader
 
 import java.io.InputStream
 
-import edu.cmu.cs.vbc.vbytecode.instructions._
 import edu.cmu.cs.vbc.vbytecode._
+import edu.cmu.cs.vbc.vbytecode.instructions._
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.tree._

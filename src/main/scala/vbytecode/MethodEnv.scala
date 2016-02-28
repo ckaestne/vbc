@@ -109,6 +109,13 @@ class MethodEnv(method: VBCMethodNode) {
         parameters += p
         maxParameterIdx = Math.max(maxParameterIdx, p.idx)
     }
+
+    def isMain = {
+        //todo oversimplified; also I'd rather create a new main method that just calls the lifted main method,
+        //such that the (lifted) main method is not different from any other (lifted) method
+        method.name == "main"
+    }
+
 }
 
 /**

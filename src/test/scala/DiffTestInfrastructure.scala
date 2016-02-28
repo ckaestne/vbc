@@ -4,9 +4,9 @@ import java.io.PrintWriter
 
 import de.fosd.typechef.conditional.{ConditionalLib, Opt}
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
-import edu.cmu.cs.vbc.vbytecode.{Rewrite, VBCMethodNode}
 import edu.cmu.cs.vbc.test.TestOutput.TOpt
 import edu.cmu.cs.vbc.test.{Config, InstrLoadConfig, TestOutput}
+import edu.cmu.cs.vbc.vbytecode.{Rewrite, VBCMethodNode}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.util.TraceClassVisitor
 import org.objectweb.asm.{ClassReader, ClassWriter}
