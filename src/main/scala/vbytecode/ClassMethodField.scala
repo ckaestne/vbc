@@ -8,18 +8,18 @@ import org.objectweb.asm.tree._
 case class VBCMethodNode(access: Int, name: String,
                          desc: String, signature: String, exceptions: List[String], body: CFG) extends LiftUtils {
 
-    def toByteCode(cw: ClassVisitor) = {
+    def toByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
         val mv = cw.visitMethod(access, name, desc, signature, exceptions.toArray)
         mv.visitCode()
-        body.toByteCode(mv, new MethodEnv(this))
+        body.toByteCode(mv, new MethodEnv(clazz, this))
         mv.visitMaxs(0, 0)
         mv.visitEnd()
     }
 
-    def toVByteCode(cw: ClassVisitor) = {
-        val mv = cw.visitMethod(access, name, liftMethodDescription(desc), signature, exceptions.toArray)
+    def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
+        val mv = cw.visitMethod(access, name, liftMethodDescription(desc), liftMethodDescription(signature), exceptions.toArray)
         mv.visitCode()
-        body.toVByteCode(mv, new VMethodEnv(this))
+        body.toVByteCode(mv, new VMethodEnv(clazz, this))
         mv.visitMaxs(5, 5)
         mv.visitEnd()
     }
@@ -74,7 +74,7 @@ case class VBCClassNode(
         commonToByteCode(cv)
         //        innerClasses.foreach(_.toByteCode(cv))
         fields.foreach(_.toByteCode(cv))
-        methods.foreach(_.toByteCode(cv))
+        methods.foreach(_.toByteCode(cv, this))
         cv.visitEnd()
     }
 
@@ -84,7 +84,7 @@ case class VBCClassNode(
         commonToByteCode(cv)
         //        innerClasses.foreach(_.toVByteCode(cv))
         fields.foreach(_.toVByteCode(cv))
-        methods.foreach(_.toVByteCode(cv))
+        methods.foreach(Rewrite.rewrite(_).toVByteCode(cv, this))
         //if the class has a main method, create also an unlifted main method
         if (methods.exists(_.isMain))
             createUnliftedMain(cv)

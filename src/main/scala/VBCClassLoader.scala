@@ -62,7 +62,6 @@ class VBCClassLoader(isLift: Boolean = false) extends ClassLoader {
 
     def toFile(name: String, cw: ClassWriter) = {
         val replaced = name.replace(".", "/")
-        println(replaced)
         val file = new File("lifted/" + replaced)
         file.getParentFile.mkdirs()
         val outFile = new FileOutputStream("lifted/" + replaced + ".class")

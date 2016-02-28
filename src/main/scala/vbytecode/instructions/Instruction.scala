@@ -50,18 +50,19 @@ case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
     }
 
     override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-        //    for (i <- FieldTransformer.fields) {
-        //        mv.visitVarInsn(ALOAD, 0)
-        //        mv.visitLdcInsn(name)
-        //        mv.visitMethodInsn(INVOKESTATIC, fexprFactoryClassName, "createDefinedExternal", "(Ljava/lang/String;)Lde/fosd/typechef/featureexpr/SingleFeatureExpr;", false)
-        //        mv.visitInsn(ICONST_1)
-        //        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
-        //        callVCreateOne(mv)
-        //        mv.visitInsn(ICONST_0)
-        //        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
-        //        callVCreateOne(mv)
-        //        callVCreateChoice(mv)
-        //        mv.visitFieldInsn(PUTFIELD, owner, name, "Ledu/cmu/cs/varex/V;")
-        //    }
+        for (conditionalField <- env.clazz.fields
+             if conditionalField.hasConditionalAnnotation) {
+            mv.visitVarInsn(ALOAD, 0)
+            mv.visitLdcInsn(conditionalField.name)
+            mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "createDefinedExternal", "(Ljava/lang/String;)Lde/fosd/typechef/featureexpr/SingleFeatureExpr;", false)
+            mv.visitInsn(ICONST_1)
+            mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
+            callVCreateOne(mv)
+            mv.visitInsn(ICONST_0)
+            mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
+            callVCreateOne(mv)
+            callVCreateChoice(mv)
+            mv.visitFieldInsn(PUTFIELD, env.clazz.name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
+        }
     }
 }

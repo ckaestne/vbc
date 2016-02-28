@@ -8,6 +8,7 @@ trait LiftUtils {
     //    val liftedPackagePrefixes = Set("edu.cmu.cs.vbc.test", "edu.cmu.cs.vbc.prog")
     val vclassname = "edu/cmu/cs/varex/V"
     val fexprclassname = "de/fosd/typechef/featureexpr/FeatureExpr"
+    val fexprfactoryClassName = "de/fosd/typechef/featureexpr/FeatureExprFactory"
     val vopsclassname = "edu/cmu/cs/varex/VOps"
     val vclasstype = "L" + vclassname + ";"
     val fexprclasstype = "L" + fexprclassname + ";"
@@ -39,10 +40,10 @@ trait LiftUtils {
     }
 
     def pushConstantFALSE(mv: MethodVisitor) =
-        mv.visitMethodInsn(INVOKESTATIC, "de/fosd/typechef/featureexpr/FeatureExprFactory", "False", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
+        mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "False", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
 
     def pushConstantTRUE(mv: MethodVisitor) =
-        mv.visitMethodInsn(INVOKESTATIC, "de/fosd/typechef/featureexpr/FeatureExprFactory", "True", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
+        mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "True", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
 
     def callFExprIsSatisfiable(mv: MethodVisitor) =
         mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "isSatisfiable", "()Z", true)
