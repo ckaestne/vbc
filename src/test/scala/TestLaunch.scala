@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc
 
-import org.scalatest.{Ignore, FunSuite}
+import org.scalatest.{FunSuite, Ignore}
 
 
 /**
@@ -10,10 +10,10 @@ import org.scalatest.{Ignore, FunSuite}
 class TestLaunch extends FunSuite with DiffTestInfrastructure {
 
     test("ifelse") {
-        Launcher.launch("edu.cmu.cs.vbc.prog.IfElseExample")
+        VBCLauncher.launch("edu.cmu.cs.vbc.prog.IfElseExample")
     }
     test("bankaccount") {
-        Launcher.launch("edu.cmu.cs.vbc.prog.bankaccount.Main")
+        VBCLauncher.launch("edu.cmu.cs.vbc.prog.bankaccount.Main")
     }
 
 }

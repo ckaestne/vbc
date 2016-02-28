@@ -25,7 +25,7 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
         // TODO: not complete, desc may need to be modified
         // TODO: if the method is invoked on a conditional object, we need VOP to do the invoke
         // TODO: better filering
-        if (owner.startsWith("java/") || name == "<init>") {
+        if (owner.startsWith("java/")) {
             mv.visitMethodInsn(INVOKESPECIAL, owner, name, desc, itf)
         }
         else {

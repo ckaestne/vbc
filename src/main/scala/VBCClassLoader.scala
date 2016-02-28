@@ -4,6 +4,8 @@ import java.io._
 
 import edu.cmu.cs.vbc.loader.Loader
 import edu.cmu.cs.vbc.vbytecode.VBCClassNode
+import org.objectweb.asm.Opcodes._
+import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.util.{CheckClassAdapter, TraceClassVisitor}
 import org.objectweb.asm.{ClassReader, ClassVisitor, ClassWriter}
 
@@ -24,6 +26,7 @@ class VBCClassLoader(isLift: Boolean = false) extends ClassLoader {
         val clazz: VBCClassNode = loader.loadClass(is)
 
 
+
         val cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES) // COMPUTE_FRAMES implies COMPUTE_MAX
         if (isLift)
             clazz.toVByteCode(cw)
@@ -34,6 +37,7 @@ class VBCClassLoader(isLift: Boolean = false) extends ClassLoader {
         cr2.accept(getCheckClassAdapter(getTraceClassVisitor(null)), 0)
         // for debugging
         toFile(name, cw)
+        debugWriteClass(getResourceAsStream(resource))
         defineClass(name, cw.toByteArray, 0, cw.toByteArray.length)
     }
 
@@ -67,5 +71,15 @@ class VBCClassLoader(isLift: Boolean = false) extends ClassLoader {
         val sourceOutFile = new FileWriter("lifted/" + replaced + ".txt")
         val printer = new TraceClassVisitor(new PrintWriter(sourceOutFile))
         new ClassReader(cw.toByteArray).accept(printer, 0)
+    }
+
+    def debugWriteClass(is: InputStream) = {
+        val cr = new ClassReader(is)
+        val classNode = new ClassNode(ASM5)
+        cr.accept(classNode, 0)
+        val cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES)
+        cr.accept(cw, 0)
+
+        toFile(classNode.name + "_", cw)
     }
 }

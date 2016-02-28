@@ -1,7 +1,8 @@
 package edu.cmu.cs.vbc.vbytecode
 
+import org.objectweb.asm.Opcodes._
+import org.objectweb.asm._
 import org.objectweb.asm.tree._
-import org.objectweb.asm.{Attribute, ClassVisitor, FieldVisitor, Type}
 
 
 case class VBCMethodNode(access: Int, name: String,
@@ -25,6 +26,12 @@ case class VBCMethodNode(access: Int, name: String,
 
     def returnsVoid() = Type.getMethodType(desc).getReturnType == Type.VOID_TYPE
 
+    def isMain() =
+        desc == "([Ljava/lang/String;)V" && isStatic() && isPublic()
+
+    def isStatic(): Boolean = (access & Opcodes.ACC_STATIC) > 0
+
+    def isPublic(): Boolean = (access & Opcodes.ACC_PUBLIC) > 0
 
 }
 
@@ -60,7 +67,7 @@ case class VBCClassNode(
                            invisibleTypeAnnotations: List[TypeAnnotationNode] = Nil,
                            attrs: List[Attribute] = Nil,
                            innerClasses: List[VBCInnerClassNode] = Nil
-                       ) {
+                       ) extends LiftUtils {
 
     def toByteCode(cv: ClassVisitor) = {
         cv.visit(version, access, name, signature, superName, interfaces.toArray)
@@ -71,14 +78,41 @@ case class VBCClassNode(
         cv.visitEnd()
     }
 
+
     def toVByteCode(cv: ClassVisitor) = {
         cv.visit(version, access, name, signature, superName, interfaces.toArray)
         commonToByteCode(cv)
         //        innerClasses.foreach(_.toByteCode(cv))
         //        fields.foreach(_.toByteCode(cv))
         methods.foreach(_.toVByteCode(cv))
+        //if the class has a main method, create also an unlifted main method
+        if (methods.exists(_.isMain))
+            createUnliftedMain(cv)
         cv.visitEnd()
     }
+
+    /**
+      * we assume the main method gets lifted just as everything else;
+      * here we create a new entry into the program with a normal
+      * main method (without a context) that just starts the lifted
+      * main method in context True
+      */
+    def createUnliftedMain(cv: ClassVisitor) = {
+        val mainMethodSig = "([Ljava/lang/String;)V"
+        val mv = cv.visitMethod(ACC_PUBLIC | ACC_STATIC, "main", mainMethodSig, mainMethodSig, Array.empty)
+        mv.visitCode()
+        //set context to True
+        pushConstantTRUE(mv)
+        //load array param
+        mv.visitVarInsn(ALOAD, 0)
+        //create a V<String[]>
+        callVCreateOne(mv)
+        mv.visitMethodInsn(INVOKESTATIC, name, "main", liftMethodDescription(mainMethodSig), false)
+        mv.visitInsn(RETURN)
+        mv.visitMaxs(2, 0)
+        mv.visitEnd()
+    }
+
 
     /**
       * parts that are not lifted
