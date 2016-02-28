@@ -1,4 +1,7 @@
-package edu.cmu.cs.vbc.instructions
+package edu.cmu.cs.vbc.vbytecode
+
+import edu.cmu.cs.vbc.vbytecode.instructions._
+
 
 /**
   * rewrites of methods as part of variational lifting.

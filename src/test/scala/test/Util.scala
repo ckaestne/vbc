@@ -3,7 +3,8 @@ package edu.cmu.cs.vbc.test
 
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
 import edu.cmu.cs.varex.{V, VHelper}
-import edu.cmu.cs.vbc.instructions.{Block, Instruction, MethodEnv, VMethodEnv}
+import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
+import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, VMethodEnv}
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
 

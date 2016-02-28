@@ -1,4 +1,4 @@
-package edu.cmu.cs.vbc.instructions
+package edu.cmu.cs.vbc.vbytecode
 
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.{MethodVisitor, Type}

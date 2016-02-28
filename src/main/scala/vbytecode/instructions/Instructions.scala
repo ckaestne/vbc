@@ -1,5 +1,6 @@
-package edu.cmu.cs.vbc.instructions
+package edu.cmu.cs.vbc.vbytecode.instructions
 
+import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
 
