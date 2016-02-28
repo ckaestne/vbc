@@ -52,14 +52,14 @@ case class VBCClassNode(
                            interfaces: List[String],
                            fields: List[VBCFieldNode],
                            methods: List[VBCMethodNode],
-                           source: Option[(String, String)],
-                           outerClass: Option[(String, String, String)],
-                           visibleAnnotations: List[AnnotationNode],
-                           invisibleAnnotations: List[AnnotationNode],
-                           visibleTypeAnnotations: List[TypeAnnotationNode],
-                           invisibleTypeAnnotations: List[TypeAnnotationNode],
-                           attrs: List[Attribute],
-                           innerClasses: List[VBCInnerClassNode]
+                           source: Option[(String, String)] = None,
+                           outerClass: Option[(String, String, String)] = None,
+                           visibleAnnotations: List[AnnotationNode] = Nil,
+                           invisibleAnnotations: List[AnnotationNode] = Nil,
+                           visibleTypeAnnotations: List[TypeAnnotationNode] = Nil,
+                           invisibleTypeAnnotations: List[TypeAnnotationNode] = Nil,
+                           attrs: List[Attribute] = Nil,
+                           innerClasses: List[VBCInnerClassNode] = Nil
                        ) {
 
     def toByteCode(cv: ClassVisitor) = {
@@ -103,11 +103,11 @@ case class VBCFieldNode(
                            signature: String,
                            value: Object,
 
-                           visibleAnnotations: List[AnnotationNode],
-                           invisibleAnnotations: List[AnnotationNode],
-                           visibleTypeAnnotations: List[TypeAnnotationNode],
-                           invisibleTypeAnnotations: List[TypeAnnotationNode],
-                           attrs: List[Attribute]
+                           visibleAnnotations: List[AnnotationNode] = Nil,
+                           invisibleAnnotations: List[AnnotationNode] = Nil,
+                           visibleTypeAnnotations: List[TypeAnnotationNode] = Nil,
+                           invisibleTypeAnnotations: List[TypeAnnotationNode] = Nil,
+                           attrs: List[Attribute] = Nil
                        ) extends LiftUtils {
     def toByteCode(cv: ClassVisitor) = {
         val fv = cv.visitField(access, name, desc, signature, value)
