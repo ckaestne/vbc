@@ -85,5 +85,21 @@ trait LiftUtils {
         mv.visitMethodInsn(INVOKESTATIC, vclassname, "choice", "(Lde/fosd/typechef/featureexpr/FeatureExpr;Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Ledu/cmu/cs/varex/V;", true)
 
 
+    def liftPrimitiveType(desc: String): String = desc match {
+        case "V" => "V" //cannot lift "void"
+        case "Z" => liftObjectType("Ljava/lang/Boolean;")
+        case "C" => liftObjectType("Ljava/lang/Char;")
+        case "B" => liftObjectType("Ljava/lang/Byte;")
+        case "S" => liftObjectType("Ljava/lang/Short;")
+        case "I" => liftObjectType("Ljava/lang/Integer;")
+        case "F" => liftObjectType("Ljava/lang/Float;")
+        case "J" => liftObjectType("Ljava/lang/Long;")
+        case "D" => liftObjectType("Ljava/lang/Double")
+        case _ => liftObjectType(desc)
+    }
+
+
+    def liftObjectType(s: String) = "Ledu/cmu/cs/varex/V<" + s + ">;"
+
 
 }

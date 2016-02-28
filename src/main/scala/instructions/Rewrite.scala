@@ -10,21 +10,21 @@ package edu.cmu.cs.vbc.instructions
 object Rewrite {
 
 
-    def rewrite(m: MethodNode): MethodNode =
+    def rewrite(m: VBCMethodNode): VBCMethodNode =
         ensureUniqueReturnInstr(m)
 
 
-    private def ensureUniqueReturnInstr(m: MethodNode): MethodNode = {
+    private def ensureUniqueReturnInstr(m: VBCMethodNode): VBCMethodNode = {
         //if the last instruction in the last block is the only return statement, we are happy
         val returnInstr = for (block <- m.body.blocks; instr <- block.instr if instr.isReturnInstr) yield instr
         assert(returnInstr.nonEmpty, "no return instruction found in method")
         assert(returnInstr.distinct.size == 1, "inconsistency: different kinds of return instructions found in method")
         if (returnInstr.size == 1 && returnInstr.head == m.body.blocks.last.instr.last)
             m
-        else unifyReturnInstr(m: MethodNode, returnInstr.head)
+        else unifyReturnInstr(m: VBCMethodNode, returnInstr.head)
     }
 
-    private def unifyReturnInstr(method: MethodNode, returnInstr: Instruction): MethodNode = {
+    private def unifyReturnInstr(method: VBCMethodNode, returnInstr: Instruction): VBCMethodNode = {
         //TODO technically, all methods will always return type V, so we should not have
         //to worry really about what kind of store/load/return instruction we generate here
         val returnVariable = new LocalVar()

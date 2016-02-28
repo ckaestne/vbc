@@ -2,7 +2,7 @@ package edu.cmu.cs.vbc.instructions
 
 import org.objectweb.asm.Label
 
-class MethodEnv(method: MethodNode) {
+class MethodEnv(method: VBCMethodNode) {
     protected val blocks = method.body.blocks
     assert(blocks.nonEmpty, "method with empty body not supported")
 
@@ -115,7 +115,7 @@ class MethodEnv(method: MethodNode) {
   * environment used during generation of the byte code and variational
   * byte code
   */
-class VMethodEnv(method: MethodNode) extends MethodEnv(method) {
+class VMethodEnv(method: VBCMethodNode) extends MethodEnv(method) {
 
 
     var blockVars: Map[Block, Variable] = Map()

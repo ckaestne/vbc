@@ -12,7 +12,7 @@ class VBCControlFlowTest extends FunSuite with DiffTestInfrastructure {
     FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
 
     private def method(blocks: Block*) =
-        testMethod(new MethodNode(ACC_PUBLIC, "test", "()V", "()V", Array.empty,
+        testMethod(new VBCMethodNode(ACC_PUBLIC, "test", "()V", "()V", Array.empty,
             CFG(blocks.toList)))
 
     test("basic if-then") {

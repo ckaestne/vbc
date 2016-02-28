@@ -1,10 +1,11 @@
 package edu.cmu.cs.vbc.instructions
 
-import org.objectweb.asm.{ClassVisitor, Type}
+import org.objectweb.asm.tree._
+import org.objectweb.asm.{Attribute, ClassVisitor, FieldVisitor, Type}
 
 
-case class MethodNode(access: Int, name: String,
-                      desc: String, signature: String, exceptions: Array[String], body: CFG) extends LiftUtils {
+case class VBCMethodNode(access: Int, name: String,
+                         desc: String, signature: String, exceptions: Array[String], body: CFG) extends LiftUtils {
 
     def toByteCode(cw: ClassVisitor) = {
         val mv = cw.visitMethod(access, name, desc, signature, exceptions)
@@ -42,4 +43,100 @@ class Parameter(val idx: Int) extends Variable
 class LocalVar() extends Variable
 
 
-case class ClassNode(name: String, members: List[MethodNode])
+case class VBCClassNode(
+                           version: Int,
+                           access: Int,
+                           name: String,
+                           signature: String,
+                           superName: String,
+                           interfaces: List[String],
+                           fields: List[VBCFieldNode],
+                           methods: List[VBCMethodNode],
+                           source: Option[(String, String)],
+                           outerClass: Option[(String, String, String)],
+                           visibleAnnotations: List[AnnotationNode],
+                           invisibleAnnotations: List[AnnotationNode],
+                           visibleTypeAnnotations: List[TypeAnnotationNode],
+                           invisibleTypeAnnotations: List[TypeAnnotationNode],
+                           attrs: List[Attribute],
+                           innerClasses: List[VBCInnerClassNode]
+                       ) {
+
+    def toByteCode(cv: ClassVisitor) = {
+        cv.visit(version, access, name, signature, superName, interfaces.toArray)
+        commonToByteCode(cv)
+        //        innerClasses.foreach(_.toByteCode(cv))
+        //        fields.foreach(_.toByteCode(cv))
+        methods.foreach(_.toByteCode(cv))
+        cv.visitEnd()
+    }
+
+    def toVByteCode(cv: ClassVisitor) = {
+        cv.visit(version, access, name, signature, superName, interfaces.toArray)
+        commonToByteCode(cv)
+        //        innerClasses.foreach(_.toByteCode(cv))
+        //        fields.foreach(_.toByteCode(cv))
+        methods.foreach(_.toVByteCode(cv))
+        cv.visitEnd()
+    }
+
+    /**
+      * parts that are not lifted
+      */
+    private def commonToByteCode(cv: ClassVisitor): Unit = {
+        source.map(s => cv.visitSource(s._1, s._2))
+        outerClass.map(s => cv.visitOuterClass(s._1, s._2, s._3))
+        visibleAnnotations.foreach(a => a.accept(cv.visitAnnotation(a.desc, true)))
+        invisibleAnnotations.foreach(a => a.accept(cv.visitAnnotation(a.desc, false)))
+        visibleTypeAnnotations.foreach(a => a.accept(cv.visitTypeAnnotation(a.typeRef, a.typePath, a.desc, true)))
+        invisibleTypeAnnotations.foreach(a => a.accept(cv.visitTypeAnnotation(a.typeRef, a.typePath, a.desc, false)))
+        attrs.foreach(cv.visitAttribute)
+    }
+
+
+}
+
+case class VBCFieldNode(
+                           access: Int,
+                           name: String,
+                           desc: String,
+                           signature: String,
+                           value: Object,
+
+                           visibleAnnotations: List[AnnotationNode],
+                           invisibleAnnotations: List[AnnotationNode],
+                           visibleTypeAnnotations: List[TypeAnnotationNode],
+                           invisibleTypeAnnotations: List[TypeAnnotationNode],
+                           attrs: List[Attribute]
+                       ) extends LiftUtils {
+    def toByteCode(cv: ClassVisitor) = {
+        val fv = cv.visitField(access, name, desc, signature, value)
+
+        commonToByteCode(fv)
+
+        fv.visitEnd()
+    }
+
+    def toVByteCode(cv: ClassVisitor) = {
+        val fv = cv.visitField(access, name, vclasstype, liftPrimitiveType(desc), value)
+        //TODO lift initial value for
+
+        commonToByteCode(fv)
+
+        fv.visitEnd()
+    }
+
+    def hasConditionalAnnotation() =
+        (visibleAnnotations ++ invisibleAnnotations).exists(_.desc == "Ledu/cmu/cs/varex/annotation/VConditional;")
+
+
+    private def commonToByteCode(fv: FieldVisitor): Unit = {
+        visibleAnnotations.foreach(a => a.accept(fv.visitAnnotation(a.desc, true)))
+        invisibleAnnotations.foreach(a => a.accept(fv.visitAnnotation(a.desc, false)))
+        visibleTypeAnnotations.foreach(a => a.accept(fv.visitTypeAnnotation(a.typeRef, a.typePath, a.desc, true)))
+        invisibleTypeAnnotations.foreach(a => a.accept(fv.visitTypeAnnotation(a.typeRef, a.typePath, a.desc, false)))
+        attrs.foreach(fv.visitAttribute)
+    }
+}
+
+case class VBCInnerClassNode()

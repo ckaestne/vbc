@@ -11,7 +11,7 @@ class VBCInstrTest extends FunSuite with DiffTestInfrastructure {
     FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
 
     private def simpleMethod(instrs: Instruction*) =
-        testMethod(new MethodNode(ACC_PUBLIC, "test", "()V", "()V", Array.empty,
+        testMethod(new VBCMethodNode(ACC_PUBLIC, "test", "()V", "()V", Array.empty,
             CFG(List(Block(instrs: _*)))))
 
     test("simple method") {

@@ -4,7 +4,7 @@ import java.io.PrintWriter
 
 import de.fosd.typechef.conditional.{ConditionalLib, Opt}
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
-import edu.cmu.cs.vbc.instructions.{MethodNode, Rewrite}
+import edu.cmu.cs.vbc.instructions.{Rewrite, VBCMethodNode}
 import edu.cmu.cs.vbc.test.TestOutput.TOpt
 import edu.cmu.cs.vbc.test.{Config, InstrLoadConfig, TestOutput}
 import org.objectweb.asm.Opcodes._
@@ -23,8 +23,7 @@ trait DiffTestInfrastructure {
     }
 
 
-
-    case class TestClass(m: MethodNode) {
+    case class TestClass(m: VBCMethodNode) {
         private def header(cw: ClassWriter): Unit = {
             cw.newClass("Test")
             cw.visit(V1_8, ACC_PUBLIC, "Test", null, "java/lang/Object", Array.empty)
@@ -74,7 +73,7 @@ trait DiffTestInfrastructure {
     }
 
 
-    def testMethod(m: MethodNode): Unit = {
+    def testMethod(m: VBCMethodNode): Unit = {
 
         val clazz = new TestClass(m)
 
@@ -102,7 +101,7 @@ trait DiffTestInfrastructure {
         benchmark(testVClass, testClass, m.name, configOptions)
     }
 
-    def getConfigOptions(m: MethodNode): Set[String] = {
+    def getConfigOptions(m: VBCMethodNode): Set[String] = {
         val configOptions: Set[String] =
             (for (block <- m.body.blocks; instr <- block.instr; if instr.isInstanceOf[InstrLoadConfig]) yield instr.asInstanceOf[InstrLoadConfig].config).toSet
         configOptions
