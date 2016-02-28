@@ -73,7 +73,7 @@ case class VBCClassNode(
         cv.visit(version, access, name, signature, superName, interfaces.toArray)
         commonToByteCode(cv)
         //        innerClasses.foreach(_.toByteCode(cv))
-        //        fields.foreach(_.toByteCode(cv))
+        fields.foreach(_.toByteCode(cv))
         methods.foreach(_.toByteCode(cv))
         cv.visitEnd()
     }
@@ -82,8 +82,8 @@ case class VBCClassNode(
     def toVByteCode(cv: ClassVisitor) = {
         cv.visit(version, access, name, signature, superName, interfaces.toArray)
         commonToByteCode(cv)
-        //        innerClasses.foreach(_.toByteCode(cv))
-        //        fields.foreach(_.toByteCode(cv))
+        //        innerClasses.foreach(_.toVByteCode(cv))
+        fields.foreach(_.toVByteCode(cv))
         methods.foreach(_.toVByteCode(cv))
         //if the class has a main method, create also an unlifted main method
         if (methods.exists(_.isMain))
