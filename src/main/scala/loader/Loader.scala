@@ -52,7 +52,7 @@ class Loader {
         val ordered = methodAnalyzer.blocks.toArray :+ m.instructions.size()
 
         var varCache: Map[Int, Variable] = Map()
-        val parameterCount = Type.getArgumentTypes(m.desc).size
+        val parameterCount = 1 + Type.getArgumentTypes(m.desc).size //TODO check whether this changes for static methods without a "this" parameter
         def lookupVariable(idx: Int): Variable =
             if (varCache contains idx)
                 varCache(idx)
