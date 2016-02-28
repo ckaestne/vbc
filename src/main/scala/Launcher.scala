@@ -13,11 +13,13 @@ object Launcher extends App {
     if (args.size < 1)
         throw new RuntimeException("provide main class as parameter")
 
-    val classname = args(0)
-    val liftBytecode = args.size < 2 || args(1) == "true"
-    val loader: VBCClassLoader = new VBCClassLoader(liftBytecode)
-    val cls: Class[_] = loader.loadClass(classname)
-    invokeMain(cls)
+    launch(args(0), args.size < 2 || args(1) == "true")
+
+    def launch(classname: String, liftBytecode: Boolean = true) {
+        val loader: VBCClassLoader = new VBCClassLoader(liftBytecode)
+        val cls: Class[_] = loader.loadClass(classname)
+        invokeMain(cls)
+    }
 
     def invokeMain(cls: Class[_]): Unit = {
         try {

@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc
 
-import java.io.{File, FileOutputStream, InputStream}
+import java.io._
 
 import edu.cmu.cs.vbc.loader.Loader
 import edu.cmu.cs.vbc.vbytecode.VBCClassNode
@@ -33,7 +33,7 @@ class VBCClassLoader(isLift: Boolean = false) extends ClassLoader {
         val cr2 = new ClassReader(cw.toByteArray)
         cr2.accept(getCheckClassAdapter(getTraceClassVisitor(null)), 0)
         // for debugging
-        //    toFile(name, cw)
+        toFile(name, cw)
         defineClass(name, cw.toByteArray, 0, cw.toByteArray.length)
     }
 
@@ -63,5 +63,9 @@ class VBCClassLoader(isLift: Boolean = false) extends ClassLoader {
         file.getParentFile.mkdirs()
         val outFile = new FileOutputStream("lifted/" + replaced + ".class")
         outFile.write(cw.toByteArray)
+
+        val sourceOutFile = new FileWriter("lifted/" + replaced + ".txt")
+        val printer = new TraceClassVisitor(new PrintWriter(sourceOutFile))
+        new ClassReader(cw.toByteArray).accept(printer, 0)
     }
 }
