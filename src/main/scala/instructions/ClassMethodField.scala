@@ -5,10 +5,10 @@ import org.objectweb.asm.{Attribute, ClassVisitor, FieldVisitor, Type}
 
 
 case class VBCMethodNode(access: Int, name: String,
-                         desc: String, signature: String, exceptions: Array[String], body: CFG) extends LiftUtils {
+                         desc: String, signature: String, exceptions: List[String], body: CFG) extends LiftUtils {
 
     def toByteCode(cw: ClassVisitor) = {
-        val mv = cw.visitMethod(access, name, desc, signature, exceptions)
+        val mv = cw.visitMethod(access, name, desc, signature, exceptions.toArray)
         mv.visitCode()
         body.toByteCode(mv, new MethodEnv(this))
         mv.visitMaxs(0, 0)
@@ -16,7 +16,7 @@ case class VBCMethodNode(access: Int, name: String,
     }
 
     def toVByteCode(cw: ClassVisitor) = {
-        val mv = cw.visitMethod(access, name, liftMethodDescription(desc), signature, exceptions)
+        val mv = cw.visitMethod(access, name, liftMethodDescription(desc), signature, exceptions.toArray)
         mv.visitCode()
         body.toVByteCode(mv, new VMethodEnv(this))
         mv.visitMaxs(5, 5)

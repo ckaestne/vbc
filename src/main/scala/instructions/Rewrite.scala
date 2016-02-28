@@ -11,7 +11,9 @@ object Rewrite {
 
 
     def rewrite(m: VBCMethodNode): VBCMethodNode =
-        ensureUniqueReturnInstr(m)
+        initializeConditionalFields(
+            ensureUniqueReturnInstr(m)
+        )
 
 
     private def ensureUniqueReturnInstr(m: VBCMethodNode): VBCMethodNode = {
@@ -52,5 +54,15 @@ object Rewrite {
 
     }
 
+
+    private def initializeConditionalFields(m: VBCMethodNode): VBCMethodNode =
+        if (m.name == "<init>") {
+            val lastBlock = m.body.blocks.last
+            assert(lastBlock.instr.last.isReturnInstr, "last instr of <init> is not return")
+            val ret = lastBlock.instr.last
+            val newInstrs = lastBlock.instr.dropRight(1) :+ InstrINIT_CONDITIONAL_FIELDS() :+ ret
+            val newBlocks = m.body.blocks.dropRight(1) :+ new Block(newInstrs: _*)
+            m.copy(body = CFG(newBlocks))
+        } else m
 
 }
