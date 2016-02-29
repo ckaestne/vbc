@@ -153,10 +153,10 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
       * all values shifted by 1 by the ctx parameter
       */
     override def getVarIdx(variable: Variable): Int =
-        if (variable eq ctxParameter) 1
+        if (variable eq ctxParameter) maxParameterIdx + 1
         else {
             val idx = super.getVarIdx(variable: Variable)
-            if (idx > 0) idx + 1
+            if (idx > maxParameterIdx) idx + 1
             else idx
         }
 
