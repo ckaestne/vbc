@@ -1,6 +1,7 @@
 package edu.cmu.cs.varex;
 
 import de.fosd.typechef.featureexpr.FeatureExpr;
+import de.fosd.typechef.featureexpr.FeatureExprFactory;
 
 /**
  * Created by ckaestne on 1/16/2016.
@@ -19,5 +20,13 @@ public class VOps {
     return a.when(v -> v == 0);
   }
 
+  private static FeatureExpr lastFexpr = FeatureExprFactory.True();
+
+  public static void updateCtx(FeatureExpr fexpr) {
+    if (!fexpr.equals(lastFexpr)) {
+      lastFexpr = fexpr;
+      System.out.print("[" + fexpr + "]");
+    }
+  }
 
 }
