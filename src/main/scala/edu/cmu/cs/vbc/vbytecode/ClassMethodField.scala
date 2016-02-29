@@ -1,15 +1,16 @@
 package edu.cmu.cs.vbc.vbytecode
 
+import edu.cmu.cs.vbc.vbytecode.util.LiftUtils
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm._
 import org.objectweb.asm.tree._
 
 
 case class VBCMethodNode(access: Int, name: String,
-                         desc: String, signature: String, exceptions: List[String], body: CFG) extends LiftUtils {
+                         desc: String, signature: Option[String], exceptions: List[String], body: CFG) extends LiftUtils {
 
     def toByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
-        val mv = cw.visitMethod(access, name, desc, signature, exceptions.toArray)
+        val mv = cw.visitMethod(access, name, desc, signature.getOrElse(null), exceptions.toArray)
         mv.visitCode()
         body.toByteCode(mv, new MethodEnv(clazz, this))
         mv.visitMaxs(0, 0)
@@ -17,12 +18,7 @@ case class VBCMethodNode(access: Int, name: String,
     }
 
     def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
-        val mv = cw.visitMethod(
-            access,
-            name,
-            liftMethodDescription(desc),
-            if (signature != null) liftMethodDescription(signature) else signature,
-            exceptions.toArray)
+        val mv = cw.visitMethod(access, name, liftMethodDescription(desc), liftMethodSignature(desc, signature).getOrElse(null), exceptions.toArray)
         mv.visitCode()
         body.toVByteCode(mv, new VMethodEnv(clazz, this))
         mv.visitMaxs(5, 5)
@@ -59,7 +55,7 @@ case class VBCClassNode(
                            version: Int,
                            access: Int,
                            name: String,
-                           signature: String,
+                           signature: Option[String],
                            superName: String,
                            interfaces: List[String],
                            fields: List[VBCFieldNode],
@@ -75,7 +71,7 @@ case class VBCClassNode(
                        ) extends LiftUtils {
 
     def toByteCode(cv: ClassVisitor) = {
-        cv.visit(version, access, name, signature, superName, interfaces.toArray)
+        cv.visit(version, access, name, signature.getOrElse(null), superName, interfaces.toArray)
         commonToByteCode(cv)
         //        innerClasses.foreach(_.toByteCode(cv))
         fields.foreach(_.toByteCode(cv))
@@ -85,7 +81,7 @@ case class VBCClassNode(
 
 
     def toVByteCode(cv: ClassVisitor) = {
-        cv.visit(version, access, name, signature, superName, interfaces.toArray)
+        cv.visit(version, access, name, signature.getOrElse(null), superName, interfaces.toArray)
         commonToByteCode(cv)
         //        innerClasses.foreach(_.toVByteCode(cv))
         fields.foreach(_.toVByteCode(cv))

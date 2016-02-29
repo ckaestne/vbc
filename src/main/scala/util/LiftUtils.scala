@@ -1,6 +1,9 @@
-package edu.cmu.cs.vbc.vbytecode
+package edu.cmu.cs.vbc.vbytecode.util
 
+import edu.cmu.cs.vbc.util.LiftSignatureWriter
+import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
+import org.objectweb.asm.signature.SignatureReader
 import org.objectweb.asm.{MethodVisitor, Type}
 
 
@@ -21,9 +24,22 @@ trait LiftUtils {
         else
             vclasstype
 
+    /**
+      * lift each parameter and add a new fexpr parameter at the end for the context
+      */
     protected def liftMethodDescription(desc: String): String = {
         val mtype = Type.getMethodType(desc)
-        (Type.getObjectType(fexprclassname) +: mtype.getArgumentTypes.map(liftType)).mkString("(", "", ")") + liftType(mtype.getReturnType)
+        (mtype.getArgumentTypes.map(liftType) :+ Type.getObjectType(fexprclassname)).mkString("(", "", ")") + liftType(mtype.getReturnType)
+    }
+
+    protected def liftMethodSignature(desc: String, sig: Option[String]): Option[String] = {
+        val sigReader = new SignatureReader(sig.getOrElse(desc))
+        val sw = new LiftSignatureWriter()
+        sigReader.accept(sw)
+        val newSig = sw.getSignature()
+        if (sig != None || newSig != liftMethodDescription(desc))
+            Some(newSig)
+        else None
     }
 
     def pushConstant(mv: MethodVisitor, value: Int): Unit = {

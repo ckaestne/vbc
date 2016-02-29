@@ -21,7 +21,7 @@ object Launcher extends App {
 
 object VBCLauncher {
     def launch(classname: String, liftBytecode: Boolean = true, args: Array[String] = new Array[String](0)) {
-        val loader: VBCClassLoader = new VBCClassLoader(liftBytecode)
+        val loader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, liftBytecode)
         val cls: Class[_] = loader.loadClass(classname)
         invokeMain(cls, args)
     }

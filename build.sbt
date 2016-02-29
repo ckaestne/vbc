@@ -14,6 +14,8 @@ parallelExecution in Test := false
 
 javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint")
 
+scalacOptions += "-unchecked"
+
 initialize := {
     val _ = initialize.value
     if (sys.props("java.specification.version") != "1.8")
