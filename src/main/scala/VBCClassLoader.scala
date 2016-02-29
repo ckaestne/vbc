@@ -12,7 +12,7 @@ import org.objectweb.asm.{ClassReader, ClassVisitor, ClassWriter}
 /**
   * Custom class loader to modify bytecode before loading the class.
   */
-class VBCClassLoader(isLift: Boolean = false) extends ClassLoader {
+class VBCClassLoader(parentClassLoader: ClassLoader, isLift: Boolean = true) extends ClassLoader(parentClassLoader) {
 
     val loader = new Loader()
 
@@ -23,6 +23,7 @@ class VBCClassLoader(isLift: Boolean = false) extends ClassLoader {
     override def findClass(name: String): Class[_] = {
         val resource: String = name.replace('.', '/') + ".class"
         val is: InputStream = getResourceAsStream(resource)
+        assert(is != null, s"class $name not found")
         val clazz: VBCClassNode = loader.loadClass(is)
 
 
