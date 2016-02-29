@@ -1,8 +1,9 @@
 package edu.cmu.cs.vbc
 
 import de.fosd.typechef.featureexpr.FeatureExprFactory
-import edu.cmu.cs.vbc.instructions._
 import edu.cmu.cs.vbc.test.{InstrDBGCtx, InstrDBGIPrint, InstrLoadConfig}
+import edu.cmu.cs.vbc.vbytecode._
+import edu.cmu.cs.vbc.vbytecode.instructions._
 import org.objectweb.asm.Opcodes._
 import org.scalatest.FunSuite
 
@@ -12,7 +13,7 @@ class VBCControlFlowTest extends FunSuite with DiffTestInfrastructure {
     FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
 
     private def method(blocks: Block*) =
-        testMethod(new MyMethodNode(ACC_PUBLIC, "test", "()V", "()V", Array.empty,
+        testMethod(new VBCMethodNode(ACC_PUBLIC, "test", "()V", "()V", Nil,
             CFG(blocks.toList)))
 
     test("basic if-then") {

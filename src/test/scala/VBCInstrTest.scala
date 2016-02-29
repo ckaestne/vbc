@@ -1,8 +1,9 @@
 package edu.cmu.cs.vbc
 
 import de.fosd.typechef.featureexpr.FeatureExprFactory
-import edu.cmu.cs.vbc.instructions._
 import edu.cmu.cs.vbc.test.{InstrDBGIPrint, InstrLoadConfig}
+import edu.cmu.cs.vbc.vbytecode._
+import edu.cmu.cs.vbc.vbytecode.instructions._
 import org.objectweb.asm.Opcodes._
 import org.scalatest.FunSuite
 
@@ -11,7 +12,7 @@ class VBCInstrTest extends FunSuite with DiffTestInfrastructure {
     FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
 
     private def simpleMethod(instrs: Instruction*) =
-        testMethod(new MyMethodNode(ACC_PUBLIC, "test", "()V", "()V", Array.empty,
+        testMethod(new VBCMethodNode(ACC_PUBLIC, "test", "()V", "()V", Nil,
             CFG(List(Block(instrs: _*)))))
 
     test("simple method") {

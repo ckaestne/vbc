@@ -5,6 +5,7 @@ import java.lang.annotation.RetentionPolicy;
 
 /**
  * Used to mark conditional fields
+ *
  * @author chupanw
  */
 @Retention(RetentionPolicy.RUNTIME)

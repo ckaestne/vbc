@@ -4,9 +4,10 @@ import java.io.PrintWriter
 
 import de.fosd.typechef.conditional.{ConditionalLib, Opt}
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
-import edu.cmu.cs.vbc.instructions.{MyMethodNode, Rewrite}
 import edu.cmu.cs.vbc.test.TestOutput.TOpt
 import edu.cmu.cs.vbc.test.{Config, InstrLoadConfig, TestOutput}
+import edu.cmu.cs.vbc.vbytecode._
+import edu.cmu.cs.vbc.vbytecode.instructions.{InstrALOAD, InstrINVOKESPECIAL, InstrRETURN}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.util.TraceClassVisitor
 import org.objectweb.asm.{ClassReader, ClassWriter}
@@ -23,32 +24,25 @@ trait DiffTestInfrastructure {
     }
 
 
+    case class TestClass(m: VBCMethodNode) {
+        private def createClass(testmethod: VBCMethodNode): VBCClassNode = {
+            val constr = new VBCMethodNode(ACC_PUBLIC, "<init>", "()V", "()V", Nil,
+                CFG(List(
+                    Block(InstrALOAD(new Parameter(0)),
+                        InstrINVOKESPECIAL("java/lang/Object", "<init>", "()V", false),
+                        InstrRETURN())
+                )))
+            new VBCClassNode(V1_8, ACC_PUBLIC, "Test", null, "java/lang/Object", Nil, Nil,
+                List(constr, testmethod))
 
-    case class TestClass(m: MyMethodNode) {
-        private def header(cw: ClassWriter): Unit = {
-            cw.newClass("Test")
-            cw.visit(V1_8, ACC_PUBLIC, "Test", null, "java/lang/Object", Array.empty)
-
-            //default constructor:
-            val mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", "()V", Array.empty)
-            mv.visitCode()
-            mv.visitVarInsn(ALOAD, 0)
-            mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false)
-            mv.visitInsn(RETURN)
-            mv.visitMaxs(0, 0)
-            mv.visitEnd()
         }
 
         def toByteCode(cw: ClassWriter) = {
-            header(cw)
-            m.toByteCode(cw)
-            cw.visitEnd()
+            createClass(m).toByteCode(cw)
         }
 
         def toVByteCode(cw: ClassWriter) = {
-            header(cw)
-            Rewrite.rewrite(m).toVByteCode(cw)
-            cw.visitEnd()
+            createClass(m).toVByteCode(cw)
         }
 
     }
@@ -74,7 +68,7 @@ trait DiffTestInfrastructure {
     }
 
 
-    def testMethod(m: MyMethodNode): Unit = {
+    def testMethod(m: VBCMethodNode): Unit = {
 
         val clazz = new TestClass(m)
 
@@ -92,17 +86,17 @@ trait DiffTestInfrastructure {
         val testClass = loadTestClass(clazz)
         val testVClass = loadVTestClass(clazz)
 
-        val vresult: List[TOpt[String]] = executeV(testVClass, m.myName)
-        val bruteForceResult = executeBruteForce(testClass, m.myName, configOptions)
+        val vresult: List[TOpt[String]] = executeV(testVClass, m.name)
+        val bruteForceResult = executeBruteForce(testClass, m.name, configOptions)
         println("expected " + bruteForceResult.reverse)
         println("found    " + vresult.reverse)
 
         compare(bruteForceResult.reverse, vresult.reverse)
 
-        benchmark(testVClass, testClass, m.myName, configOptions)
+        benchmark(testVClass, testClass, m.name, configOptions)
     }
 
-    def getConfigOptions(m: MyMethodNode): Set[String] = {
+    def getConfigOptions(m: VBCMethodNode): Set[String] = {
         val configOptions: Set[String] =
             (for (block <- m.body.blocks; instr <- block.instr; if instr.isInstanceOf[InstrLoadConfig]) yield instr.asInstanceOf[InstrLoadConfig].config).toSet
         configOptions
@@ -126,7 +120,7 @@ trait DiffTestInfrastructure {
         val configs = explode(configOptions.toList)
         for ((sel, desel) <- configs) {
             TestOutput.output = Nil
-            Config.configValues = (sel.map(_ -> 1) ++ desel.map(_ -> 0)).toMap
+            Config.configValues = (sel.map((_ -> 1)) ++ desel.map((_ -> 0))).toMap
             val config = (sel.map(FeatureExprFactory.createDefinedExternal(_))
                 ++ desel.map(FeatureExprFactory.createDefinedExternal(_).not)).
                 fold(FeatureExprFactory.True)(_ and _)
@@ -143,8 +137,10 @@ trait DiffTestInfrastructure {
         //VExecution first
         TestOutput.output = Nil
         Config.configValues = Map()
-        val testVObject = testVClass.newInstance()
         val ctx = FeatureExprFactory.True
+
+        val constructor = testVClass.getConstructor(classOf[FeatureExpr])
+        val testVObject = constructor.newInstance(ctx)
         testVClass.getMethod(method, classOf[FeatureExpr]).invoke(testVObject, ctx)
         val vresult = TestOutput.output
         vresult
@@ -178,8 +174,9 @@ trait DiffTestInfrastructure {
         } setUp { _ =>
             TestOutput.output = Nil
             Config.configValues = Map()
-            testObject = testVClass.newInstance()
             _ctx = FeatureExprFactory.True
+            val constructor = testVClass.getConstructor(classOf[FeatureExpr])
+            testObject = constructor.newInstance(_ctx)
         } measure {
             testVClass.getMethod(method, classOf[FeatureExpr]).invoke(testObject, _ctx)
         }
