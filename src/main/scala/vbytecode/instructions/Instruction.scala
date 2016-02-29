@@ -2,6 +2,7 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.OpcodePrint
 import edu.cmu.cs.vbc.vbytecode._
+import edu.cmu.cs.vbc.vbytecode.util.LiftUtils
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
 

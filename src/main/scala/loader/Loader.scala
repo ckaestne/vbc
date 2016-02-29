@@ -28,7 +28,7 @@ class Loader {
         cl.version,
         cl.access,
         cl.name,
-        cl.signature,
+        if (cl.signature==null) None else Some(cl.signature),
         cl.superName,
         if (cl.interfaces == null) Nil else cl.interfaces.toList,
         if (cl.fields == null) Nil else cl.fields.map(adaptField).toList,
@@ -81,7 +81,7 @@ class Loader {
             m.access,
             m.name,
             m.desc,
-            m.signature,
+            if (m.signature==null) None else Some(m.signature),
             if (m.exceptions == null) Nil else m.exceptions.toList,
             new CFG(blocks.toList)
         )
