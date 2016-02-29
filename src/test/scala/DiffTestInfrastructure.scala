@@ -32,7 +32,7 @@ trait DiffTestInfrastructure {
                         InstrINVOKESPECIAL("java/lang/Object", "<init>", "()V", false),
                         InstrRETURN())
                 )))
-            new VBCClassNode(V1_8, ACC_PUBLIC, "Test", null, "java/lang/Object", Nil, Nil,
+            new VBCClassNode(V1_8, ACC_PUBLIC, "Test", None, "java/lang/Object", Nil, Nil,
                 List(constr, testmethod))
 
         }
