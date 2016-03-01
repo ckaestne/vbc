@@ -106,7 +106,7 @@ class Loader {
     def adaptBytecodeInstruction(inst: AbstractInsnNode, labelLookup: LabelNode => Int, variables: Int => Variable): Instruction =
         inst.getOpcode match {
             case NOP => UNKNOWN()
-            case ACONST_NULL => UNKNOWN(ACONST_NULL)
+            case ACONST_NULL => InstrACONST_NULL()
             case ICONST_M1 => InstrICONST(-1)
             case ICONST_0 => InstrICONST(0)
             case ICONST_1 => InstrICONST(1)
@@ -284,7 +284,7 @@ class Loader {
             case LRETURN => UNKNOWN(LRETURN)
             case FRETURN => UNKNOWN(FRETURN)
             case DRETURN => UNKNOWN(DRETURN)
-            case ARETURN => UNKNOWN(ARETURN)
+            case ARETURN => InstrARETURN()
             case RETURN => InstrRETURN()
             case GETSTATIC => {
                 val i = inst.asInstanceOf[FieldInsnNode]

@@ -6,7 +6,8 @@ import org.objectweb.asm.signature.{SignatureVisitor, SignatureWriter}
 /**
   * lift method signatures by using V (preserving generics) for all
   * arguments and return types, plus adding a new fexpr parameter
-
+  *
+  * Note: array type and exception not supported yet
   */
 class LiftSignatureWriter() extends SignatureWriter() with LiftUtils {
     //arrayStack stolen from TraceSignatureVisitor, see documentation there
@@ -62,5 +63,12 @@ class LiftSignatureWriter() extends SignatureWriter() with LiftUtils {
     def getSignature(): String =
         (this.toString + ">;").replace("Ledu/cmu/cs/varex/V<V>;", "V")
 
+    //TODO
+    override def visitArrayType(): SignatureVisitor =
+        throw new RuntimeException("visitArrayType() not supported")
 
+    //TODO
+    override def visitExceptionType(): SignatureVisitor = {
+        throw new RuntimeException("visitExceptionType() not supported")
+    }
 }

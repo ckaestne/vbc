@@ -31,3 +31,14 @@ case class InstrIRETURN() extends Instruction {
 
     override def isReturnInstr: Boolean = true
 }
+
+
+case class InstrARETURN() extends Instruction {
+    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
+        mv.visitInsn(ARETURN)
+
+    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit =
+        mv.visitInsn(ARETURN)
+
+    override def isReturnInstr: Boolean = true
+}
