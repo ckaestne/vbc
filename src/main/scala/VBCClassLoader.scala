@@ -3,7 +3,7 @@ package edu.cmu.cs.vbc
 import java.io._
 
 import edu.cmu.cs.vbc.loader.Loader
-import edu.cmu.cs.vbc.vbytecode.VBCClassNode
+import edu.cmu.cs.vbc.vbytecode.{VBCClassNode, VBCMethodNode}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.util.{CheckClassAdapter, TraceClassVisitor}
@@ -11,8 +11,15 @@ import org.objectweb.asm.{ClassReader, ClassVisitor, ClassWriter}
 
 /**
   * Custom class loader to modify bytecode before loading the class.
+  *
+  * the @param rewriter parameter allows the user of the classloader to
+  * perform additional instrumentation as a last step before calling
+  * toByteCode/toVByteCode when the class is loaded;
+  * by default no rewriting is performed
   */
-class VBCClassLoader(parentClassLoader: ClassLoader, isLift: Boolean = true) extends ClassLoader(parentClassLoader) {
+class VBCClassLoader(parentClassLoader: ClassLoader,
+                     isLift: Boolean = true,
+                     rewriter: VBCMethodNode => VBCMethodNode = a => a) extends ClassLoader(parentClassLoader) {
 
     val loader = new Loader()
 
@@ -21,6 +28,7 @@ class VBCClassLoader(parentClassLoader: ClassLoader, isLift: Boolean = true) ext
     }
 
     override def findClass(name: String): Class[_] = {
+        println(s"lifting $name")
         val resource: String = name.replace('.', '/') + ".class"
         val is: InputStream = getResourceAsStream(resource)
         assert(is != null, s"class $name not found")
@@ -30,9 +38,9 @@ class VBCClassLoader(parentClassLoader: ClassLoader, isLift: Boolean = true) ext
 
         val cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES) // COMPUTE_FRAMES implies COMPUTE_MAX
         if (isLift)
-            clazz.toVByteCode(cw)
+            clazz.toVByteCode(cw, rewriter)
         else
-            clazz.toByteCode(cw)
+            clazz.toByteCode(cw, rewriter)
 
         val cr2 = new ClassReader(cw.toByteArray)
         cr2.accept(getCheckClassAdapter(getTraceClassVisitor(null)), 0)
