@@ -80,6 +80,8 @@ case class InstrPUTFIELD(owner: String, name: String, desc: String) extends Inst
             mv.visitInsn(POP)   // discard the new values for conditional fields
             mv.visitInsn(POP)   // discard object reference
         }
-        mv.visitFieldInsn(PUTFIELD, owner, name, "Ledu/cmu/cs/varex/V;")
+        else {
+            mv.visitFieldInsn(PUTFIELD, owner, name, "Ledu/cmu/cs/varex/V;")
+        }
     }
 }

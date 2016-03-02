@@ -34,6 +34,20 @@ case class VBCMethodNode(access: Int, name: String,
 
     def isPublic(): Boolean = (access & Opcodes.ACC_PUBLIC) > 0
 
+  /**
+    * We need special handling for <init> method lifting.
+    * JVM will complain if ALOAD 0 and INVOKESPECIAL java.lang.object.<init> is invoked
+    * inside a branch, which is usually the case in our lifting (we check the ctx in the
+    * beginning of each method call)
+    *
+    * name should be sufficient because <init> method name is special enough
+    *
+    * @see [[CFG.toVByteCode()]] and [[Rewrite]]
+    * @return
+    */
+  def isInit() =
+        name == "<init>"
+
 }
 
 
@@ -106,12 +120,12 @@ case class VBCClassNode(
         val mainMethodSig = "([Ljava/lang/String;)V"
         val mv = cv.visitMethod(ACC_PUBLIC | ACC_STATIC, "main", mainMethodSig, mainMethodSig, Array.empty)
         mv.visitCode()
-        //set context to True
-        pushConstantTRUE(mv)
         //load array param
         mv.visitVarInsn(ALOAD, 0)
         //create a V<String[]>
         callVCreateOne(mv)
+        //set context to True
+        pushConstantTRUE(mv)
         mv.visitMethodInsn(INVOKESTATIC, name, "main", liftMethodDescription(mainMethodSig), false)
         mv.visitInsn(RETURN)
         mv.visitMaxs(2, 0)

@@ -159,6 +159,12 @@ case class CFG(blocks: List[Block]) extends LiftUtils {
         blocks.headOption.map(env.setBlockVar(_, env.ctxParameter))
         blocks.tail.foreach(env.setBlockVar(_, env.freshLocalVar()))
 
+        // For <init> methods, the first two instructions should be ALOAD 0 and INVOKESPECIAL
+        if (env.method.isInit()) {
+            mv.visitVarInsn(ALOAD, 0)
+            mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false)
+        }
+
         // initialize all block variables to FALSE, except for the first one which is initialized
         // to the ctx parameter (by using the parameter's slot in the stack)
         for (block <- blocks.tail) {
