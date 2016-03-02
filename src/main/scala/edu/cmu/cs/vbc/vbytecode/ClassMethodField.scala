@@ -44,9 +44,13 @@ case class VBCMethodNode(access: Int, name: String,
   * In contrast EnvVariable, EnvParameter, and EnvLocalVar are used
   * internally to refer to specific
   */
-sealed trait Variable
+sealed trait Variable {
+    def getIdx():Option[Int] = None
+}
 
-class Parameter(val idx: Int) extends Variable
+class Parameter(val idx: Int) extends Variable {
+    override def getIdx(): Option[Int] = Some(idx)
+}
 
 class LocalVar() extends Variable
 

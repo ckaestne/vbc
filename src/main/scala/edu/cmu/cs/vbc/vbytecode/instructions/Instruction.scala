@@ -18,6 +18,21 @@ trait Instruction extends LiftUtils {
     final def isJumpInstr: Boolean = getJumpInstr.isDefined
 
     def isReturnInstr: Boolean = false
+
+
+    /**
+      * Used to identify the start of init method
+      *
+      * @see [[Rewrite.rewrite()]]
+      */
+    def isALOAD0: Boolean = false
+
+    /**
+      * Used to identify the start of init method
+      *
+      * @see [[Rewrite.rewrite()]]
+      */
+    def isINVOKESPECIAL_OBJECT_INIT: Boolean = false
 }
 
 

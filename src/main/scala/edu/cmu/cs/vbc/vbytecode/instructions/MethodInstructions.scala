@@ -33,6 +33,14 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
             mv.visitMethodInsn(INVOKESPECIAL, owner, name, liftMethodDescription(desc), itf)
         }
     }
+
+    /**
+      * Used to identify the start of init method
+      *
+      * @see [[Rewrite.rewrite()]]
+      */
+    override def isINVOKESPECIAL_OBJECT_INIT: Boolean =
+        owner == "java/lang/Object" && name == "<init>" && desc == "()V" && !itf
 }
 
 

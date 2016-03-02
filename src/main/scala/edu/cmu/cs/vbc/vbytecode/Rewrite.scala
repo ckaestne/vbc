@@ -60,12 +60,21 @@ object Rewrite {
 
     private def initializeConditionalFields(m: VBCMethodNode): VBCMethodNode =
         if (m.name == "<init>") {
-            val lastBlock = m.body.blocks.last
-            assert(lastBlock.instr.last.isReturnInstr, "last instr of <init> is not return")
-            val ret = lastBlock.instr.last
-            val newInstrs = lastBlock.instr.dropRight(1) :+ InstrINIT_CONDITIONAL_FIELDS() :+ ret
-            val newBlocks = m.body.blocks.dropRight(1) :+ new Block(newInstrs: _*)
-            m.copy(body = CFG(newBlocks))
+            val firstBlock = m.body.blocks.head
+
+            /* Assume that the first two instructions in the <init> method are:
+                 ALOAD 0
+                 INVOKESPECIAL java/lang/Object.<inti> ()V
+            */
+            val firstInstr = firstBlock.instr.head
+            val secondInstr = firstBlock.instr.tail.head
+            assert(firstInstr.isALOAD0, "first instruction in <init> is not ALOAD0")
+            assert(secondInstr.isINVOKESPECIAL_OBJECT_INIT,
+              "second instruction in <inti> is not INVOKESPECIAL java/lang/Object.<init> ()V")
+
+            val newInstrs = firstBlock.instr.drop(2).reverse :+ InstrINIT_CONDITIONAL_FIELDS() :+ secondInstr :+ firstInstr
+            val newBlocks = m.body.blocks.reverse.dropRight(1) :+ new Block(newInstrs.reverse: _*)
+            m.copy(body = CFG(newBlocks.reverse))
         } else m
 
 }

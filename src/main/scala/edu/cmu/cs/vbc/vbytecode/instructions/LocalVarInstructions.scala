@@ -110,6 +110,13 @@ case class InstrALOAD(variable: Variable) extends Instruction {
             case lv: LocalVar => Set(lv)
         }
     }
+
+    /**
+      * Used to identify the start of init method
+      *
+      * @see [[Rewrite.rewrite()]]
+      */
+    override def isALOAD0: Boolean = variable.getIdx().contains(0)
 }
 
 
