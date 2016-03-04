@@ -33,14 +33,13 @@ trait DiffLaunchTestInfrastructure {
         )
 
 
-    def instrumentCustomInit(method: VBCMethodNode): VBCMethodNode = method.copy(body = CFG(method.body.blocks.map(instrumentBlock)))
+    def instrumentCustomInit(method: VBCMethodNode): VBCMethodNode = method.copy(body = CFG(method.body.blocks.map(instrumentCustomInit)))
 
     def instrumentCustomInit(block: Block): Block =
         Block(
             (for (instr <- block.instr) yield instr match {
                 //replace initialization of conditional fields
                 case InstrINIT_CONDITIONAL_FIELDS() => TraceInstr_ConfigInit()
-
                 case instr => instr
             }): _*
         )
@@ -143,7 +142,7 @@ trait DiffLaunchTestInfrastructure {
                 TestTraceOutput.trace = Nil
                 TraceConfig.config = configToMap((sel, desel))
             } measure {
-                VBCLauncher.invokeMain(testVClass, new Array[String](0))
+                VBCLauncher.invokeMain(testClass, new Array[String](0))
             }
 
 

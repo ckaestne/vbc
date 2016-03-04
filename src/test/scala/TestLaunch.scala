@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc
 
+import de.fosd.typechef.featureexpr.FeatureExprFactory
 import org.scalatest.FunSuite
 
 
@@ -8,8 +9,14 @@ import org.scalatest.FunSuite
   */
 class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
 
+    FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
+
     test("ifelse") {
         testMain("edu.cmu.cs.vbc.prog.IfElseExample")
+    }
+
+    test("test1") {
+        testMain("edu.cmu.cs.vbc.prog.Test1")
     }
 
     ignore("bankaccount") {

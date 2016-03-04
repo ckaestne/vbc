@@ -216,7 +216,10 @@ class Loader {
             case LOR => UNKNOWN(LOR)
             case IXOR => UNKNOWN(IXOR)
             case LXOR => UNKNOWN(LXOR)
-            case IINC => UNKNOWN(IINC)
+            case IINC => {
+                val i = inst.asInstanceOf[IincInsnNode]
+                InstrIINC(variables(i.`var`), i.incr)
+            }
             case I2L => UNKNOWN(I2L)
             case I2F => UNKNOWN(I2F)
             case I2D => UNKNOWN(I2D)

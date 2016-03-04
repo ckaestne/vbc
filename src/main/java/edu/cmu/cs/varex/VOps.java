@@ -20,6 +20,19 @@ public class VOps {
     return a.when(v -> v == 0);
   }
 
+  public static FeatureExpr whenGE(V<? extends Integer> a) {
+    return a.when(v -> v >= 0);
+  }
+
+  public static FeatureExpr whenIGE(V<? extends Integer> a, V<? extends Integer> b) {
+    V<? extends Integer> sub = ISUB(a, b);
+    return whenGE(sub);
+  }
+
+
+  public static V<? extends Integer> ISUB(V<? extends Integer> a, V<? extends Integer> b) {
+    return a.flatMap(aa -> b.map(bb -> aa - bb));
+  }
   private static FeatureExpr lastFexpr = FeatureExprFactory.True();
 
   public static void updateCtx(FeatureExpr fexpr) {
