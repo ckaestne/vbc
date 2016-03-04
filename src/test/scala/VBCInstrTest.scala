@@ -8,7 +8,7 @@ import org.objectweb.asm.Opcodes._
 import org.scalatest.FunSuite
 
 
-class VBCInstrTest extends FunSuite with DiffTestInfrastructure {
+class VBCInstrTest extends FunSuite with DiffMethodTestInfrastructure {
     FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
 
     private def simpleMethod(instrs: Instruction*) =

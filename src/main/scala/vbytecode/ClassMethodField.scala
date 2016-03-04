@@ -75,7 +75,7 @@ case class VBCClassNode(
         commonToByteCode(cv)
         //        innerClasses.foreach(_.toByteCode(cv))
         fields.foreach(_.toByteCode(cv))
-        methods.foreach(rewriter(_).toByteCode(cv, this))
+        methods.foreach(m => rewriter(Rewrite.rewrite(m)).toByteCode(cv, this))
         cv.visitEnd()
     }
 
@@ -85,7 +85,7 @@ case class VBCClassNode(
         commonToByteCode(cv)
         //        innerClasses.foreach(_.toVByteCode(cv))
         fields.foreach(_.toVByteCode(cv))
-        methods.foreach(m => rewriter(Rewrite.rewrite(m)).toVByteCode(cv, this))
+        methods.foreach(m => rewriter(Rewrite.rewriteV(m)).toVByteCode(cv, this))
         //if the class has a main method, create also an unlifted main method
         if (methods.exists(_.isMain))
             createUnliftedMain(cv)

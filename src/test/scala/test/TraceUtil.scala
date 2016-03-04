@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.test
 
 
-import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
+import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory, SingleFeatureExpr}
 import edu.cmu.cs.varex.{V, VHelper}
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
 import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, VMethodEnv}
@@ -41,11 +41,11 @@ object TestTraceOutput {
         trace ::=(t, s + ";" + v)
     }
 
-    def vtrace_int(v: V[Int], ctx: FeatureExpr, s: String): Unit = {
+    def vtrace_int(v: V[Any], ctx: FeatureExpr, s: String): Unit = {
         assert(ctx.isInstanceOf[FeatureExpr], "ctx not FeatureExpr but " + ctx.getClass)
-        assert(v.isInstanceOf[V[Int]], "v not V[Int] but " + v.getClass)
+        assert(v.isInstanceOf[V[_]], "v not V[Int] but " + v.getClass)
         for ((ctx, i) <- VHelper.explode(t, v))
-            trace ::=(ctx, s + ";" + i)
+            trace ::=(ctx, s + ";" + i.toString)
     }
 
     def trace_string(s: String): Unit = {
@@ -62,7 +62,50 @@ object TestTraceOutput {
                 trace ::=(ctx, s)
     }
 
+}
 
+object TraceConfig {
+
+    var options: Set[SingleFeatureExpr] = Set()
+    var config: Map[String, Boolean] = Map()
+
+    def getOption(n: String) = {
+        val o = FeatureExprFactory.createDefinedExternal(n)
+        options += o
+        o
+    }
+
+
+    def getVConfig(n: String) = V.choice(getOption(n), 1, 0)
+
+    def getConfig(n: String) = {
+        var c = config.get(n)
+        assert(c.isDefined, s"option $n not configured")
+        c.get
+    }
+}
+
+
+case class TraceInstr_ConfigInit() extends Instruction {
+    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+        for (conditionalField <- env.clazz.fields
+             if conditionalField.hasConditionalAnnotation) {
+            mv.visitVarInsn(ALOAD, 0)
+            mv.visitLdcInsn(conditionalField.name)
+            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TraceConfig", "getConfig", "(Ljava/lang/String;)Z", false)
+            mv.visitFieldInsn(PUTFIELD, env.clazz.name, conditionalField.name, "Z")
+        }
+    }
+
+    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+        for (conditionalField <- env.clazz.fields
+             if conditionalField.hasConditionalAnnotation) {
+            mv.visitVarInsn(ALOAD, 0)
+            mv.visitLdcInsn(conditionalField.name)
+            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TraceConfig", "getVConfig", "(Ljava/lang/String;)Ledu/cmu/cs/varex/V;", false)
+            mv.visitFieldInsn(PUTFIELD, env.clazz.name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
+        }
+    }
 }
 
 

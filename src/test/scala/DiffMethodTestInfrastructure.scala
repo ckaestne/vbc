@@ -13,9 +13,9 @@ import org.objectweb.asm.util.TraceClassVisitor
 import org.objectweb.asm.{ClassReader, ClassWriter}
 
 /**
-  * compares the execution of two classes
+  * compares the execution of two methods
   */
-trait DiffTestInfrastructure {
+trait DiffMethodTestInfrastructure {
 
     class MyClassLoader extends ClassLoader(this.getClass.getClassLoader) {
         def defineClass(name: String, b: Array[Byte]): Class[_] = {

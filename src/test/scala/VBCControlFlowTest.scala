@@ -8,7 +8,7 @@ import org.objectweb.asm.Opcodes._
 import org.scalatest.FunSuite
 
 
-class VBCControlFlowTest extends FunSuite with DiffTestInfrastructure {
+class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
 
     FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
 
