@@ -1,8 +1,6 @@
 package edu.cmu.cs.varex;
 
 import de.fosd.typechef.featureexpr.FeatureExpr;
-import org.objectweb.asm.tree.analysis.Interpreter;
-import scala.Int;
 
 /**
  * Created by ckaestne on 1/16/2016.
@@ -60,6 +58,11 @@ public class VOps {
   public static FeatureExpr whenILT(V<? extends Integer> a, V<? extends Integer> b) {
     V<? extends Integer> sub = ISUB(a, b);
     return whenLT(sub);
+  }
+
+  public static FeatureExpr whenINE(V<? extends Integer> a, V<? extends Integer> b) {
+    V<? extends Integer> sub = ISUB(a, b);
+    return whenNE(sub);
   }
 
   public static V<? extends Integer> ISUB(V<? extends Integer> a, V<? extends Integer> b) {

@@ -261,7 +261,10 @@ class Loader {
                 val i = inst.asInstanceOf[JumpInsnNode]
                 InstrIF_ICMPEQ(labelLookup(i.label))
             }
-            case IF_ICMPNE => UNKNOWN(IF_ICMPNE)
+            case IF_ICMPNE => {
+                val i = inst.asInstanceOf[JumpInsnNode]
+                InstrIF_ICMPNE(labelLookup(i.label))
+            }
             case IF_ICMPLT => {
                 val i = inst.asInstanceOf[JumpInsnNode]
                 InstrIF_ICMPLT(labelLookup(i.label))

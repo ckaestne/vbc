@@ -164,6 +164,24 @@ case class InstrIF_ICMPLT(targetBlockIdx: Int) extends JumpInstruction {
 }
 
 
+case class InstrIF_ICMPNE(targetBlockIdx: Int) extends JumpInstruction {
+    /**
+      * (Unconditional target, Conditional target)
+      * None if next block for unconditional target
+      */
+    override def getSuccessor(): (Option[Int], Option[Int]) = (None, Some(targetBlockIdx))
+
+    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+        mv.visitJumpInsn(IF_ICMPNE, env.getBlockLabel(env.getBlock(targetBlockIdx)))
+    }
+
+    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+        mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenINE", genSign(vclasstype, vclasstype, fexprclasstype), false)
+    }
+}
+
+
+
 case class InstrIFGT(targetBlockIdx: Int) extends JumpInstruction {
     /**
       * (Unconditional target, Conditional target)
