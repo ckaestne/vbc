@@ -32,6 +32,15 @@ trait LiftUtils {
         (mtype.getArgumentTypes.map(liftType) :+ Type.getObjectType(fexprclassname)).mkString("(", "", ")") + liftType(mtype.getReturnType)
     }
 
+    /**
+      * lift each parameter but DO NOT add a new fexpr parameter at the end for the context
+      * For example, the <init> method of model classes should not contain
+      */
+    protected def liftMtdDescNoFE(desc: String): String = {
+        val mtype = Type.getMethodType(desc)
+        mtype.getArgumentTypes.map(liftType).mkString("(", "", ")") + liftType(mtype.getReturnType)
+    }
+
     protected def liftMethodSignature(desc: String, sig: Option[String]): Option[String] = {
         val sigReader = new SignatureReader(sig.getOrElse(desc))
         val sw = new LiftSignatureWriter()

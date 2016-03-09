@@ -25,7 +25,7 @@ public interface V<T> {
 
     <U> V<? extends U> flatMap(Function<? super T, V<? extends U>> fun);
 
-    <U> V<? extends U> vflatMap(FeatureExpr ctx, BiFunction<FeatureExpr, ? super T, V<? extends U>> fun);
+    <U> V<? extends U> vflatMap(BiFunction<FeatureExpr, ? super T, V<? extends U>> fun, FeatureExpr ctx);
 
     void foreach(Consumer<T> fun);
 

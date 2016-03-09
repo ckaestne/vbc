@@ -107,6 +107,8 @@ case class VBCClassNode(
         //if the class has a main method, create also an unlifted main method
         if (methods.exists(_.isMain))
             createUnliftedMain(cv)
+        // Write lambda methods
+        lambdaMethods.foreach(_ (cv))
         cv.visitEnd()
     }
 
@@ -146,6 +148,10 @@ case class VBCClassNode(
         attrs.foreach(cv.visitAttribute)
     }
 
+    /**
+      * Generated lambdaMethods
+      */
+    var lambdaMethods: List[(ClassVisitor) => Unit] = Nil
 
 }
 

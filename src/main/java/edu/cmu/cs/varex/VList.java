@@ -22,10 +22,10 @@ public class VList {
     while (list.hasNext()) {
       final Opt<E> current = list.next();
 
-      result = result.vflatMap(ctx, (c, r) ->
+      result = result.vflatMap((c, r) ->
               V.choice(current.getCondition(),
                       op.apply(c.and(current.getCondition()), current.getValue(), r),
-                      V.one(r)));
+                      V.one(r)), ctx);
     }
 
     return result;
@@ -40,10 +40,10 @@ public class VList {
     while (list.hasNext()) {
       final Opt<E> current = list.next();
 
-      result = result.vflatMap(ctx, (c, r) ->
+      result = result.vflatMap((c, r) ->
               V.choice(current.getCondition(),
                       op.apply(c.and(current.getCondition()), current.getValue(), r),
-                      V.one(r)));
+                      V.one(r)), ctx);
 
       if (ctx.implies(result.when(t->stopCriteria.test((T)t))).isTautology())
         break;
