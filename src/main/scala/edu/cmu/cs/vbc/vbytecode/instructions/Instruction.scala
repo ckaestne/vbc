@@ -33,6 +33,8 @@ trait Instruction extends LiftUtils {
       * @see [[Rewrite.rewrite()]]
       */
     def isINVOKESPECIAL_OBJECT_INIT: Boolean = false
+
+  def isVOnlyInsn: Boolean = false
 }
 
 
@@ -61,6 +63,9 @@ case class InstrNOP() extends Instruction {
   * Helper instruciton for initializing conditional fields
   */
 case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
+
+    override def isVOnlyInsn: Boolean = true
+
     override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
         // do nothing
     }

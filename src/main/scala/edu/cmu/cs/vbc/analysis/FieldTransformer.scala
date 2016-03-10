@@ -1,8 +1,9 @@
-package edu.cmu.cs.vbc.adapter
+package edu.cmu.cs.vbc.analysis
 
-import org.objectweb.asm.tree.ClassNode
-import org.objectweb.asm.{FieldVisitor, AnnotationVisitor, ClassVisitor}
 import org.objectweb.asm.Opcodes._
+import org.objectweb.asm.tree.ClassNode
+import org.objectweb.asm.{AnnotationVisitor, ClassVisitor, FieldVisitor}
+
 import scala.collection.mutable.Set
 
 /**

@@ -1,4 +1,4 @@
-package edu.cmu.cs.vbc.adapter
+package edu.cmu.cs.vbc.analysis
 
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.Opcodes._

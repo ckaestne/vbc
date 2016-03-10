@@ -1,6 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode
 
 import org.objectweb.asm.Label
+import org.objectweb.asm.tree.analysis.{BasicValue, Frame}
 
 class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
     protected val blocks = method.body.blocks
@@ -123,8 +124,15 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
   * environment used during generation of the byte code and variational
   * byte code
   */
-class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(clazz, method) {
+class VMethodEnv(
+                  clazz: VBCClassNode,
+                  method: VBCMethodNode,
+                  framesBefore: Array[Frame[BasicValue]],
+                  framesAfter: Array[Frame[BasicValue]]
+                ) extends MethodEnv(clazz, method) {
 
+    val insnCount = (for (b <- blocks; insn <- b.instr; if !insn.isVOnlyInsn) yield insn).size
+    assert(insnCount == framesBefore.size)
 
     var blockVars: Map[Block, Variable] = Map()
 
