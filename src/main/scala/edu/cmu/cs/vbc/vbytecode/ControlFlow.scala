@@ -47,8 +47,55 @@ case class Block(instr: Instruction*) extends LiftUtils {
             mv.visitJumpInsn(IFNE, env.getBlockLabel(nextBlock.get))
         }
 
+        //load local variables if this block is expecting some values on stack
+        val expectingVars = env.getExpectingVars(this)
+        if (expectingVars.nonEmpty) {
+            expectingVars.foreach(
+                (v: Variable) => {
+                    mv.visitVarInsn(ALOAD, env.getVarIdx(v))
+                }
+            )
+        }
+
         //generate block code
         instr.foreach(_.toVByteCode(mv, env, this))
+
+        //store local variables if this block is leaving some values on stack
+        val leftVars = env.getLeftVars(this)
+        if (leftVars.nonEmpty) {
+            leftVars.reverse.foreach(
+                (s: Set[Variable]) => {
+                    s.size match {
+                        case 1 => {
+                            val v = s.toList.head
+                            loadFExpr(mv, env, env.getBlockVar(this))
+                            mv.visitInsn(SWAP)
+                            mv.visitVarInsn(ALOAD, env.getVarIdx(v))
+                            callVCreateChoice(mv)
+                            mv.visitVarInsn(ASTORE, env.getVarIdx(v))
+                        }
+                        case 2 => {
+                            val list = s.toList
+                            val v1 = list.head
+                            val v2 = list.last
+                            mv.visitInsn(DUP)
+                            loadFExpr(mv, env, env.getBlockVar(this))
+                            mv.visitInsn(SWAP)
+                            mv.visitVarInsn(ALOAD, env.getVarIdx(v1))
+                            callVCreateChoice(mv)
+                            mv.visitVarInsn(ASTORE, env.getVarIdx(v1))
+                            loadFExpr(mv, env, env.getBlockVar(this))
+                            mv.visitInsn(SWAP)
+                            mv.visitVarInsn(ALOAD, env.getVarIdx(v2))
+                            callVCreateChoice(mv)
+                            mv.visitVarInsn(ASTORE, env.getVarIdx(v2))
+                        }
+                        case _ => throw new RuntimeException("size of Set[Variable] is not 1 or 2")
+                    }
+                }
+            )
+        }
+
 
         val successors = env.getSuccessors(this)
         if (successors._1 == None) {
@@ -163,6 +210,13 @@ case class CFG(blocks: List[Block]) extends LiftUtils {
         if (env.method.isInit()) {
             mv.visitVarInsn(ALOAD, 0)
             mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false)
+        }
+
+
+        //TODO: exclude those block vars
+        for (v <- env.getFreshVars()) {
+            mv.visitInsn(ACONST_NULL)
+            storeV(mv, env, v)
         }
 
         // initialize all block variables to FALSE, except for the first one which is initialized
