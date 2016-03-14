@@ -59,6 +59,10 @@ case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Bo
                 mv.visitMethodInsn(INVOKEVIRTUAL, owner, name, genSign(primitiveToObjectType("O"), "Ljava/lang/StringBuilder;"), itf)
             }
             else if (owner == "java/io/PrintStream" && name == "println") {
+                //debug output indicating the current context before printing
+                loadFExpr(mv, env, env.getBlockVar(block))
+                mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "updateCtx", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
+
                 mv.visitMethodInsn(INVOKEVIRTUAL, owner, name, genSign(primitiveToObjectType("O"), "V"), itf)
             }
             else {

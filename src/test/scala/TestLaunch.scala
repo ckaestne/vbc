@@ -1,18 +1,26 @@
 package edu.cmu.cs.vbc
 
+import de.fosd.typechef.featureexpr.FeatureExprFactory
 import org.scalatest.FunSuite
 
 
 /**
   * simple starter, checks for successful execution without crashes, no assertion checking
   */
-class TestLaunch extends FunSuite with DiffTestInfrastructure {
+class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
+
+    FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
 
     test("ifelse") {
-        VBCLauncher.launch("edu.cmu.cs.vbc.prog.IfElseExample")
+        testMain("edu.cmu.cs.vbc.prog.IfElseExample")
     }
+
+    test("test1") {
+        testMain("edu.cmu.cs.vbc.prog.Test1")
+    }
+
     ignore("bankaccount") {
-        VBCLauncher.launch("edu.cmu.cs.vbc.prog.bankaccount.Main")
+        testMain("edu.cmu.cs.vbc.prog.bankaccount.Main")
     }
 
 }

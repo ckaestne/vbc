@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode
 
-import org.objectweb.asm.Label
+import org.objectweb.asm.{Label, Type}
 
 class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
     protected val blocks = method.body.blocks
@@ -15,8 +15,7 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
     //not to variables that are generated in the tranformation process;
     //the latter are stored separately as freshVars
     //(localVars and freshVars behave as sorted sets)
-    protected var parameters: Set[Parameter] = Set()
-    protected var maxParameterIdx = 0
+    protected var parameterCount = Type.getArgumentTypes(method.desc).size + (if (method.isStatic()) 0 else 1)
     protected var freshVars: List[LocalVar] = Nil
 
     protected var blockLabels: Map[Block, Label] = Map()
@@ -42,11 +41,11 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
         case l: LocalVar =>
             val localIdxPos = localVars.reverse.indexOf(l)
             if (localIdxPos >= 0)
-                maxParameterIdx + 1 + localIdxPos
+                parameterCount + localIdxPos
             else {
                 val freshIdxPos = freshVars.reverse.indexOf(l)
                 assert(freshIdxPos >= 0, "variable not found in environment")
-                maxParameterIdx + 1 + localVars.size + freshIdxPos
+                parameterCount + localVars.size + freshIdxPos
             }
     }
 
@@ -104,12 +103,6 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
         blocks.indexOf(first) < blocks.indexOf(second)
 
 
-    def addParameter(p: Parameter): Unit = {
-        assert(!parameters.exists(_.idx == p.idx), "parameter " + p.idx + " already in environment")
-        parameters += p
-        maxParameterIdx = Math.max(maxParameterIdx, p.idx)
-    }
-
     def isMain = {
         //todo oversimplified; also I'd rather create a new main method that just calls the lifted main method,
         //such that the (lifted) main method is not different from any other (lifted) method
@@ -153,10 +146,10 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
       * all values shifted by 1 by the ctx parameter
       */
     override def getVarIdx(variable: Variable): Int =
-        if (variable eq ctxParameter) maxParameterIdx + 1
+        if (variable eq ctxParameter) parameterCount
         else {
             val idx = super.getVarIdx(variable: Variable)
-            if (idx > maxParameterIdx) idx + 1
+            if (idx >= parameterCount) idx + 1
             else idx
         }
 
