@@ -1,8 +1,8 @@
 package edu.cmu.cs.vbc.vbytecode
 
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
-import org.objectweb.asm.Label
 import org.objectweb.asm.tree.analysis.{BasicValue, Frame}
+import org.objectweb.asm.{Label, Type}
 
 class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
     protected val blocks = method.body.blocks
@@ -17,8 +17,7 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
     //not to variables that are generated in the tranformation process;
     //the latter are stored separately as freshVars
     //(localVars and freshVars behave as sorted sets)
-    protected var parameters: Set[Parameter] = Set()
-    protected var maxParameterIdx = 0
+    protected var parameterCount = Type.getArgumentTypes(method.desc).size + (if (method.isStatic()) 0 else 1)
     protected var freshVars: List[LocalVar] = Nil
 
     def getFreshVars(): List[Variable] = freshVars
@@ -46,11 +45,11 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
         case l: LocalVar =>
             val localIdxPos = localVars.reverse.indexOf(l)
             if (localIdxPos >= 0)
-                maxParameterIdx + 1 + localIdxPos
+                parameterCount + localIdxPos
             else {
                 val freshIdxPos = freshVars.reverse.indexOf(l)
                 assert(freshIdxPos >= 0, "variable not found in environment")
-                maxParameterIdx + 1 + localVars.size + freshIdxPos
+                parameterCount + localVars.size + freshIdxPos
             }
     }
 
@@ -108,12 +107,6 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
         blocks.indexOf(first) < blocks.indexOf(second)
 
 
-    def addParameter(p: Parameter): Unit = {
-        assert(!parameters.exists(_.idx == p.idx), "parameter " + p.idx + " already in environment")
-        parameters += p
-        maxParameterIdx = Math.max(maxParameterIdx, p.idx)
-    }
-
     def isMain = {
         //todo oversimplified; also I'd rather create a new main method that just calls the lifted main method,
         //such that the (lifted) main method is not different from any other (lifted) method
@@ -135,7 +128,7 @@ class VMethodEnv(
                 ) extends MethodEnv(clazz, method) {
 
     val nonVInsns = for (b <- blocks; insn <- b.instr; if !insn.isVOnlyInsn) yield insn
-    assert(nonVInsns.size == framesBefore.size)
+//    assert(nonVInsns.size == framesBefore.size) TODO: wait for new Frame calculation
 
     var blockVars: Map[Block, Variable] = Map()
 
@@ -143,9 +136,10 @@ class VMethodEnv(
     blocks.foreach(getExpectingVars(_))
 
     def getLeftVars(block: Block): List[Set[Variable]] = {
-        val afterFrame = framesAfter(getFrameIdx(block.instr.last))
-        val (succ1, succ2) = getSuccessors(block)
-        getVarSetList(Nil, succ1, succ2, afterFrame.getStackSize)
+//        val afterFrame = framesAfter(getFrameIdx(block.instr.last))
+//        val (succ1, succ2) = getSuccessors(block)
+//        getVarSetList(Nil, succ1, succ2, afterFrame.getStackSize)
+        Nil //TODO: wait for new Frame calculation
     }
 
     def getVarSetList(l: List[Set[Variable]], succ1: Option[Block], succ2: Option[Block], n: Int): List[Set[Variable]] =
@@ -169,12 +163,13 @@ class VMethodEnv(
     }
 
     def getExpectingVars(block: Block): List[Variable] = {
-        if (!(expectingVars contains block)) {
-            val beforeFrame = framesBefore(getFrameIdx(block.instr.find(!_.isVOnlyInsn).get))
-            val newVars: List[Variable] = createNewVars(Nil, beforeFrame.getStackSize)
-            expectingVars += (block -> newVars)
-        }
-        expectingVars(block)
+//        if (!(expectingVars contains block)) {
+//            val beforeFrame = framesBefore(getFrameIdx(block.instr.find(!_.isVOnlyInsn).get))
+//            val newVars: List[Variable] = createNewVars(Nil, beforeFrame.getStackSize)
+//            expectingVars += (block -> newVars)
+//        }
+//        expectingVars(block)
+        Nil //TODO: wait for new Frame calculation
     }
 
     def getFrameIdx(insn: Instruction): Int = nonVInsns.indexWhere(_ eq insn)
@@ -210,10 +205,10 @@ class VMethodEnv(
       * all values shifted by 1 by the ctx parameter
       */
     override def getVarIdx(variable: Variable): Int =
-        if (variable eq ctxParameter) maxParameterIdx + 1
+        if (variable eq ctxParameter) parameterCount
         else {
             val idx = super.getVarIdx(variable: Variable)
-            if (idx > maxParameterIdx) idx + 1
+            if (idx >= parameterCount) idx + 1
             else idx
         }
 

@@ -101,22 +101,22 @@ case class VBCClassNode(
                            innerClasses: List[VBCInnerClassNode] = Nil
                        ) extends LiftUtils {
 
-    def toByteCode(cv: ClassVisitor) = {
+    def toByteCode(cv: ClassVisitor, rewriter: VBCMethodNode => VBCMethodNode = a => a) = {
         cv.visit(version, access, name, signature.getOrElse(null), superName, interfaces.toArray)
         commonToByteCode(cv)
         //        innerClasses.foreach(_.toByteCode(cv))
         fields.foreach(_.toByteCode(cv))
-        methods.foreach(_.toByteCode(cv, this))
+        methods.foreach(m => rewriter(Rewrite.rewrite(m)).toByteCode(cv, this))
         cv.visitEnd()
     }
 
 
-    def toVByteCode(cv: ClassVisitor) = {
+    def toVByteCode(cv: ClassVisitor, rewriter: VBCMethodNode => VBCMethodNode = a => a) = {
         cv.visit(version, access, name, signature.getOrElse(null), superName, interfaces.toArray)
         commonToByteCode(cv)
         //        innerClasses.foreach(_.toVByteCode(cv))
         fields.foreach(_.toVByteCode(cv))
-        methods.foreach(Rewrite.rewrite(_).toVByteCode(cv, this))
+        methods.foreach(m => rewriter(Rewrite.rewriteV(m)).toVByteCode(cv, this))
         //if the class has a main method, create also an unlifted main method
         if (methods.exists(_.isMain))
             createUnliftedMain(cv)

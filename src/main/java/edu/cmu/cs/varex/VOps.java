@@ -1,6 +1,7 @@
 package edu.cmu.cs.varex;
 
 import de.fosd.typechef.featureexpr.FeatureExpr;
+import de.fosd.typechef.featureexpr.FeatureExprFactory;
 
 /**
  * Created by ckaestne on 1/16/2016.
@@ -75,6 +76,15 @@ public class VOps {
 
   public static V<? extends Integer> IDIV(V<? extends Integer> a, V<? extends Integer> b) {
     return a.flatMap(aa -> b.map(bb -> aa / bb));
+  }
+
+  private static FeatureExpr lastFexpr = FeatureExprFactory.True();
+
+  public static void updateCtx(FeatureExpr fexpr) {
+    if (!fexpr.equals(lastFexpr)) {
+      lastFexpr = fexpr;
+      System.out.print("[" + fexpr + "]");
+    }
   }
 
 }

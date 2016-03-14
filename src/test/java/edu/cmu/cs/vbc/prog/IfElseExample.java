@@ -16,11 +16,13 @@ public class IfElseExample {
   }
 
   public void simpleIfElse() {
+    System.out.println("start.");
     if (a) {
-      System.out.println("then branch");
+      System.out.println("then branch.");
     } else {
-      System.out.println("else branch");
+      System.out.println("else branch.");
     }
+    System.out.println("done.");
   }
 
 //    /**

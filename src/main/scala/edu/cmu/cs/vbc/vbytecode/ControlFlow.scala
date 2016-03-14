@@ -197,6 +197,11 @@ case class CFG(blocks: List[Block]) extends LiftUtils {
 
 
     def toByteCode(mv: MethodVisitor, env: MethodEnv) = {
+        // For <init> methods, the first two instructions should be ALOAD 0 and INVOKESPECIAL
+        if (env.method.isInit()) {
+            mv.visitVarInsn(ALOAD, 0)
+            mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false)
+        }
         blocks.foreach(_.toByteCode(mv, env))
     }
 

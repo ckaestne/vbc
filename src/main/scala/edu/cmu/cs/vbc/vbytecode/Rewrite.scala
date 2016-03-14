@@ -14,6 +14,9 @@ object Rewrite {
 
 
     def rewrite(m: VBCMethodNode): VBCMethodNode =
+        initializeConditionalFields(m)
+
+    def rewriteV(m: VBCMethodNode): VBCMethodNode =
         initializeConditionalFields(
             ensureUniqueReturnInstr(m)
         )
