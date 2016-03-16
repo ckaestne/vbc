@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode
 
-import edu.cmu.cs.vbc.analysis.VBCFrame
+import edu.cmu.cs.vbc.analysis.VBCAnalyzer
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
 import org.objectweb.asm.{Label, Type}
 
@@ -129,18 +129,14 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
   * environment used during generation of the byte code and variational
   * byte code
   */
-class VMethodEnv(
-                  clazz: VBCClassNode,
-                  method: VBCMethodNode,
-                  framesBeforeO: Option[Array[VBCFrame]],
-                  framesAfterO: Option[Array[VBCFrame]]
-                ) extends MethodEnv(clazz, method) {
-
-    require(framesBeforeO.isDefined && framesAfterO.isDefined)
+class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(clazz, method) {
 
     ////////// Unbalanced Stack //////////
-    val framesBefore = framesBeforeO.get
-    val framesAfter = framesAfterO.get
+    val analyzer = new VBCAnalyzer(this)
+    assert(analyzer.beforeFrames.isDefined, "No frames available")
+    assert(analyzer.afterFrames.isDefined, "No frames available")
+    val framesBefore = analyzer.beforeFrames.get
+    val framesAfter = analyzer.afterFrames.get
     var expectingVars: Map[Block, List[Variable]] = Map()
     blocks.foreach(getExpectingVars(_))
     def getLeftVars(block: Block): List[Set[Variable]] = {
@@ -211,6 +207,7 @@ class VMethodEnv(
         clazz.fields.exists(filter)
     }
 
+    def getVarIdxNoCtx(variable: Variable) = super.getVarIdx(variable)
 
     /**
       * all values shifted by 1 by the ctx parameter

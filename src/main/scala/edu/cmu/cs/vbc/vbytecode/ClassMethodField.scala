@@ -1,6 +1,5 @@
 package edu.cmu.cs.vbc.vbytecode
 
-import edu.cmu.cs.vbc.analysis.VBCAnalyzer
 import edu.cmu.cs.vbc.vbytecode.util.LiftUtils
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm._
@@ -21,9 +20,8 @@ case class VBCMethodNode(access: Int, name: String,
     def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
         val mv = cw.visitMethod(access, name, liftMethodDescription(desc), liftMethodSignature(desc, signature).getOrElse(null), exceptions.toArray)
         mv.visitCode()
-        val env = new MethodEnv(clazz, this)
-        val stackAnalysis = new VBCAnalyzer(env)
-        body.toVByteCode(mv, new VMethodEnv(clazz, this, stackAnalysis.beforeFrames, stackAnalysis.afterFrames))
+        val env = new VMethodEnv(clazz, this)
+        body.toVByteCode(mv, env)
         mv.visitMaxs(5, 5)
         mv.visitEnd()
     }

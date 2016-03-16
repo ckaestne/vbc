@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.analysis
 
 import edu.cmu.cs.vbc.test._
-import edu.cmu.cs.vbc.vbytecode.MethodEnv
+import edu.cmu.cs.vbc.vbytecode.VMethodEnv
 import edu.cmu.cs.vbc.vbytecode.instructions._
 import org.objectweb.asm.Type
 
@@ -67,7 +67,7 @@ class VBCFrame(nLocals: Int) {
   /**
     * Execute one instruction
     */
-  def execute(instr: Instruction, env: MethodEnv): Unit = {
+  def execute(instr: Instruction, env: VMethodEnv): Unit = {
 
     /**
       * push to the stack
@@ -107,15 +107,15 @@ class VBCFrame(nLocals: Int) {
           case _ => throw new RuntimeException("Incomplete support for LDC")
         }
       }
-      case i: InstrILOAD => push(values(env.getVarIdx(i.variable)))
-      case i: InstrALOAD => push(values(env.getVarIdx(i.variable)))
+      case i: InstrILOAD => push(values(env.getVarIdxNoCtx(i.variable)))
+      case i: InstrALOAD => push(values(env.getVarIdxNoCtx(i.variable)))
       case i: InstrISTORE => {
         val old = pop()
-        setLocal(env.getVarIdx(i.variable), old) //TODO: float and double
+        setLocal(env.getVarIdxNoCtx(i.variable), old) //TODO: float and double
       }
       case i: InstrASTORE => {
         val old = pop()
-        setLocal(env.getVarIdx(i.variable), old)
+        setLocal(env.getVarIdxNoCtx(i.variable), old)
       }
       case i: InstrPOP => pop()
       case i: InstrDUP => {
@@ -133,7 +133,7 @@ class VBCFrame(nLocals: Int) {
       case i: InstrIDIV => {
         pop(); pop(); push(INT_TYPE())
       }
-      case i: InstrIINC => setLocal(env.getVarIdx(i.variable), INT_TYPE())
+      case i: InstrIINC => setLocal(env.getVarIdxNoCtx(i.variable), INT_TYPE())
       case i: InstrIFEQ => pop()
       case i: InstrIFNE => pop()
       case i: InstrIFGE => pop()

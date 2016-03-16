@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.analysis
 
 import edu.cmu.cs.vbc.vbytecode.instructions.{Instruction, JumpInstruction}
-import edu.cmu.cs.vbc.vbytecode.{MethodEnv, VBCMethodNode}
+import edu.cmu.cs.vbc.vbytecode.{VBCMethodNode, VMethodEnv}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.Type
 
@@ -10,7 +10,7 @@ import org.objectweb.asm.Type
   *
   * @author chupanw
   */
-class VBCAnalyzer(env: MethodEnv) {
+class VBCAnalyzer(env: VMethodEnv) {
 
   /**
     * Method node
