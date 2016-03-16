@@ -63,8 +63,18 @@ case class Block(instr: Instruction*) extends LiftUtils {
         //store local variables if this block is leaving some values on stack
         val leftVars = env.getLeftVars(this)
         if (leftVars.nonEmpty) {
+            var hasFEOnTop = false
+            if (instr.last.isJumpInstr) {
+                val j = instr.last.asInstanceOf[JumpInstruction]
+                val (uncond, cond) = j.getSuccessor()
+                if (cond.isDefined) {
+                    // conditional jump, which means there is a FE on the stack right now
+                    hasFEOnTop = true
+                }
+            }
             leftVars.reverse.foreach(
                 (s: Set[Variable]) => {
+                    if (hasFEOnTop) mv.visitInsn(SWAP)
                     s.size match {
                         case 1 => {
                             val v = s.toList.head

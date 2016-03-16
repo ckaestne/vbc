@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode
 
-import edu.cmu.cs.vbc.analysis.StackAnalysis
+import edu.cmu.cs.vbc.analysis.VBCAnalyzer
 import edu.cmu.cs.vbc.vbytecode.util.LiftUtils
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm._
@@ -19,23 +19,13 @@ case class VBCMethodNode(access: Int, name: String,
     }
 
     def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
-        val (framesBefore, framesAfter) = doStackAnalysis(clazz)
         val mv = cw.visitMethod(access, name, liftMethodDescription(desc), liftMethodSignature(desc, signature).getOrElse(null), exceptions.toArray)
         mv.visitCode()
-        body.toVByteCode(mv, new VMethodEnv(clazz, this, framesBefore, framesAfter))
+        val env = new MethodEnv(clazz, this)
+        val stackAnalysis = new VBCAnalyzer(env)
+        body.toVByteCode(mv, new VMethodEnv(clazz, this, stackAnalysis.beforeFrames, stackAnalysis.afterFrames))
         mv.visitMaxs(5, 5)
         mv.visitEnd()
-    }
-
-    def doStackAnalysis(clazz: VBCClassNode) = {
-        val mn = new MethodNode(access, name, desc, signature.orNull, exceptions.toArray)
-        mn.visitCode()
-        body.toByteCode(mn, new MethodEnv(clazz, this))
-        mn.visitMaxs(100, 100) // 100 should be enough
-        mn.visitEnd()
-
-        val stackAnalysis = new StackAnalysis(clazz.name, mn)
-        (stackAnalysis.getFramesBefore, stackAnalysis.getFramesAfter)
     }
 
     def returnsVoid() = Type.getMethodType(desc).getReturnType == Type.VOID_TYPE

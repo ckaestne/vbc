@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode
 
+import edu.cmu.cs.vbc.analysis.VBCFrame
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
-import org.objectweb.asm.tree.analysis.{BasicValue, Frame}
 import org.objectweb.asm.{Label, Type}
 
 class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
@@ -113,6 +113,15 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
         method.name == "main"
     }
 
+    def maxLocals = parameterCount + localVars.size + freshVars.size
+
+    def instructions = for (b <- blocks; i <- b.instr) yield i
+
+    def getBlockStart(blockIdx: Int): Int = {
+        var sum = 0
+        blocks.take(blockIdx).foreach(sum += _.instr.length)
+        sum
+    }
 
 }
 
@@ -123,23 +132,21 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
 class VMethodEnv(
                   clazz: VBCClassNode,
                   method: VBCMethodNode,
-                  framesBefore: Array[Frame[BasicValue]],
-                  framesAfter: Array[Frame[BasicValue]]
+                  framesBeforeO: Option[Array[VBCFrame]],
+                  framesAfterO: Option[Array[VBCFrame]]
                 ) extends MethodEnv(clazz, method) {
 
-    val nonVInsns = for (b <- blocks; insn <- b.instr; if !insn.isVOnlyInsn) yield insn
-//    assert(nonVInsns.size == framesBefore.size) TODO: wait for new Frame calculation
+    require(framesBeforeO.isDefined && framesAfterO.isDefined)
 
-    var blockVars: Map[Block, Variable] = Map()
-
+    ////////// Unbalanced Stack //////////
+    val framesBefore = framesBeforeO.get
+    val framesAfter = framesAfterO.get
     var expectingVars: Map[Block, List[Variable]] = Map()
     blocks.foreach(getExpectingVars(_))
-
     def getLeftVars(block: Block): List[Set[Variable]] = {
-//        val afterFrame = framesAfter(getFrameIdx(block.instr.last))
-//        val (succ1, succ2) = getSuccessors(block)
-//        getVarSetList(Nil, succ1, succ2, afterFrame.getStackSize)
-        Nil //TODO: wait for new Frame calculation
+        val afterFrame = framesAfter(getFrameIdx(block.instr.last))
+        val (succ1, succ2) = getSuccessors(block)
+        getVarSetList(Nil, succ1, succ2, afterFrame.getStackSize)
     }
 
     def getVarSetList(l: List[Set[Variable]], succ1: Option[Block], succ2: Option[Block], n: Int): List[Set[Variable]] =
@@ -163,16 +170,20 @@ class VMethodEnv(
     }
 
     def getExpectingVars(block: Block): List[Variable] = {
-//        if (!(expectingVars contains block)) {
-//            val beforeFrame = framesBefore(getFrameIdx(block.instr.find(!_.isVOnlyInsn).get))
-//            val newVars: List[Variable] = createNewVars(Nil, beforeFrame.getStackSize)
-//            expectingVars += (block -> newVars)
-//        }
-//        expectingVars(block)
-        Nil //TODO: wait for new Frame calculation
+        if (!(expectingVars contains block)) {
+            val beforeFrame = framesBefore(getFrameIdx(block.instr.head))
+            val newVars: List[Variable] = createNewVars(Nil, beforeFrame.getStackSize)
+            expectingVars += (block -> newVars)
+        }
+        expectingVars(block)
     }
 
-    def getFrameIdx(insn: Instruction): Int = nonVInsns.indexWhere(_ eq insn)
+    def getFrameIdx(insn: Instruction): Int = instructions.indexWhere(_ eq insn)
+
+    ////////// end Unbalanced Stack //////////
+
+    var blockVars: Map[Block, Variable] = Map()
+
 
     def createNewVars(l: List[Variable], n: Int): List[Variable] =
         if (n == 0) l else createNewVars(List[Variable](freshLocalVar()) ::: l, n - 1)
