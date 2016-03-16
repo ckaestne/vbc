@@ -6,7 +6,7 @@ import edu.cmu.cs.vbc.vbytecode._
 import edu.cmu.cs.vbc.vbytecode.instructions._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.tree._
-import org.objectweb.asm.{ClassReader, Type}
+import org.objectweb.asm.{ClassReader, Opcodes, Type}
 
 import scala.collection.JavaConversions._
 
@@ -52,7 +52,8 @@ class Loader {
         val ordered = methodAnalyzer.blocks.toArray :+ m.instructions.size()
 
         var varCache: Map[Int, Variable] = Map()
-        val parameterCount = 1 + Type.getArgumentTypes(m.desc).size //TODO check whether this changes for static methods without a "this" parameter
+        val isStatic = (m.access & Opcodes.ACC_STATIC) > 0
+        val parameterCount = Type.getArgumentTypes(m.desc).size + (if (isStatic) 0 else 1) //TODO check whether this changes for static methods without a "this" parameter
         def lookupVariable(idx: Int): Variable =
             if (varCache contains idx)
                 varCache(idx)
