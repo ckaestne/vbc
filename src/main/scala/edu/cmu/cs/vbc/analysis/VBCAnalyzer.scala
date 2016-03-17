@@ -41,17 +41,17 @@ class VBCAnalyzer(env: VMethodEnv) {
     var local: Int = 0
     // init this
     if ((mn.access & ACC_STATIC) == 0) {
-      current.setLocal(local, VBCValue.newValue(Type.getObjectType(env.clazz.name)))
+      current.setLocal(local, VBCValue.newValue(Type.getObjectType(env.clazz.name)), None)
       local += 1
     }
     // init args
     for (t <- Type.getArgumentTypes(mn.desc)) {
-      current.setLocal(local, VBCValue.newValue(t))
+      current.setLocal(local, VBCValue.newValue(t), None)
       local += 1
     }
     // init other local variables
     while (local < env.maxLocals) {
-      current.setLocal(local, VBCValue.newValue(null))
+      current.setLocal(local, VBCValue.newValue(null), None)
       local += 1
     }
 

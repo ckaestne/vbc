@@ -115,7 +115,7 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
 
     def maxLocals = parameterCount + localVars.size + freshVars.size
 
-    def instructions = for (b <- blocks; i <- b.instr) yield i
+    val instructions = for (b <- blocks; i <- b.instr) yield i
 
     def getBlockStart(blockIdx: Int): Int = {
         var sum = 0
@@ -130,6 +130,56 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
   * byte code
   */
 class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(clazz, method) {
+
+    ////////// Tag each instruction with V //////////
+
+    val blockTags = new Array[Boolean](blocks.length)   // by default all elements are false
+    def getBlockIdx(b: Block) = blocks.indexWhere(_ eq b)
+    val instructionTags = new Array[Boolean](instructions.length) // by default all elements are false
+    def getInsnIdx(instr: Instruction) = instructions.indexWhere(_ eq instr)
+    def shouldLift(instr: Instruction) = instructionTags(getInsnIdx(instr))
+
+    def getOrderedSuccessorsIndexes(b: Block): List[Int] = {
+        var idxSet = Set[Int]()
+        var visited = Set[Block]()
+        val (uncond, cond) = getSuccessors(b)
+        var queue = List[Block]()
+        if (uncond.isDefined) queue = queue :+ uncond.get
+        if (cond.isDefined) queue = queue :+ cond.get
+        while (queue.nonEmpty) {
+            val h = queue.head
+            visited += h
+            if (!idxSet.contains(getBlockIdx(h))){
+                idxSet += getBlockIdx(h)
+                val (o1, o2) = getSuccessors(h)
+                if (o1.isDefined && !visited.contains(o1.get))
+                    queue = queue :+ o1.get
+                if (o2.isDefined && !visited.contains(o2.get))
+                    queue = queue :+ o2.get
+            }
+            queue = queue.drop(1)
+        }
+        idxSet.toList sortWith (_ < _)
+    }
+
+    def getMergePoint(b1: Block, b2: Block): Int = {
+        val l1: List[Int] = getOrderedSuccessorsIndexes(b1)
+        val l2: List[Int] = getOrderedSuccessorsIndexes(b2)
+        l1.find(l2.contains(_)).get
+    }
+
+    def setChainToTrue(chain: List[Instruction]): Unit = {
+        for (i <- chain) instructionTags(getInsnIdx(i)) = true
+    }
+
+    def setInsnToTrue(instr: Instruction): Unit = {
+        instructionTags(getInsnIdx(instr)) = true
+    }
+
+    def isBlockUnderCtx(i: Instruction): Boolean = {
+        val blockIdx = blocks.indexWhere((bb) => bb.instr.exists((insn) => insn eq i))
+        blockTags(blockIdx)
+    }
 
     ////////// Unbalanced Stack //////////
     val analyzer = new VBCAnalyzer(this)

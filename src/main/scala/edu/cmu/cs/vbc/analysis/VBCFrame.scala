@@ -4,6 +4,7 @@ import edu.cmu.cs.vbc.test._
 import edu.cmu.cs.vbc.vbytecode.VMethodEnv
 import edu.cmu.cs.vbc.vbytecode.instructions._
 import org.objectweb.asm.Type
+import util.LiftingFilter
 
 /**
   * For each instruction, Frame contains information about local variables and stack elements.
@@ -18,6 +19,16 @@ class VBCFrame(nLocals: Int) {
   val values: Array[VBCValue] = new Array(nLocals * 10) // this is just an approximation
 
   /**
+    * If value is updated, also store the instruction chain that updates this value
+    */
+  val sourceInstrs: Array[List[Instruction]] = new Array(values.length)
+
+  /**
+    * Whether the current frame is under context
+    */
+//  var isInCtx: Boolean = false
+
+  /**
     * The number of elements in the operand stack
     */
   var top = 0
@@ -30,7 +41,9 @@ class VBCFrame(nLocals: Int) {
   def this(srcFrame: VBCFrame) = {
     this(srcFrame.locals)
     for (i <- 0 until values.length) values(i) = srcFrame.values(i)
+    for (i <- 0 until sourceInstrs.length) sourceInstrs(i) = srcFrame.sourceInstrs(i)
     top = srcFrame.top
+//    isInCtx = srcFrame.isInCtx
   }
 
   /**
@@ -41,8 +54,13 @@ class VBCFrame(nLocals: Int) {
     * @param value
     * new value to set to
     */
-  def setLocal(i: Int, value: VBCValue) = {
+  def setLocal(i: Int, value: VBCValue, chain: Option[List[Instruction]]) = {
     values(i) = value
+    if (chain.isDefined) {
+      sourceInstrs(i) = chain.get
+    }
+    else
+      sourceInstrs(i) = Nil
   }
 
   /**
@@ -61,6 +79,7 @@ class VBCFrame(nLocals: Int) {
       changed = merged != values(i) | changed
       if (changed) values(i) = merged
     }
+//    changed = changed | isInCtx != frame.isInCtx
     changed
   }
 
@@ -74,10 +93,11 @@ class VBCFrame(nLocals: Int) {
       *
       * @param v
       */
-    def push(v: VBCValue): Unit = {
+    def push(v: VBCValue, chain: List[Instruction]): Unit = {
       if (top + nLocals >= values.length)
         throw new IndexOutOfBoundsException("Insufficient maxium stack size")
       values(top + nLocals) = v
+      sourceInstrs(top + nLocals) = chain
       top += 1
     }
 
@@ -86,105 +106,212 @@ class VBCFrame(nLocals: Int) {
       *
       * @return
       */
-    def pop(): VBCValue = {
+    def pop(): (VBCValue, List[Instruction]) = {
       if (top == 0)
         throw new IndexOutOfBoundsException("Cannot pop operand off an empty stack.")
       top -= 1
       val ret = values(top + nLocals)
+      val chain = sourceInstrs(top + nLocals)
       values(nLocals + top) = null
-      ret
+      sourceInstrs(nLocals + top) = Nil
+      (ret, chain)
     }
 
     instr match {
-      case i: InstrACONST_NULL => push(VBCValue.newValue(Type.getObjectType("null")))
-      case i: InstrICONST => push(INT_TYPE())
-      case i: InstrBIPUSH => push(INT_TYPE())
-      case i: InstrSIPUSH => push(INT_TYPE())
+      case i: InstrACONST_NULL => push(VBCValue.newValue(Type.getObjectType("null")), i::Nil)
+      case i: InstrICONST => push(INT_TYPE(), i::Nil)
+      case i: InstrBIPUSH => push(INT_TYPE(), i::Nil)
+      case i: InstrSIPUSH => push(INT_TYPE(), i::Nil)
       case i: InstrLDC => {
         i.o match {
-          case integer: java.lang.Integer => push(INT_TYPE())
-          case string: java.lang.String => push(VBCValue.newValue(Type.getObjectType("java/lang/String")))
+          case integer: java.lang.Integer => push(INT_TYPE(), i::Nil)
+          case string: java.lang.String => push(VBCValue.newValue(Type.getObjectType("java/lang/String")), i::Nil)
           case _ => throw new RuntimeException("Incomplete support for LDC")
         }
       }
-      case i: InstrILOAD => push(values(env.getVarIdxNoCtx(i.variable)))
-      case i: InstrALOAD => push(values(env.getVarIdxNoCtx(i.variable)))
+      case i: InstrILOAD => push(values(env.getVarIdxNoCtx(i.variable)), i::sourceInstrs(env.getVarIdxNoCtx(i.variable)))
+      case i: InstrALOAD => push(values(env.getVarIdxNoCtx(i.variable)), i::sourceInstrs(env.getVarIdxNoCtx(i.variable)))
       case i: InstrISTORE => {
-        val old = pop()
-        setLocal(env.getVarIdxNoCtx(i.variable), old) //TODO: float and double
+        val (old, chain) = pop()
+        setLocal(env.getVarIdxNoCtx(i.variable), V_TYPE(), Some(i :: chain)) //TODO: float and double
+        env.setChainToTrue(chain)
+        env.setInsnToTrue(i)
       }
       case i: InstrASTORE => {
-        val old = pop()
-        setLocal(env.getVarIdxNoCtx(i.variable), old)
+        val (old, chain) = pop()
+        setLocal(env.getVarIdxNoCtx(i.variable), V_TYPE(), Some(i :: chain))
+        env.setChainToTrue(chain)
+        env.setInsnToTrue(i)
       }
       case i: InstrPOP => pop()
       case i: InstrDUP => {
-        val v = pop(); push(v); push(v)
+        val (v, chain) = pop(); push(v, chain); push(v, chain)
       }
       case i: InstrIADD => {
-        pop(); pop(); push(INT_TYPE())
+        val (v1, chain1) = pop()
+        val (v2, chain2) = pop()
+        push(INT_TYPE(), i :: chain1 ::: chain2)
       }
       case i: InstrISUB => {
-        pop(); pop(); push(INT_TYPE())
+        val (v1, chain1) = pop()
+        val (v2, chain2) = pop()
+        push(INT_TYPE(), i :: chain1 ::: chain2)
       }
       case i: InstrIMUL => {
-        pop(); pop(); push(INT_TYPE())
+        val (v1, chain1) = pop()
+        val (v2, chain2) = pop()
+        push(INT_TYPE(), i :: chain1 ::: chain2)
       }
       case i: InstrIDIV => {
-        pop(); pop(); push(INT_TYPE())
+        val (v1, chain1) = pop()
+        val (v2, chain2) = pop()
+        push(INT_TYPE(), i :: chain1 ::: chain2)
       }
-      case i: InstrIINC => setLocal(env.getVarIdxNoCtx(i.variable), INT_TYPE())
-      case i: InstrIFEQ => pop()
-      case i: InstrIFNE => pop()
-      case i: InstrIFGE => pop()
-      case i: InstrIFGT => pop()
+      case i: InstrIINC => {
+        setLocal(env.getVarIdxNoCtx(i.variable), V_TYPE(), Some(i :: sourceInstrs(env.getVarIdxNoCtx(i.variable))))
+        env.setChainToTrue(sourceInstrs(env.getVarIdxNoCtx(i.variable)))
+        env.setInsnToTrue(i)
+      }
+      case i: InstrIFEQ => {
+        val (v, chain) = pop()
+        if (v.isInstanceOf[V_TYPE]) {
+          env.setChainToTrue(chain)
+          env.setInsnToTrue(i)
+        }
+      }
+      case i: InstrIFNE => {
+        val (v, chain) = pop()
+        if (v.isInstanceOf[V_TYPE]) {
+          env.setChainToTrue(chain)
+          env.setInsnToTrue(i)
+        }
+      }
+      case i: InstrIFGE => {
+        val (v, chain) = pop()
+        if (v.isInstanceOf[V_TYPE]) {
+          env.setChainToTrue(chain)
+          env.setInsnToTrue(i)
+        }
+      }
+      case i: InstrIFGT => {
+        val (v, chain) = pop()
+        if (v.isInstanceOf[V_TYPE]) {
+          env.setChainToTrue(chain)
+          env.setInsnToTrue(i)
+        }
+      }
       case i: InstrIF_ICMPEQ => {
-        pop(); pop()
+        val (v1, chain1) = pop()
+        val (v2, chain2) = pop()
+        if (v1.isInstanceOf[V_TYPE] || v2.isInstanceOf[V_TYPE]) {
+          env.setChainToTrue(chain1)
+          env.setChainToTrue(chain2)
+          env.setInsnToTrue(i)
+        }
       }
       case i: InstrIF_ICMPNE => {
-        pop(); pop()
+        val (v1, chain1) = pop()
+        val (v2, chain2) = pop()
+        if (v1.isInstanceOf[V_TYPE] || v2.isInstanceOf[V_TYPE]) {
+          env.setChainToTrue(chain1)
+          env.setChainToTrue(chain2)
+          env.setInsnToTrue(i)
+        }
       }
       case i: InstrIF_ICMPLT => {
-        pop(); pop()
+        val (v1, chain1) = pop()
+        val (v2, chain2) = pop()
+        if (v1.isInstanceOf[V_TYPE] || v2.isInstanceOf[V_TYPE]) {
+          env.setChainToTrue(chain1)
+          env.setChainToTrue(chain2)
+          env.setInsnToTrue(i)
+        }
       }
       case i: InstrIF_ICMPGE => {
-        pop(); pop()
+        val (v1, chain1) = pop()
+        val (v2, chain2) = pop()
+        if (v1.isInstanceOf[V_TYPE] || v2.isInstanceOf[V_TYPE]) {
+          env.setChainToTrue(chain1)
+          env.setChainToTrue(chain2)
+          env.setInsnToTrue(i)
+        }
       }
       case i: InstrGOTO => // does not affect locals and stack
-      case i: InstrIRETURN => pop()
-      case i: InstrARETURN => pop()
+      case i: InstrIRETURN => {
+        // assuming all methods return V
+        val (v, chain) = pop()
+        env.setChainToTrue(chain)
+        env.setInsnToTrue(i)
+      }
+      case i: InstrARETURN => {
+        // assuming all methods return V
+        val (v, chain) = pop()
+        env.setChainToTrue(chain)
+        env.setInsnToTrue(i)
+      }
       case i: InstrRETURN => // do nothing
-      case i: InstrGETSTATIC => push(VBCValue.newValue(Type.getType(i.desc)))
-      case i: InstrPUTSTATIC => pop()
+      case i: InstrGETSTATIC => push(V_TYPE(), i::Nil) // all fields are V
+      case i: InstrPUTSTATIC => {
+        val (v, chain) = pop()
+        env.setChainToTrue(chain)
+        env.setInsnToTrue(i)
+      }
       case i: InstrGETFIELD => {
-        pop(); push(VBCValue.newValue(Type.getType(i.desc)))
+        val (v, chain) = pop()
+        push(V_TYPE(), i::chain)
+        env.setChainToTrue(chain)
+        env.setInsnToTrue(i)
       }
       case i: InstrPUTFIELD => {
-        pop(); pop()
+        val (v1, chain1) = pop()
+        val (v2, chain2) = pop()
+        env.setChainToTrue(chain1)
+        env.setChainToTrue(chain2)
+        env.setInsnToTrue(i)
       }
       case i: InstrINVOKEVIRTUAL => {
-        pop() // L0
-        for (i <- 0 until Type.getArgumentTypes(i.desc).length) pop()
+        val (v, chain) = pop() // L0
+        env.setChainToTrue(chain)
+        env.setInsnToTrue(i)
+        for (j <- 0 until Type.getArgumentTypes(i.desc).length){
+          val (vi, chaini) = pop()
+          if (LiftingFilter.shouldLiftMethod(i.owner, i.name, i.desc)) {
+            env.setChainToTrue(chaini)
+            env.setInsnToTrue(i)
+          }
+        }
         if (Type.getReturnType(i.desc) != Type.VOID_TYPE)
-          push(VBCValue.newValue(Type.getReturnType(i.desc)))
+          push(V_TYPE(), i::Nil)
       }
       case i: InstrINVOKESTATIC => {
-        for (i <- 0 until Type.getArgumentTypes(i.desc).length) pop()
+        for (j <- 0 until Type.getArgumentTypes(i.desc).length){
+          val (v, chain) = pop()
+          if (LiftingFilter.shouldLiftMethod(i.owner, i.name, i.desc)) {
+            env.setChainToTrue(chain)
+            env.setInsnToTrue(i)
+          }
+        }
         if (Type.getReturnType(i.desc) != Type.VOID_TYPE)
-          push(VBCValue.newValue(Type.getReturnType(i.desc)))
+          push(V_TYPE(), i::Nil)
       }
       case i: InstrINVOKESPECIAL => {
-        pop() // L0
-        for (i <- 0 until Type.getArgumentTypes(i.desc).length) pop()
+        val (v, chain) = pop() // L0
+        for (j <- 0 until Type.getArgumentTypes(i.desc).length){
+          val (vi, chaini) = pop()
+          if (LiftingFilter.shouldLiftMethod(i.owner, i.name, i.desc)) {
+            env.setChainToTrue(chaini)
+            env.setInsnToTrue(i)
+          }
+        }
         if (Type.getReturnType(i.desc) != Type.VOID_TYPE)
-          push(VBCValue.newValue(Type.getReturnType(i.desc)))
+          push(V_TYPE(), i::Nil)
       }
       case i: InstrNEW => {
-        push(VBCValue.newValue(Type.getObjectType(i.t)))
+        push(VBCValue.newValue(Type.getObjectType(i.t)), i::Nil)
       }
       case i: InstrINIT_CONDITIONAL_FIELDS => // does not change stack
       case i: InstrDBGIPrint => pop()
-      case i: InstrLoadConfig => push(INT_TYPE())
+      case i: InstrLoadConfig => push(INT_TYPE(), i::Nil)
       case i: InstrDBGCtx => // does not change stack
       case i: TraceInstr_ConfigInit => // does not change stack
       case i: TraceInstr_S => // does not change stack
@@ -196,6 +323,7 @@ class VBCFrame(nLocals: Int) {
 
   override def toString: String = {
     val sb = new StringBuilder
+//    if (isInCtx) sb.append("[x]") else sb.append("[ ]")
     values.take(nLocals).foreach(sb.append(_))
     sb.append(' ')
     values.drop(nLocals).foreach((v) => if (v != null) sb.append(v) else sb.append("."))
