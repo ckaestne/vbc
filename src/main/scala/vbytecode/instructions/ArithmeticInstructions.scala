@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
+import edu.cmu.cs.vbc.analysis.{INT_TYPE, VBCFrame}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
@@ -15,6 +16,8 @@ case class InstrIADD() extends Instruction {
     override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
         mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "IADD", "(Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Ledu/cmu/cs/varex/V;", false)
     }
+
+    override def updateStack(s: VBCFrame) = s.pop()._3.pop()._3.push(INT_TYPE(), this)
 }
 
 
@@ -26,6 +29,8 @@ case class InstrISUB() extends Instruction {
     override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
         mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "ISUB", "(Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Ledu/cmu/cs/varex/V;", false)
     }
+
+    override def updateStack(s: VBCFrame) = s.pop()._3.pop()._3.push(INT_TYPE(), this)
 }
 
 
@@ -37,6 +42,8 @@ case class InstrIMUL() extends Instruction {
     override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
         mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "IMUL", "(Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Ledu/cmu/cs/varex/V;", false)
     }
+
+    override def updateStack(s: VBCFrame) = s.pop()._3.pop()._3.push(INT_TYPE(), this)
 }
 
 
@@ -48,4 +55,6 @@ case class InstrIDIV() extends Instruction {
     override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
         mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "IDIV", "(Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Ledu/cmu/cs/varex/V;", false)
     }
+
+    override def updateStack(s: VBCFrame) = s.pop()._3.pop()._3.push(INT_TYPE(), this)
 }

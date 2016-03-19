@@ -1,8 +1,9 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.OpcodePrint
-import edu.cmu.cs.vbc.vbytecode._
+import edu.cmu.cs.vbc.analysis.VBCFrame
 import edu.cmu.cs.vbc.util.LiftUtils
+import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
 
@@ -10,6 +11,8 @@ trait Instruction extends LiftUtils {
     def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block)
 
     def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block)
+
+    def updateStack(s: VBCFrame): VBCFrame
 
     def getVariables: Set[LocalVar] = Set()
 
@@ -37,13 +40,17 @@ trait Instruction extends LiftUtils {
 
 
 case class UNKNOWN(opCode: Int = -1) extends Instruction {
-    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-        throw new RuntimeException("Unknown Instruction: " + OpcodePrint.print(opCode))
-    }
 
-    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
         throw new RuntimeException("Unknown Instruction: " + OpcodePrint.print(opCode))
-    }
+
+
+    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit =
+        throw new RuntimeException("Unknown Instruction: " + OpcodePrint.print(opCode))
+
+
+    override def updateStack(s: VBCFrame) =
+        throw new RuntimeException("Unknown Instruction: " + OpcodePrint.print(opCode))
 }
 
 
@@ -54,6 +61,8 @@ case class InstrNOP() extends Instruction {
 
     override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     }
+
+    override def updateStack(s: VBCFrame) = s
 }
 
 
@@ -82,4 +91,6 @@ case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
             mv.visitFieldInsn(PUTFIELD, env.clazz.name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
         }
     }
+
+    override def updateStack(s: VBCFrame) = s
 }

@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
+import edu.cmu.cs.vbc.analysis.VBCFrame
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
@@ -20,27 +21,17 @@ trait JumpInstruction extends Instruction {
     override def getJumpInstr: Option[JumpInstruction] = Some(this)
 }
 
-/**
-  * assumptions (for now)
-  *
-  * the if statement is the last statement in a block, making a decision
-  * between the next block or the referenced block
-  *
-  * for now, jumps can only be made forward, not backward (loops not yet
-  * supported)
-  *
-  * for now, blocks need to be balanced wrt to the stack (not enforced yet)
-  */
-case class InstrIFEQ(targetBlockIdx: Int) extends JumpInstruction {
+abstract class UnaryIfInstruction(targetBlockIdx: Int, bytecodeInstruction: Int, vopsMethod: String) extends JumpInstruction {
 
+    override final def getSuccessor() = (None, Some(targetBlockIdx))
 
-    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-        val targetBlock = env.getBlock(targetBlockIdx)
-        mv.visitJumpInsn(IFEQ, env.getBlockLabel(targetBlock))
+    override final def updateStack(s: VBCFrame) = s.pop()._3
+
+    override final def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+        mv.visitJumpInsn(bytecodeInstruction, env.getBlockLabel(env.getBlock(targetBlockIdx)))
     }
 
-    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-
+    override final def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
         /**
           * creating a variable for the decision
           *
@@ -54,31 +45,40 @@ case class InstrIFEQ(targetBlockIdx: Int) extends JumpInstruction {
           * the actual modification of ctx happens Block.toVByteCode
           */
 
-        mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenEQ", "(Ledu/cmu/cs/varex/V;)Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
+        mv.visitMethodInsn(INVOKESTATIC, vopsclassname, vopsMethod, "(Ledu/cmu/cs/varex/V;)Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
         //only evaluate condition, jump in block implementation
     }
-
-    override def getSuccessor() = (None, Some(targetBlockIdx))
 }
 
+abstract class BinaryIfInstruction(targetBlockIdx: Int, bytecodeInstruction: Int, vopsMethod: String) extends JumpInstruction {
 
-/**
-  * InstrIFNE: jump if the value on top of stack is not 0
-  *
-  * @param targetBlockIdx
-  */
-case class InstrIFNE(targetBlockIdx: Int) extends JumpInstruction {
+    override final def getSuccessor() = (None, Some(targetBlockIdx))
 
-    override def getSuccessor(): (Option[Int], Option[Int]) = (None, Some(targetBlockIdx))
+    override final def updateStack(s: VBCFrame) = s.pop()._3.pop()._3
 
-    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-        mv.visitJumpInsn(IFNE, env.getBlockLabel(env.getBlock(targetBlockIdx)))
+    override final def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+        mv.visitJumpInsn(bytecodeInstruction, env.getBlockLabel(env.getBlock(targetBlockIdx)))
     }
 
-    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-        mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenNE", "(Ledu/cmu/cs/varex/V;)Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
+    override final def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+        /**
+          * creating a variable for the decision
+          *
+          * on top of the stack is the condition, which should be V[Int];
+          * that is, we want to know when that value is different from 0
+          *
+          * the condition is then stored as feature expression in a new
+          * variable. this variable is used at the beginning of the relevant
+          * blocks to modify the ctx
+          *
+          * the actual modification of ctx happens Block.toVByteCode
+          */
+
+        mv.visitMethodInsn(INVOKESTATIC, vopsclassname, vopsMethod, "(Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
+        //only evaluate condition, jump in block implementation
     }
 }
+
 
 
 case class InstrGOTO(targetBlockIdx: Int) extends JumpInstruction {
@@ -93,107 +93,38 @@ case class InstrGOTO(targetBlockIdx: Int) extends JumpInstruction {
 
 
     override def getSuccessor() = (Some(targetBlockIdx), None)
+
+    override def updateStack(s: VBCFrame) = s
 }
 
 
-case class InstrIF_ICMPEQ(targetBlockIdx: Int) extends JumpInstruction {
-    /**
-      * (Unconditional target, Conditional target)
-      * None if next block for unconditional target
-      */
-    override def getSuccessor(): (Option[Int], Option[Int]) = (None, Some(targetBlockIdx))
-
-    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-        mv.visitJumpInsn(IF_ICMPEQ, env.getBlockLabel(env.getBlock(targetBlockIdx)))
-    }
-
-    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-        mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenIEQ", "(Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
-    }
-}
+/**
+  * assumptions (for now)
+  *
+  * the if statement is the last statement in a block, making a decision
+  * between the next block or the referenced block
+  *
+  * for now, jumps can only be made forward, not backward (loops not yet
+  * supported)
+  *
+  * for now, blocks need to be balanced wrt to the stack (not enforced yet)
+  */
+case class InstrIFEQ(targetBlockIdx: Int) extends UnaryIfInstruction(targetBlockIdx, IFEQ, "whenEQ")
 
 
-case class InstrIF_ICMPGE(targetBlockIdx: Int) extends JumpInstruction {
-    /**
-      * (Unconditional target, Conditional target)
-      * None if next block for unconditional target
-      */
-    override def getSuccessor(): (Option[Int], Option[Int]) = (None, Some(targetBlockIdx))
+/**
+  * InstrIFNE: jump if the value on top of stack is not 0
+  */
+case class InstrIFNE(targetBlockIdx: Int) extends UnaryIfInstruction(targetBlockIdx, IFNE, "whenNE")
 
-    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-        mv.visitJumpInsn(IF_ICMPGE, env.getBlockLabel(env.getBlock(targetBlockIdx)))
-    }
+case class InstrIF_ICMPEQ(targetBlockIdx: Int) extends BinaryIfInstruction(targetBlockIdx, IF_ICMPEQ, "whenIEQ")
 
-    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-        mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenIGE", "(Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
-    }
-}
+case class InstrIF_ICMPGE(targetBlockIdx: Int) extends BinaryIfInstruction(targetBlockIdx, IF_ICMPGE, "whenIGE")
 
+case class InstrIFGE(targetBlockIdx: Int) extends UnaryIfInstruction(targetBlockIdx, IFGE, "whenGE")
 
-case class InstrIFGE(targetBlockIdx: Int) extends JumpInstruction {
-    /**
-      * (Unconditional target, Conditional target)
-      * None if next block for unconditional target
-      */
-    override def getSuccessor(): (Option[Int], Option[Int]) = (None, Some(targetBlockIdx))
+case class InstrIF_ICMPLT(targetBlockIdx: Int) extends BinaryIfInstruction(targetBlockIdx, IF_ICMPLT, "whenILT")
 
-    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-        mv.visitJumpInsn(IFGE, env.getBlockLabel(env.getBlock(targetBlockIdx)))
-    }
+case class InstrIF_ICMPNE(targetBlockIdx: Int) extends BinaryIfInstruction(targetBlockIdx, IF_ICMPNE, "whenINE")
 
-    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-        mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenGE", genSign(vclasstype, fexprclasstype), false)
-    }
-}
-
-
-case class InstrIF_ICMPLT(targetBlockIdx: Int) extends JumpInstruction {
-    /**
-      * (Unconditional target, Conditional target)
-      * None if next block for unconditional target
-      */
-    override def getSuccessor(): (Option[Int], Option[Int]) = (None, Some(targetBlockIdx))
-
-    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-        mv.visitJumpInsn(IF_ICMPLT, env.getBlockLabel(env.getBlock(targetBlockIdx)))
-    }
-
-    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-        mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenILT", genSign(vclasstype, vclasstype, fexprclasstype), false)
-    }
-}
-
-
-case class InstrIF_ICMPNE(targetBlockIdx: Int) extends JumpInstruction {
-    /**
-      * (Unconditional target, Conditional target)
-      * None if next block for unconditional target
-      */
-    override def getSuccessor(): (Option[Int], Option[Int]) = (None, Some(targetBlockIdx))
-
-    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-        mv.visitJumpInsn(IF_ICMPNE, env.getBlockLabel(env.getBlock(targetBlockIdx)))
-    }
-
-    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-        mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenINE", genSign(vclasstype, vclasstype, fexprclasstype), false)
-    }
-}
-
-
-
-case class InstrIFGT(targetBlockIdx: Int) extends JumpInstruction {
-    /**
-      * (Unconditional target, Conditional target)
-      * None if next block for unconditional target
-      */
-    override def getSuccessor(): (Option[Int], Option[Int]) = (None, Some(targetBlockIdx))
-
-    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-        mv.visitJumpInsn(IFGT, env.getBlockLabel(env.getBlock(targetBlockIdx)))
-    }
-
-    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-        mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenGT", genSign(vclasstype, fexprclasstype), false)
-    }
-}
+case class InstrIFGT(targetBlockIdx: Int) extends UnaryIfInstruction(targetBlockIdx, IFGT, "whenGT")

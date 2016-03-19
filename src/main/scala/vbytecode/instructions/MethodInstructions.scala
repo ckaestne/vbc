@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
+import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCValue}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.{ClassVisitor, Handle, MethodVisitor, Type}
@@ -47,6 +48,16 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
     */
   override def isINVOKESPECIAL_OBJECT_INIT: Boolean =
     owner == "java/lang/Object" && name == "<init>" && desc == "()V" && !itf
+
+  override def updateStack(s: VBCFrame) = {
+    var stack = s.pop()._3 //L0
+    for (j <- 0 until Type.getArgumentTypes(desc).length)
+      stack = stack.pop()._3
+    if (Type.getReturnType(desc) != Type.VOID_TYPE)
+      stack = stack.push(VBCValue.newValue(Type.getReturnType(desc)), this)
+    stack
+  }
+
 }
 
 
@@ -59,6 +70,7 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
   * @param itf
   */
 case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Boolean) extends Instruction {
+
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitMethodInsn(INVOKEVIRTUAL, owner, name, desc, itf)
   }
@@ -139,6 +151,18 @@ case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Bo
     env.clazz.lambdaMethods ::= lambda
 
   }
+
+  override def updateStack(s: VBCFrame) = {
+    var stack = s.pop()._3
+    for (j <- 0 until Type.getArgumentTypes(desc).length)
+      stack = stack.pop()._3
+    if (Type.getReturnType(desc) != Type.VOID_TYPE)
+      stack = stack.push(VBCValue.newValue(Type.getReturnType(desc)), this)
+    stack
+  }
+
+
+
 }
 
 
@@ -176,4 +200,14 @@ case class InstrINVOKESTATIC(owner: String, name: String, desc: String, itf: Boo
   def isValueOf = {
     owner == "java/lang/Integer" && name == "valueOf" && desc == "(I)Ljava/lang/Integer;"
   }
+
+  override def updateStack(s: VBCFrame) = {
+    var stack = s
+    for (j <- 0 until Type.getArgumentTypes(desc).length)
+      stack = stack.pop()._3
+    if (Type.getReturnType(desc) != Type.VOID_TYPE)
+      stack = stack.push(VBCValue.newValue(Type.getReturnType(desc)), this)
+    stack
+  }
+
 }

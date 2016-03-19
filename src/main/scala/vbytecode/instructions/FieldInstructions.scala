@@ -1,7 +1,8 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
+import edu.cmu.cs.vbc.analysis.{VBCValue, VBCFrame}
 import edu.cmu.cs.vbc.vbytecode._
-import org.objectweb.asm.MethodVisitor
+import org.objectweb.asm.{Type, MethodVisitor}
 import org.objectweb.asm.Opcodes._
 
 /**
@@ -24,6 +25,9 @@ case class InstrGETSTATIC(owner: String, name: String, desc: String) extends Ins
         //TODO: work for println, but what if we are getting conditional?
         mv.visitFieldInsn(GETSTATIC, owner, name, desc)
     }
+
+    override def updateStack(s: VBCFrame) = s.push(VBCValue.newValue(Type.getType(desc)), this)
+
 }
 
 /**
@@ -42,6 +46,8 @@ case class InstrPUTSTATIC(owner: String, name: String, desc: String) extends Ins
         //TODO: work for println, but what if we are getting conditional?
         mv.visitFieldInsn(PUTSTATIC, owner, name, desc)
     }
+
+    override def updateStack(s: VBCFrame) = s.pop()._3
 }
 
 /**
@@ -59,6 +65,8 @@ case class InstrGETFIELD(owner: String, name: String, desc: String) extends Inst
     override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
         mv.visitFieldInsn(GETFIELD, owner, name, "Ledu/cmu/cs/varex/V;")
     }
+
+    override def updateStack(s: VBCFrame) = s.pop()._3.push(VBCValue.newValue(Type.getType(desc)), this)
 }
 
 
@@ -100,4 +108,7 @@ case class InstrPUTFIELD(owner: String, name: String, desc: String) extends Inst
             mv.visitFieldInsn(PUTFIELD, owner, name, "Ledu/cmu/cs/varex/V;")
         }
     }
+
+    override def updateStack(s: VBCFrame) = s.pop()._3.pop()._3
+
 }

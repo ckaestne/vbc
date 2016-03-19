@@ -39,13 +39,13 @@ object Rewrite {
 
         var newReturnBlockInstr = List(returnInstr)
         if (!method.returnsVoid())
-            newReturnBlockInstr ::= InstrILOAD(returnVariable) //TODO generalize to different types of variables, based on return type
+            newReturnBlockInstr ::= new InstrILOAD(returnVariable) //TODO generalize to different types of variables, based on return type
         val newReturnBlock = new Block(newReturnBlockInstr: _*)
         val newReturnBlockIdx = method.body.blocks.size
 
         var substituteInstr: List[Instruction] = List(new InstrGOTO(newReturnBlockIdx))
         if (!method.returnsVoid())
-            substituteInstr ::= InstrISTORE(returnVariable) //TODO generalize to different types of variables, based on return type
+            substituteInstr ::= new InstrISTORE(returnVariable) //TODO generalize to different types of variables, based on return type
 
         val rewrittenBlocks = method.body.blocks.map(block =>
             new Block(block.instr.flatMap(instr =>
@@ -76,7 +76,7 @@ object Rewrite {
               "second instruction in <inti> is not INVOKESPECIAL java/lang/Object.<init> ()V")
 
             // ALOAD and INVOKESPECIAL will be inserted in CFG
-            val newInstrs = firstBlock.instr.drop(2).reverse :+ InstrINIT_CONDITIONAL_FIELDS()
+            val newInstrs = firstBlock.instr.drop(2).reverse :+ new InstrINIT_CONDITIONAL_FIELDS()
             val newBlocks = m.body.blocks.reverse.dropRight(1) :+ new Block(newInstrs.reverse: _*)
             m.copy(body = CFG(newBlocks.reverse))
         } else m

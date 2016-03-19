@@ -44,5 +44,4 @@ object VBCValue {
     }
   }
 
-  def merge(v1: VBCValue, v2: VBCValue): VBCValue = if (v1 != v2) UNINITIALIZED_TYPE() else v1
 }

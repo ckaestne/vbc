@@ -27,7 +27,7 @@ class VBCAnalyzer(env: VMethodEnv) {
   /**
     * An array of frames before executing each instruction
     */
-  val beforeFrames: Option[Array[VBCFrame]] = {
+  val beforeFrames: Option[Array[VBCFrame]] = ??? /*{
     // we don't compute frames for abstract or native methods
     if ((mn.access & (ACC_ABSTRACT | ACC_NATIVE)) != 0) {
       None
@@ -41,17 +41,17 @@ class VBCAnalyzer(env: VMethodEnv) {
     var local: Int = 0
     // init this
     if ((mn.access & ACC_STATIC) == 0) {
-      current.setLocal(local, VBCValue.newValue(Type.getObjectType(env.clazz.name)), None)
+      current.store(local, VBCValue.newValue(Type.getObjectType(env.clazz.name)), None)
       local += 1
     }
     // init args
     for (t <- Type.getArgumentTypes(mn.desc)) {
-      current.setLocal(local, VBCValue.newValue(t), None)
+      current.store(local, VBCValue.newValue(t), None)
       local += 1
     }
     // init other local variables
     while (local < env.maxLocals) {
-      current.setLocal(local, VBCValue.newValue(null), None)
+      current.store(local, VBCValue.newValue(null), None)
       local += 1
     }
 
@@ -97,9 +97,9 @@ class VBCAnalyzer(env: VMethodEnv) {
       }
     }
     Some(frames)
-  }
+  }*/
 
-  val afterFrames: Option[Array[VBCFrame]] = {
+  val afterFrames: Option[Array[VBCFrame]] = ??? /*{
     if (beforeFrames.isDefined) {
       val frames: Array[VBCFrame] = new Array[VBCFrame](beforeFrames.get.length)
       for (i <- frames.indices)
@@ -109,6 +109,6 @@ class VBCAnalyzer(env: VMethodEnv) {
     }
     else
       None
-  }
+  }*/
 }
 

@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
+import edu.cmu.cs.vbc.analysis.{REF_TYPE, VBCValue, INT_TYPE, VBCFrame}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
@@ -32,6 +33,8 @@ case class InstrISTORE(variable: Variable) extends Instruction {
             case lv: LocalVar => Set(lv)
         }
     }
+
+    override def updateStack(s: VBCFrame) = s.store(variable, INT_TYPE(), this)
 }
 
 
@@ -54,6 +57,8 @@ case class InstrILOAD(variable: Variable) extends Instruction {
             case lv: LocalVar => Set(lv)
         }
     }
+
+    override def updateStack(s: VBCFrame) = s.load(variable, INT_TYPE(), this)
 }
 
 
@@ -87,6 +92,14 @@ case class InstrIINC(variable: Variable, increment: Int) extends Instruction {
             case lv: LocalVar => Set(lv)
         }
     }
+
+    override def updateStack(s: VBCFrame) = {
+        //does not change the frame
+        assert(s.localVar contains variable, "local variable not assigned")
+        assert(s.localVar(variable)._1 == INT_TYPE, "local variable not of type Int")
+        s
+    }
+
 }
 
 
@@ -117,6 +130,7 @@ case class InstrALOAD(variable: Variable) extends Instruction {
       * @see [[Rewrite.rewrite()]]
       */
     override def isALOAD0: Boolean = variable.getIdx().contains(0)
+    override def updateStack(s: VBCFrame) = s.load(variable, REF_TYPE(), this)
 }
 
 
@@ -143,5 +157,7 @@ case class InstrASTORE(variable: Variable) extends Instruction {
             case lv: LocalVar => Set(lv)
         }
     }
+
+    override def updateStack(s: VBCFrame) = s.store(variable, REF_TYPE(), this)
 }
 

@@ -3,6 +3,7 @@ package edu.cmu.cs.vbc.test
 
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory, SingleFeatureExpr}
 import edu.cmu.cs.varex.{V, VHelper}
+import edu.cmu.cs.vbc.analysis.VBCFrame
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
 import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, VMethodEnv}
 import org.objectweb.asm.MethodVisitor
@@ -106,6 +107,8 @@ case class TraceInstr_ConfigInit() extends Instruction {
             mv.visitFieldInsn(PUTFIELD, env.clazz.name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
         }
     }
+
+    override def updateStack(s: VBCFrame) = s
 }
 
 
@@ -123,6 +126,9 @@ case class TraceInstr_S(s: String) extends Instruction {
         mv.visitLdcInsn(s)
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestTraceOutput", "vtrace_s", "(Lde/fosd/typechef/featureexpr/FeatureExpr;Ljava/lang/String;)V", false)
     }
+
+    override def updateStack(s: VBCFrame) = s
+
 }
 
 /**
@@ -139,6 +145,8 @@ case class TraceInstr_Print() extends Instruction {
         loadFExpr(mv, env, env.getBlockVar(block))
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestTraceOutput", "vtrace_string", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
     }
+
+    override def updateStack(s: VBCFrame) = s
 }
 
 /**
@@ -159,4 +167,6 @@ case class TraceInstr_GetField(s: String, desc: String) extends Instruction {
         mv.visitLdcInsn(s)
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestTraceOutput", "vtrace_int", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;Ljava/lang/String;)V", false)
     }
+
+    override def updateStack(s: VBCFrame) = s
 }

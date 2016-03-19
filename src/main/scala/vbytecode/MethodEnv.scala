@@ -189,11 +189,11 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
     val framesAfter = analyzer.afterFrames.get
     var expectingVars: Map[Block, List[Variable]] = Map()
     blocks.foreach(getExpectingVars(_))
-    def getLeftVars(block: Block): List[Set[Variable]] = {
+    def getLeftVars(block: Block): List[Set[Variable]] = ??? /*{
         val afterFrame = framesAfter(getFrameIdx(block.instr.last))
         val (succ1, succ2) = getSuccessors(block)
         getVarSetList(Nil, succ1, succ2, afterFrame.getStackSize)
-    }
+    }*/
 
     def getVarSetList(l: List[Set[Variable]], succ1: Option[Block], succ2: Option[Block], n: Int): List[Set[Variable]] =
         if (n == 0) l else getVarSetList(getVarSet(succ1, succ2, n) ::: l, succ1, succ2, n - 1)
@@ -215,14 +215,14 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
         List(set)
     }
 
-    def getExpectingVars(block: Block): List[Variable] = {
+    def getExpectingVars(block: Block): List[Variable] = ??? /*{
         if (!(expectingVars contains block)) {
             val beforeFrame = framesBefore(getFrameIdx(block.instr.head))
             val newVars: List[Variable] = createNewVars(Nil, beforeFrame.getStackSize)
             expectingVars += (block -> newVars)
         }
         expectingVars(block)
-    }
+    }*/
 
     def getFrameIdx(insn: Instruction): Int = instructions.indexWhere(_ eq insn)
 

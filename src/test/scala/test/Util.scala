@@ -3,6 +3,7 @@ package edu.cmu.cs.vbc.test
 
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
 import edu.cmu.cs.varex.{V, VHelper}
+import edu.cmu.cs.vbc.analysis.{INT_TYPE, VBCFrame}
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
 import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, VMethodEnv}
 import org.objectweb.asm.MethodVisitor
@@ -66,6 +67,7 @@ case class InstrLoadConfig(config: String) extends Instruction {
     override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit =
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/Config", "V" + config, "()Ledu/cmu/cs/varex/V;", false)
 
+    override def updateStack(s: VBCFrame) = s.push(INT_TYPE(), this)
 }
 
 
@@ -79,6 +81,7 @@ case class InstrDBGIPrint() extends Instruction {
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printVI", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
     }
 
+    override def updateStack(s: VBCFrame) = s.pop()._3
 }
 
 case class InstrDBGCtx(name: String) extends Instruction {
@@ -92,4 +95,5 @@ case class InstrDBGCtx(name: String) extends Instruction {
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Ljava/lang/String;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
     }
 
+    override def updateStack(s: VBCFrame) = s
 }
