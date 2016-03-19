@@ -38,13 +38,13 @@ object Rewrite {
         val returnVariable = new LocalVar()
 
         var newReturnBlockInstr = List(returnInstr)
-        if (!method.returnsVoid())
+        if (!method.returnsVoid)
             newReturnBlockInstr ::= new InstrILOAD(returnVariable) //TODO generalize to different types of variables, based on return type
         val newReturnBlock = new Block(newReturnBlockInstr: _*)
         val newReturnBlockIdx = method.body.blocks.size
 
         var substituteInstr: List[Instruction] = List(new InstrGOTO(newReturnBlockIdx))
-        if (!method.returnsVoid())
+        if (!method.returnsVoid)
             substituteInstr ::= new InstrISTORE(returnVariable) //TODO generalize to different types of variables, based on return type
 
         val rewrittenBlocks = method.body.blocks.map(block =>
@@ -62,7 +62,7 @@ object Rewrite {
 
 
     private def initializeConditionalFields(m: VBCMethodNode): VBCMethodNode =
-        if (m.isInit()) {
+        if (m.isInit) {
             val firstBlock = m.body.blocks.head
 
             /* Assume that the first two instructions in the <init> method are:

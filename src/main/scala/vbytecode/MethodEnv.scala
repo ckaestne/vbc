@@ -1,7 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode
 
 import edu.cmu.cs.vbc.analysis.VBCAnalyzer
-import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
 import org.objectweb.asm.{Label, Type}
 
 class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
@@ -17,7 +16,7 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
     //not to variables that are generated in the tranformation process;
     //the latter are stored separately as freshVars
     //(localVars and freshVars behave as sorted sets)
-    protected var parameterCount = Type.getArgumentTypes(method.desc).size + (if (method.isStatic()) 0 else 1)
+    protected var parameterCount = Type.getArgumentTypes(method.desc).size + (if (method.isStatic) 0 else 1)
     protected var freshVars: List[LocalVar] = Nil
 
     def getFreshVars(): List[Variable] = freshVars
@@ -117,11 +116,8 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
 
     val instructions = for (b <- blocks; i <- b.instr) yield i
 
-    def getBlockStart(blockIdx: Int): Int = {
-        var sum = 0
-        blocks.take(blockIdx).foreach(sum += _.instr.length)
-        sum
-    }
+    def getBlockStart(blockIdx: Int): Int =
+        blocks.take(blockIdx).map(_.instr.length).sum
 
 }
 
@@ -133,98 +129,98 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
 
     ////////// Tag each instruction with V //////////
 
-    val blockTags = new Array[Boolean](blocks.length)   // by default all elements are false
-    def getBlockIdx(b: Block) = blocks.indexWhere(_ eq b)
-    val instructionTags = new Array[Boolean](instructions.length) // by default all elements are false
-    def getInsnIdx(instr: Instruction) = instructions.indexWhere(_ eq instr)
-    def shouldLift(instr: Instruction) = instructionTags(getInsnIdx(instr))
-
-    def getOrderedSuccessorsIndexes(b: Block): List[Int] = {
-        var idxSet = Set[Int]()
-        var visited = Set[Block]()
-        val (uncond, cond) = getSuccessors(b)
-        var queue = List[Block]()
-        if (uncond.isDefined) queue = queue :+ uncond.get
-        if (cond.isDefined) queue = queue :+ cond.get
-        while (queue.nonEmpty) {
-            val h = queue.head
-            visited += h
-            if (!idxSet.contains(getBlockIdx(h))){
-                idxSet += getBlockIdx(h)
-                val (o1, o2) = getSuccessors(h)
-                if (o1.isDefined && !visited.contains(o1.get))
-                    queue = queue :+ o1.get
-                if (o2.isDefined && !visited.contains(o2.get))
-                    queue = queue :+ o2.get
-            }
-            queue = queue.drop(1)
-        }
-        idxSet.toList sortWith (_ < _)
-    }
-
-    def getMergePoint(b1: Block, b2: Block): Int = {
-        val l1: List[Int] = getOrderedSuccessorsIndexes(b1)
-        val l2: List[Int] = getOrderedSuccessorsIndexes(b2)
-        l1.find(l2.contains(_)).get
-    }
-
-    def setChainToTrue(chain: List[Instruction]): Unit = {
-        for (i <- chain) instructionTags(getInsnIdx(i)) = true
-    }
-
-    def setInsnToTrue(instr: Instruction): Unit = {
-        instructionTags(getInsnIdx(instr)) = true
-    }
-
-    def isBlockUnderCtx(i: Instruction): Boolean = {
-        val blockIdx = blocks.indexWhere((bb) => bb.instr.exists((insn) => insn eq i))
-        blockTags(blockIdx)
-    }
+    //    val blockTags = new Array[Boolean](blocks.length)   // by default all elements are false
+    //    def getBlockIdx(b: Block) = blocks.indexWhere(_ eq b)
+    //    val instructionTags = new Array[Boolean](instructions.length) // by default all elements are false
+    //    def getInsnIdx(instr: Instruction) = instructions.indexWhere(_ eq instr)
+    //    def shouldLift(instr: Instruction) = instructionTags(getInsnIdx(instr))
+    //
+    //    def getOrderedSuccessorsIndexes(b: Block): List[Int] = {
+    //        var idxSet = Set[Int]()
+    //        var visited = Set[Block]()
+    //        val (uncond, cond) = getSuccessors(b)
+    //        var queue = List[Block]()
+    //        if (uncond.isDefined) queue = queue :+ uncond.get
+    //        if (cond.isDefined) queue = queue :+ cond.get
+    //        while (queue.nonEmpty) {
+    //            val h = queue.head
+    //            visited += h
+    //            if (!idxSet.contains(getBlockIdx(h))){
+    //                idxSet += getBlockIdx(h)
+    //                val (o1, o2) = getSuccessors(h)
+    //                if (o1.isDefined && !visited.contains(o1.get))
+    //                    queue = queue :+ o1.get
+    //                if (o2.isDefined && !visited.contains(o2.get))
+    //                    queue = queue :+ o2.get
+    //            }
+    //            queue = queue.drop(1)
+    //        }
+    //        idxSet.toList sortWith (_ < _)
+    //    }
+    //
+    //    def getMergePoint(b1: Block, b2: Block): Int = {
+    //        val l1: List[Int] = getOrderedSuccessorsIndexes(b1)
+    //        val l2: List[Int] = getOrderedSuccessorsIndexes(b2)
+    //        l1.find(l2.contains(_)).get
+    //    }
+    //
+    //    def setChainToTrue(chain: List[Instruction]): Unit = {
+    //        for (i <- chain) instructionTags(getInsnIdx(i)) = true
+    //    }
+    //
+    //    def setInsnToTrue(instr: Instruction): Unit = {
+    //        instructionTags(getInsnIdx(instr)) = true
+    //    }
+    //
+    //    def isBlockUnderCtx(i: Instruction): Boolean = {
+    //        val blockIdx = blocks.indexWhere((bb) => bb.instr.exists((insn) => insn eq i))
+    //        blockTags(blockIdx)
+    //    }
 
     ////////// Unbalanced Stack //////////
     val analyzer = new VBCAnalyzer(this)
-    assert(analyzer.beforeFrames.isDefined, "No frames available")
-    assert(analyzer.afterFrames.isDefined, "No frames available")
-    val framesBefore = analyzer.beforeFrames.get
-    val framesAfter = analyzer.afterFrames.get
-    var expectingVars: Map[Block, List[Variable]] = Map()
-    blocks.foreach(getExpectingVars(_))
-    def getLeftVars(block: Block): List[Set[Variable]] = ??? /*{
-        val afterFrame = framesAfter(getFrameIdx(block.instr.last))
-        val (succ1, succ2) = getSuccessors(block)
-        getVarSetList(Nil, succ1, succ2, afterFrame.getStackSize)
-    }*/
+    //    assert(analyzer.beforeFrames.isDefined, "No frames available")
+    //    assert(analyzer.afterFrames.isDefined, "No frames available")
+    //    val framesBefore = analyzer.beforeFrames.get
+    //    val framesAfter = analyzer.afterFrames.get
+    //    var expectingVars: Map[Block, List[Variable]] = Map()
+    //    blocks.foreach(getExpectingVars(_))
+    //    def getLeftVars(block: Block): List[Set[Variable]] = ??? /*{
+    //        val afterFrame = framesAfter(getFrameIdx(block.instr.last))
+    //        val (succ1, succ2) = getSuccessors(block)
+    //        getVarSetList(Nil, succ1, succ2, afterFrame.getStackSize)
+    //    }*/
 
-    def getVarSetList(l: List[Set[Variable]], succ1: Option[Block], succ2: Option[Block], n: Int): List[Set[Variable]] =
-        if (n == 0) l else getVarSetList(getVarSet(succ1, succ2, n) ::: l, succ1, succ2, n - 1)
-
-    def getVarSet(succ1: Option[Block], succ2: Option[Block], n: Int): List[Set[Variable]] = {
-        var set = Set[Variable]()
-        if (succ1.isDefined) {
-            val exp1 = getExpectingVars(succ1.get)
-            if (exp1.nonEmpty) {
-                set = set + exp1(n - 1)
-            }
-        }
-        if (succ2.isDefined) {
-            val exp2 = getExpectingVars(succ2.get)
-            if (exp2.nonEmpty) {
-                set = set + exp2(n - 1)
-            }
-        }
-        List(set)
-    }
-
-    def getExpectingVars(block: Block): List[Variable] = ??? /*{
-        if (!(expectingVars contains block)) {
-            val beforeFrame = framesBefore(getFrameIdx(block.instr.head))
-            val newVars: List[Variable] = createNewVars(Nil, beforeFrame.getStackSize)
-            expectingVars += (block -> newVars)
-        }
-        expectingVars(block)
-    }*/
-
-    def getFrameIdx(insn: Instruction): Int = instructions.indexWhere(_ eq insn)
+    //    def getVarSetList(l: List[Set[Variable]], succ1: Option[Block], succ2: Option[Block], n: Int): List[Set[Variable]] =
+    //        if (n == 0) l else getVarSetList(getVarSet(succ1, succ2, n) ::: l, succ1, succ2, n - 1)
+    //
+    //    def getVarSet(succ1: Option[Block], succ2: Option[Block], n: Int): List[Set[Variable]] = {
+    //        var set = Set[Variable]()
+    //        if (succ1.isDefined) {
+    //            val exp1 = getExpectingVars(succ1.get)
+    //            if (exp1.nonEmpty) {
+    //                set = set + exp1(n - 1)
+    //            }
+    //        }
+    //        if (succ2.isDefined) {
+    //            val exp2 = getExpectingVars(succ2.get)
+    //            if (exp2.nonEmpty) {
+    //                set = set + exp2(n - 1)
+    //            }
+    //        }
+    //        List(set)
+    //    }
+    //
+    //    def getExpectingVars(block: Block): List[Variable] = ??? /*{
+    //        if (!(expectingVars contains block)) {
+    //            val beforeFrame = framesBefore(getFrameIdx(block.instr.head))
+    //            val newVars: List[Variable] = createNewVars(Nil, beforeFrame.getStackSize)
+    //            expectingVars += (block -> newVars)
+    //        }
+    //        expectingVars(block)
+    //    }*/
+    //
+    //    def getFrameIdx(insn: Instruction): Int = instructions.indexWhere(_ eq insn)
 
     ////////// end Unbalanced Stack //////////
 

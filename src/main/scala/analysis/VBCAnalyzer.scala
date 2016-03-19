@@ -1,9 +1,10 @@
 package edu.cmu.cs.vbc.analysis
 
 import edu.cmu.cs.vbc.vbytecode.instructions.{Instruction, JumpInstruction}
-import edu.cmu.cs.vbc.vbytecode.{VBCMethodNode, VMethodEnv}
-import org.objectweb.asm.Opcodes._
+import edu.cmu.cs.vbc.vbytecode.{Parameter, VMethodEnv}
 import org.objectweb.asm.Type
+
+import scala.collection.mutable.Queue
 
 /**
   * Compute frames before and after bytecode execution
@@ -12,103 +13,89 @@ import org.objectweb.asm.Type
   */
 class VBCAnalyzer(env: VMethodEnv) {
 
+
   /**
-    * Method node
+    * An map of frames before executing each instruction
     */
-  val mn: VBCMethodNode = env.method
-  /**
-    * All the instructions in the current method node
-    */
-  val instructions = env.instructions
-  /**
-    * Number of instructions
-    */
-  val n: Int = instructions.length
-  /**
-    * An array of frames before executing each instruction
-    */
-  val beforeFrames: Option[Array[VBCFrame]] = ??? /*{
+  lazy val computeBeforeFrames: Map[Instruction, VBCFrame] = {
     // we don't compute frames for abstract or native methods
-    if ((mn.access & (ACC_ABSTRACT | ACC_NATIVE)) != 0) {
-      None
+    if (env.method.isAbstract || env.method.isNative) {
+      Map()
     }
+    val instructions = env.instructions
     // init
-    val frames: Array[VBCFrame] = new Array(n)
-    val queued: Array[Boolean] = new Array(n)
-    val queue: Array[Int] = new Array(n)
-    var top: Int = 0
-    val current: VBCFrame = new VBCFrame(env.maxLocals)
+    var beforeInstructionFrames: Map[Instruction, VBCFrame] = Map()
+    val queue: Queue[Int] = Queue()
+    var initialFrame: VBCFrame = new VBCFrame(Map(), Nil)
     var local: Int = 0
     // init this
-    if ((mn.access & ACC_STATIC) == 0) {
-      current.store(local, VBCValue.newValue(Type.getObjectType(env.clazz.name)), None)
-      local += 1
+    if (!env.method.isStatic) {
+      initialFrame = initialFrame.write(env.thisParameter, VBCType(Type.getObjectType(env.clazz.name)), null)
     }
     // init args
-    for (t <- Type.getArgumentTypes(mn.desc)) {
-      current.store(local, VBCValue.newValue(t), None)
-      local += 1
+    val args = Type.getArgumentTypes(env.method.desc)
+    for (argIdx <- 0 until args.size) {
+      initialFrame.write(new Parameter(if (env.method.isStatic) argIdx else argIdx + 1), VBCType(args(argIdx)), null)
     }
-    // init other local variables
-    while (local < env.maxLocals) {
-      current.store(local, VBCValue.newValue(null), None)
-      local += 1
-    }
+
+    def getInstr(insn: Int) = instructions(insn)
 
     /**
       * Merge the new frame into frames array
-      *
-      * @param insn
-      * @param frame
       */
-    def merge(insn: Int, frame: VBCFrame): Unit = {
-      val oldFrame = frames(insn)
+    def updateFrameForInstr(insn: Int, frame: VBCFrame): VBCFrame = {
+      val instr = getInstr(insn)
+      val oldFrame = beforeInstructionFrames.get(instr)
       var changed = false
-      if (oldFrame == null) {
-        frames(insn) = new VBCFrame(frame)
+      var result: VBCFrame = frame
+      if (!oldFrame.isDefined) {
         changed = true
       }
-      else {
-        changed = oldFrame.merge(frame)
+      else if (oldFrame.get != frame) {
+        result = oldFrame.get.merge(frame)
+        changed = true
       }
-      if (changed && !queued(insn)) {
-        queued(insn) = true
-        queue(top) = insn
-        top += 1
-      }
-    }
-    merge(0, current)
-    // control flow analysis
-    while (top > 0) {
-      top -= 1
-      val insn: Int = queue(top)
-      queued(insn) = false
-      val instr: Instruction = env.instructions(insn)
-      val current = new VBCFrame(frames(insn))
-      current.execute(instr, env)
-      if (instr.isJumpInstr) {
-        val j = instr.asInstanceOf[JumpInstruction]
-        val (uncond, cond) = j.getSuccessor()
-        if (cond.isDefined) merge(env.getBlockStart(cond.get), current)
-        if (uncond.isDefined) merge(env.getBlockStart(uncond.get), current) else merge(insn + 1, current)
-      }
-      else if (!instr.isReturnInstr) {
-        merge(insn + 1, current)
-      }
-    }
-    Some(frames)
-  }*/
 
-  val afterFrames: Option[Array[VBCFrame]] = ??? /*{
-    if (beforeFrames.isDefined) {
-      val frames: Array[VBCFrame] = new Array[VBCFrame](beforeFrames.get.length)
-      for (i <- frames.indices)
-        frames(i) = new VBCFrame(beforeFrames.get(i))
-      (frames zip instructions).foreach((pair) => pair._1.execute(pair._2, env))
-      Some(frames)
+      if (changed && !(queue contains insn)) {
+        queue.enqueue(insn)
+      }
+      beforeInstructionFrames += (instr -> result)
+      result
     }
-    else
-      None
-  }*/
+
+
+    updateFrameForInstr(0, initialFrame)
+    // control flow analysis
+    while (queue.nonEmpty) {
+      val insn = queue.dequeue
+      val instr = getInstr(insn)
+      val frame = instr.updateStack(beforeInstructionFrames(instr))
+      instr match {
+        case jump: JumpInstruction =>
+          val (uncond, cond) = jump.getSuccessor()
+          if (cond.isDefined) updateFrameForInstr(env.getBlockStart(cond.get), frame)
+          if (uncond.isDefined)
+            updateFrameForInstr(env.getBlockStart(uncond.get), frame)
+          else
+            updateFrameForInstr(insn + 1, frame)
+        case i if !i.isReturnInstr =>
+          updateFrameForInstr(insn + 1, frame)
+        case _ =>
+      }
+    }
+    beforeInstructionFrames
+  }
+
+  //  def afterFrames: Option[Array[VBCFrame]] = ??? /*{
+  //    if (beforeFrames.isDefined) {
+  //      val frames: Array[VBCFrame] = new Array[VBCFrame](beforeFrames.get.length)
+  //      for (i <- frames.indices)
+  //        frames(i) = new VBCFrame(beforeFrames.get(i))
+  //      (frames zip instructions).foreach((pair) => pair._1.execute(pair._2, env))
+  //      Some(frames)
+  //    }
+  //    else
+  //      None
+  //  }*/
 }
 

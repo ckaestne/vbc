@@ -9,7 +9,7 @@ object VBCFrame {
   type StackEntry = (VBCType, Set[Instruction])
 
   //merge two entries by merging their types and combining their responsible instructions
-  def merge(v1: StackEntry, v2: StackEntry): StackEntry =
+  def mergeEntry(v1: StackEntry, v2: StackEntry): StackEntry =
     (if (v1._1 != v2._1) UNINITIALIZED_TYPE() else v1._1, v1._2 ++ v2._2)
 
 }
@@ -52,25 +52,29 @@ case class VBCFrame(
   }
 
 
-  //  /**
-  //    * Merge two frames, for each variables, set the value to TOP if differs
-  //    *
-  //    * @param frame
-  //    * @return
-  //    */
-  //  def merge(frame: VBCFrame): Boolean = {
-  //    if (this.localVar.size != frame.localVar.size || this.stack.size != frame.stack.size) {
-  //      throw new RuntimeException("Incompatible stack heights")
-  //    }
-  //    var changed: Boolean = false
-  //    for (i <- 0 until localVar.size) {
-  //      val merged = VBCFrame.merge(localVar(i), frame.localVar(i))
-  //      changed = merged != values(i) | changed
-  //      if (changed) values(i) = merged
-  //    }
-  ////    changed = changed | isInCtx != frame.isInCtx
-  //    changed
-  //  }
+  /**
+    * Merge two frames, for each variables, set the type to TOP if differs
+    */
+  def merge(that: VBCFrame): VBCFrame =
+    if (this == that)
+      this
+    else if (this.localVar.keySet != that.localVar.keySet || this.stack.size != that.stack.size)
+      throw new RuntimeException("Incompatible stack heights")
+    else
+      VBCFrame(
+        mapMerge(this.localVar, that.localVar, VBCFrame.mergeEntry),
+        (this.stack zip that.stack).map(v => VBCFrame.mergeEntry(v._1, v._2))
+      )
+
+
+  private def mapMerge[K, V](m1: Map[K, V], m2: Map[K, V], fun: (V, V) => V): Map[K, V] =
+    (m1.keySet ++ m2.keySet) map { i => i -> ((m1.get(i), m2.get(i)) match {
+      case (None, Some(v)) => v
+      case (Some(v), None) => v
+      case (Some(v1), Some(v2)) => fun(v1, v2)
+    })
+    } toMap
+
 
   /**
     * push to the stack
@@ -114,6 +118,6 @@ case class VBCFrame(
 //  }
 
   override def toString: String =
-    localVar.map(_._1).mkString + " " + stack.reverse.map(_._1).mkString
+    localVar.map(l => l._1 + "-" + l._2._1).mkString + " " + stack.reverse.map(_._1).mkString
 
 }
