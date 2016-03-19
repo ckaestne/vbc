@@ -42,3 +42,9 @@ case class InstrLDC(o: Object) extends Instruction {
         }
     }
 }
+
+case class InstrACONST_NULL() extends Instruction {
+    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(ACONST_NULL)
+
+    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = mv.visitInsn(ACONST_NULL)
+}

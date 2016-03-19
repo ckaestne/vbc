@@ -2,7 +2,7 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.OpcodePrint
 import edu.cmu.cs.vbc.vbytecode._
-import edu.cmu.cs.vbc.vbytecode.util.LiftUtils
+import edu.cmu.cs.vbc.util.LiftUtils
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
 
@@ -18,6 +18,21 @@ trait Instruction extends LiftUtils {
     final def isJumpInstr: Boolean = getJumpInstr.isDefined
 
     def isReturnInstr: Boolean = false
+
+
+    /**
+      * Used to identify the start of init method
+      *
+      * @see [[Rewrite.rewrite()]]
+      */
+    def isALOAD0: Boolean = false
+
+    /**
+      * Used to identify the start of init method
+      *
+      * @see [[Rewrite.rewrite()]]
+      */
+    def isINVOKESPECIAL_OBJECT_INIT: Boolean = false
 }
 
 
@@ -46,6 +61,7 @@ case class InstrNOP() extends Instruction {
   * Helper instruciton for initializing conditional fields
   */
 case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
+
     override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
         // do nothing
     }

@@ -52,6 +52,8 @@ trait DiffMethodTestInfrastructure {
         val cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS)
         clazz.toByteCode(cw)
         val byte = cw.toByteArray
+        val printer = new TraceClassVisitor(new PrintWriter(System.out))
+        new ClassReader(byte).accept(printer, 0)
         val myClassLoader = new MyClassLoader
         myClassLoader.defineClass("Test", byte)
     }

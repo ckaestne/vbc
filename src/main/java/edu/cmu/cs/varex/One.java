@@ -46,7 +46,7 @@ public class One<T> implements V<T> {
     }
 
     @Override
-    public <U> V<? extends U> vflatMap(FeatureExpr ctx, BiFunction<FeatureExpr, ? super T, V<? extends U>> fun) {
+    public <U> V<? extends U> vflatMap(BiFunction<FeatureExpr, ? super T, V<? extends U>> fun, FeatureExpr ctx) {
         return fun.apply(ctx, value);
     }
 

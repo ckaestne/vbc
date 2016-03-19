@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc
 
-import edu.cmu.cs.vbc.vbytecode.util.LiftUtils
+import edu.cmu.cs.vbc.util.LiftUtils
 import org.scalatest.{FunSuite, ShouldMatchers}
 
 

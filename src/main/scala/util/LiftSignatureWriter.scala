@@ -1,12 +1,14 @@
 package edu.cmu.cs.vbc.util
 
-import edu.cmu.cs.vbc.vbytecode.util.LiftUtils
 import org.objectweb.asm.signature.{SignatureVisitor, SignatureWriter}
 
 /**
   * lift method signatures by using V (preserving generics) for all
   * arguments and return types, plus adding a new fexpr parameter
-
+  *
+  * Exception not supported yet. Array is lifted as conditional
+  * array instead of array of conditional elements. May want to explore
+  * different alternatives in the future.
   */
 class LiftSignatureWriter() extends SignatureWriter() with LiftUtils {
     //arrayStack stolen from TraceSignatureVisitor, see documentation there
@@ -62,5 +64,8 @@ class LiftSignatureWriter() extends SignatureWriter() with LiftUtils {
     def getSignature(): String =
         (this.toString + ">;").replace("Ledu/cmu/cs/varex/V<V>;", "V")
 
-
+    //TODO
+    override def visitExceptionType(): SignatureVisitor = {
+        throw new RuntimeException("visitExceptionType() not supported")
+    }
 }

@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode
 
-import edu.cmu.cs.vbc.vbytecode.util.LiftUtils
+import edu.cmu.cs.vbc.util.LiftUtils
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm._
 import org.objectweb.asm.tree._
@@ -20,7 +20,8 @@ case class VBCMethodNode(access: Int, name: String,
     def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
         val mv = cw.visitMethod(access, name, liftMethodDescription(desc), liftMethodSignature(desc, signature).getOrElse(null), exceptions.toArray)
         mv.visitCode()
-        body.toVByteCode(mv, new VMethodEnv(clazz, this))
+        val env = new VMethodEnv(clazz, this)
+        body.toVByteCode(mv, env)
         mv.visitMaxs(5, 5)
         mv.visitEnd()
     }
@@ -34,6 +35,20 @@ case class VBCMethodNode(access: Int, name: String,
 
     def isPublic(): Boolean = (access & Opcodes.ACC_PUBLIC) > 0
 
+  /**
+    * We need special handling for <init> method lifting.
+    * JVM will complain if ALOAD 0 and INVOKESPECIAL java.lang.object.<init> is invoked
+    * inside a branch, which is usually the case in our lifting (we check the ctx in the
+    * beginning of each method call)
+    *
+    * name should be sufficient because <init> method name is special enough
+    *
+    * @see [[CFG.toVByteCode()]] and [[Rewrite]]
+    * @return
+    */
+  def isInit() =
+        name == "<init>"
+
 }
 
 
@@ -44,9 +59,13 @@ case class VBCMethodNode(access: Int, name: String,
   * In contrast EnvVariable, EnvParameter, and EnvLocalVar are used
   * internally to refer to specific
   */
-sealed trait Variable
+sealed trait Variable {
+    def getIdx():Option[Int] = None
+}
 
-class Parameter(val idx: Int) extends Variable
+class Parameter(val idx: Int) extends Variable {
+    override def getIdx(): Option[Int] = Some(idx)
+}
 
 class LocalVar() extends Variable
 
@@ -89,6 +108,8 @@ case class VBCClassNode(
         //if the class has a main method, create also an unlifted main method
         if (methods.exists(_.isMain))
             createUnliftedMain(cv)
+        // Write lambda methods
+        lambdaMethods.foreach(_ (cv))
         cv.visitEnd()
     }
 
@@ -128,6 +149,10 @@ case class VBCClassNode(
         attrs.foreach(cv.visitAttribute)
     }
 
+    /**
+      * Generated lambdaMethods
+      */
+    var lambdaMethods: List[(ClassVisitor) => Unit] = Nil
 
 }
 

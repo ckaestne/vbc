@@ -82,6 +82,7 @@ case class InstrDBGIPrint() extends Instruction {
 }
 
 case class InstrDBGCtx(name: String) extends Instruction {
+
     override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     }
 
