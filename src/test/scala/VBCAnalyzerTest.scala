@@ -22,6 +22,10 @@ class VBCAnalyzerTest extends FunSuite {
 
     test("basic setup") {
 
+        assert(!(InstrICONST(0) eq InstrICONST(0)))
+        assert(InstrICONST(0) != InstrICONST(0))
+
+
         val ins0 = InstrICONST(0)
         val ins3 = InstrICONST(3)
         val ins4 = InstrICONST(4)

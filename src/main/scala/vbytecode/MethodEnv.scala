@@ -179,56 +179,17 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
 
     ////////// Unbalanced Stack //////////
     val analyzer = new VBCAnalyzer(this)
-    //    assert(analyzer.beforeFrames.isDefined, "No frames available")
-    //    assert(analyzer.afterFrames.isDefined, "No frames available")
-    //    val framesBefore = analyzer.beforeFrames.get
-    //    val framesAfter = analyzer.afterFrames.get
-    //    var expectingVars: Map[Block, List[Variable]] = Map()
-    //    blocks.foreach(getExpectingVars(_))
-    //    def getLeftVars(block: Block): List[Set[Variable]] = ??? /*{
-    //        val afterFrame = framesAfter(getFrameIdx(block.instr.last))
-    //        val (succ1, succ2) = getSuccessors(block)
-    //        getVarSetList(Nil, succ1, succ2, afterFrame.getStackSize)
-    //    }*/
 
-    //    def getVarSetList(l: List[Set[Variable]], succ1: Option[Block], succ2: Option[Block], n: Int): List[Set[Variable]] =
-    //        if (n == 0) l else getVarSetList(getVarSet(succ1, succ2, n) ::: l, succ1, succ2, n - 1)
-    //
-    //    def getVarSet(succ1: Option[Block], succ2: Option[Block], n: Int): List[Set[Variable]] = {
-    //        var set = Set[Variable]()
-    //        if (succ1.isDefined) {
-    //            val exp1 = getExpectingVars(succ1.get)
-    //            if (exp1.nonEmpty) {
-    //                set = set + exp1(n - 1)
-    //            }
-    //        }
-    //        if (succ2.isDefined) {
-    //            val exp2 = getExpectingVars(succ2.get)
-    //            if (exp2.nonEmpty) {
-    //                set = set + exp2(n - 1)
-    //            }
-    //        }
-    //        List(set)
-    //    }
-    //
-    //    def getExpectingVars(block: Block): List[Variable] = ??? /*{
-    //        if (!(expectingVars contains block)) {
-    //            val beforeFrame = framesBefore(getFrameIdx(block.instr.head))
-    //            val newVars: List[Variable] = createNewVars(Nil, beforeFrame.getStackSize)
-    //            expectingVars += (block -> newVars)
-    //        }
-    //        expectingVars(block)
-    //    }*/
-    //
-    //    def getFrameIdx(insn: Instruction): Int = instructions.indexWhere(_ eq insn)
+    lazy val beforeFrame = analyzer.computeBeforeFrames
+    lazy val (blockExpectedVars: Map[Block, List[Variable]], blockLeftVars: Map[Block, List[Set[Variable]]]) =
+        analyzer.computeUnbalancedStack()
+
+
 
     ////////// end Unbalanced Stack //////////
 
     var blockVars: Map[Block, Variable] = Map()
 
-
-    def createNewVars(l: List[Variable], n: Int): List[Variable] =
-        if (n == 0) l else createNewVars(List[Variable](freshLocalVar()) ::: l, n - 1)
 
     val ctxParameter: Parameter = new Parameter(-1)
 

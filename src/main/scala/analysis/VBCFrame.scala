@@ -58,22 +58,24 @@ case class VBCFrame(
   def merge(that: VBCFrame): VBCFrame =
     if (this == that)
       this
-    else if (this.localVar.keySet != that.localVar.keySet || this.stack.size != that.stack.size)
+    else if (this.stack.size != that.stack.size)
       throw new RuntimeException("Incompatible stack heights")
     else
       VBCFrame(
-        mapMerge(this.localVar, that.localVar, VBCFrame.mergeEntry),
+        //merge local variables (when defined only in one branch, it cannot be initialized)
+        mapMerge(this.localVar, that.localVar, (a: Option[StackEntry], b: Option[StackEntry]) => {
+          (a, b) match {
+            case (None, Some(v)) => (UNINITIALIZED_TYPE(), v._2)
+            case (Some(v), None) => (UNINITIALIZED_TYPE(), v._2)
+            case (Some(v1), Some(v2)) => VBCFrame.mergeEntry(v1, v2)
+          }
+        }),
         (this.stack zip that.stack).map(v => VBCFrame.mergeEntry(v._1, v._2))
       )
 
 
-  private def mapMerge[K, V](m1: Map[K, V], m2: Map[K, V], fun: (V, V) => V): Map[K, V] =
-    (m1.keySet ++ m2.keySet) map { i => i -> ((m1.get(i), m2.get(i)) match {
-      case (None, Some(v)) => v
-      case (Some(v), None) => v
-      case (Some(v1), Some(v2)) => fun(v1, v2)
-    })
-    } toMap
+  private def mapMerge[K, V](m1: Map[K, V], m2: Map[K, V], fun: (Option[V], Option[V]) => V): Map[K, V] =
+    (m1.keySet ++ m2.keySet) map { i => i -> fun(m1.get(i), m2.get(i)) } toMap
 
 
   /**

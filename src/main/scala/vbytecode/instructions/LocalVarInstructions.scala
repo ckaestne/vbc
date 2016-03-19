@@ -96,7 +96,7 @@ case class InstrIINC(variable: Variable, increment: Int) extends Instruction {
     override def updateStack(s: VBCFrame) = {
         //does not change the frame
         assert(s.localVar contains variable, "local variable not assigned")
-        assert(s.localVar(variable)._1 == INT_TYPE, "local variable not of type Int")
+        assert(s.localVar(variable)._1 == INT_TYPE(), "local variable not of type Int")
         s
     }
 

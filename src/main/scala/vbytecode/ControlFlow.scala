@@ -48,63 +48,50 @@ case class Block(instr: Instruction*) extends LiftUtils {
         }
 
         //load local variables if this block is expecting some values on stack
-        val expectingVars = env.getExpectingVars(this)
-        if (expectingVars.nonEmpty) {
-            expectingVars.foreach(
-                (v: Variable) => {
-                    mv.visitVarInsn(ALOAD, env.getVarIdx(v))
-                }
-            )
-        }
+        val expectingVars = env.blockExpectedVars(this)
+        expectingVars.foreach(v =>
+            mv.visitVarInsn(ALOAD, env.getVarIdx(v)))
 
         //generate block code
         instr.foreach(_.toVByteCode(mv, env, this))
 
         //store local variables if this block is leaving some values on stack
-        val leftVars = env.getLeftVars(this)
-        if (leftVars.nonEmpty) {
-            var hasFEOnTop = false
-            if (instr.last.isJumpInstr) {
-                val j = instr.last.asInstanceOf[JumpInstruction]
-                val (uncond, cond) = j.getSuccessor()
-                if (cond.isDefined) {
-                    // conditional jump, which means there is a FE on the stack right now
-                    hasFEOnTop = true
+        val leftVars = env.blockLeftVars(this)
+        // if conditional jump: there is a FE on the stack right now
+        val hasFEOnTop =
+            (instr.last.isJumpInstr && instr.last.asInstanceOf[JumpInstruction].getSuccessor()._2.isDefined)
+        leftVars.reverse.foreach(
+            (s: Set[Variable]) => {
+                if (hasFEOnTop) mv.visitInsn(SWAP)
+                s.size match {
+                    case 1 => {
+                        val v = s.toList.head
+                        loadFExpr(mv, env, env.getBlockVar(this))
+                        mv.visitInsn(SWAP)
+                        mv.visitVarInsn(ALOAD, env.getVarIdx(v))
+                        callVCreateChoice(mv)
+                        mv.visitVarInsn(ASTORE, env.getVarIdx(v))
+                    }
+                    case 2 => {
+                        val list = s.toList
+                        val v1 = list.head
+                        val v2 = list.last
+                        mv.visitInsn(DUP)
+                        loadFExpr(mv, env, env.getBlockVar(this))
+                        mv.visitInsn(SWAP)
+                        mv.visitVarInsn(ALOAD, env.getVarIdx(v1))
+                        callVCreateChoice(mv)
+                        mv.visitVarInsn(ASTORE, env.getVarIdx(v1))
+                        loadFExpr(mv, env, env.getBlockVar(this))
+                        mv.visitInsn(SWAP)
+                        mv.visitVarInsn(ALOAD, env.getVarIdx(v2))
+                        callVCreateChoice(mv)
+                        mv.visitVarInsn(ASTORE, env.getVarIdx(v2))
+                    }
+                    case _ => throw new RuntimeException("size of Set[Variable] is not 1 or 2")
                 }
             }
-            leftVars.reverse.foreach(
-                (s: Set[Variable]) => {
-                    if (hasFEOnTop) mv.visitInsn(SWAP)
-                    s.size match {
-                        case 1 => {
-                            val v = s.toList.head
-                            loadFExpr(mv, env, env.getBlockVar(this))
-                            mv.visitInsn(SWAP)
-                            mv.visitVarInsn(ALOAD, env.getVarIdx(v))
-                            callVCreateChoice(mv)
-                            mv.visitVarInsn(ASTORE, env.getVarIdx(v))
-                        }
-                        case 2 => {
-                            val list = s.toList
-                            val v1 = list.head
-                            val v2 = list.last
-                            mv.visitInsn(DUP)
-                            loadFExpr(mv, env, env.getBlockVar(this))
-                            mv.visitInsn(SWAP)
-                            mv.visitVarInsn(ALOAD, env.getVarIdx(v1))
-                            callVCreateChoice(mv)
-                            mv.visitVarInsn(ASTORE, env.getVarIdx(v1))
-                            loadFExpr(mv, env, env.getBlockVar(this))
-                            mv.visitInsn(SWAP)
-                            mv.visitVarInsn(ALOAD, env.getVarIdx(v2))
-                            callVCreateChoice(mv)
-                            mv.visitVarInsn(ASTORE, env.getVarIdx(v2))
-                        }
-                        case _ => throw new RuntimeException("size of Set[Variable] is not 1 or 2")
-                    }
-                }
-            )
-        }
+        )
 
 
         val successors = env.getSuccessors(this)

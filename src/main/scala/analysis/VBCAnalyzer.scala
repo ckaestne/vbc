@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.analysis
 
 import edu.cmu.cs.vbc.vbytecode.instructions.{Instruction, JumpInstruction}
-import edu.cmu.cs.vbc.vbytecode.{Parameter, VMethodEnv}
+import edu.cmu.cs.vbc.vbytecode.{Block, Parameter, VMethodEnv, Variable}
 import org.objectweb.asm.Type
 
 import scala.collection.mutable.Queue
@@ -63,8 +63,8 @@ class VBCAnalyzer(env: VMethodEnv) {
       result
     }
 
-
-    updateFrameForInstr(0, initialFrame)
+    beforeInstructionFrames += (getInstr(0) -> initialFrame)
+    queue.enqueue(0)
     // control flow analysis
     while (queue.nonEmpty) {
       val insn = queue.dequeue
@@ -86,16 +86,59 @@ class VBCAnalyzer(env: VMethodEnv) {
     beforeInstructionFrames
   }
 
-  //  def afterFrames: Option[Array[VBCFrame]] = ??? /*{
-  //    if (beforeFrames.isDefined) {
-  //      val frames: Array[VBCFrame] = new Array[VBCFrame](beforeFrames.get.length)
-  //      for (i <- frames.indices)
-  //        frames(i) = new VBCFrame(beforeFrames.get(i))
-  //      (frames zip instructions).foreach((pair) => pair._1.execute(pair._2, env))
-  //      Some(frames)
-  //    }
-  //    else
-  //      None
-  //  }*/
+
+  /**
+    * Unbalanced stack:
+    *
+    * We compute for each block whether the block leaves
+    * certain values on the stack or needs values from
+    * the stack. We represent possible values and map them
+    * with variables (one block's left value is represented
+    * by the same value as the next block's expected value).
+    *
+    * This allows us to balance all stacks by storing all
+    * left values in variables and loading all expected values
+    * from variables instead of relying on the stack.
+    *
+    * It is the following block that defines which variables
+    * it expects to read from, and the previous blocks have
+    * to identify which variables store left values.
+    *
+    * TODO A better analysis will identify when values actually
+    * need to be read within a block (if a value remains unmodified
+    * on the stack it does not need to be read and stored)
+    */
+
+  /**
+    * compute the expected and left lists for each block
+    */
+  def computeUnbalancedStack(): (Map[Block, List[Variable]], Map[Block, List[Set[Variable]]]) = {
+    val blockExpectedVars: Map[Block, List[Variable]] =
+      env.method.body.blocks.map(block => {
+        val beforeBlockFrame = computeBeforeFrames(block.instr.head)
+        val newVars: List[Variable] = (0 until beforeBlockFrame.stack.size).toList.map(a => env.freshLocalVar())
+        (block -> newVars)
+      }).toMap
+
+    val blockLeftVars: Map[Block, List[Set[Variable]]] =
+      env.method.body.blocks.map(block => {
+        val lastInstr = block.instr.last
+        val frameBefore = computeBeforeFrames(lastInstr)
+        val frameAfter = lastInstr.updateStack(frameBefore)
+        val (succ1, succ2) = env.getSuccessors(block)
+
+        val expected1 = succ1.map(blockExpectedVars)
+        val expected2 = succ2.map(blockExpectedVars)
+        val leftVars: List[Set[Variable]] =
+          if (expected1.isEmpty) expected2.getOrElse(Nil).map(Set(_))
+          else if (expected2.isEmpty) expected1.get.map(Set(_))
+          else expected1.get.zip(expected2.get).map(p => Set(p._1, p._2))
+        (block -> leftVars)
+      }).toMap
+
+    (blockExpectedVars, blockLeftVars)
+  }
+
+
 }
 

@@ -36,6 +36,11 @@ trait Instruction extends LiftUtils {
       * @see [[Rewrite.rewrite()]]
       */
     def isINVOKESPECIAL_OBJECT_INIT: Boolean = false
+
+    override def equals(that: Any) = that match {
+        case t: AnyRef => t eq this
+        case _ => false
+    }
 }
 
 
