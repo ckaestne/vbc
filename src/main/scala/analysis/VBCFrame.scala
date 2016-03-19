@@ -1,14 +1,12 @@
 package edu.cmu.cs.vbc.analysis
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.StackEntry
-import edu.cmu.cs.vbc.util.LiftingFilter
+import edu.cmu.cs.vbc.vbytecode.Variable
 import edu.cmu.cs.vbc.vbytecode.instructions._
-import edu.cmu.cs.vbc.vbytecode.{VMethodEnv, Variable}
-import org.objectweb.asm.Type
 
 object VBCFrame {
   //an entry consists of the type of the entry and all instructions that are possibly responsible for setting this entry
-  type StackEntry = (VBCValue, Set[Instruction])
+  type StackEntry = (VBCType, Set[Instruction])
 
   //merge two entries by merging their types and combining their responsible instructions
   def merge(v1: StackEntry, v2: StackEntry): StackEntry =
@@ -31,13 +29,13 @@ case class VBCFrame(
   /**
     * Set the value for local variable with index i to value
     */
-  def write(v: Variable, vtype: VBCValue, instr: Instruction): VBCFrame =
+  def write(v: Variable, vtype: VBCType, instr: Instruction): VBCFrame =
     this.copy(localVar = localVar + (v ->(vtype, Set(instr))))
 
   /**
     * shorthand for a store operation (pop and write)
     */
-  def store(variable: Variable, vtype: VBCValue, instr: Instruction): VBCFrame = {
+  def store(variable: Variable, vtype: VBCType, instr: Instruction): VBCFrame = {
     val (foundVtype, _, newFrame) = this.pop()
     assert(foundVtype == vtype, s"expected $vtype but found $foundVtype on stack")
     newFrame.write(variable, vtype, instr)
@@ -46,7 +44,7 @@ case class VBCFrame(
   /**
     * shorthand for a load operation (read local and push)
     */
-  def load(variable: Variable, vtype: VBCValue, instr: Instruction): VBCFrame = {
+  def load(variable: Variable, vtype: VBCType, instr: Instruction): VBCFrame = {
     assert(localVar contains variable, "variable not assigned previously")
     var (foundVtype, _) = localVar(variable)
     assert(foundVtype == vtype, s"expected $vtype but found $foundVtype as local variable")
@@ -79,7 +77,7 @@ case class VBCFrame(
     *
     * @param v
     */
-  def push(v: VBCValue, instr: Instruction): VBCFrame =
+  def push(v: VBCType, instr: Instruction): VBCFrame =
     this.copy(stack = (v, Set(instr)) :: stack)
 
 
@@ -88,7 +86,7 @@ case class VBCFrame(
     *
     * @return
     */
-  def pop(): (VBCValue, Set[Instruction], VBCFrame) = {
+  def pop(): (VBCType, Set[Instruction], VBCFrame) = {
     if (stack.isEmpty)
       throw new IndexOutOfBoundsException("Cannot pop operand off an empty stack.")
     val entry = stack.head

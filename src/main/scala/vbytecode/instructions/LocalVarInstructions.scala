@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
-import edu.cmu.cs.vbc.analysis.{REF_TYPE, VBCValue, INT_TYPE, VBCFrame}
+import edu.cmu.cs.vbc.analysis.{INT_TYPE, REF_TYPE, VBCFrame}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._

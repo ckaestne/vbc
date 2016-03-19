@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
-import edu.cmu.cs.vbc.analysis.{INT_TYPE, VBCFrame, VBCValue}
+import edu.cmu.cs.vbc.analysis.{INT_TYPE, VBCFrame, VBCType}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.{MethodVisitor, Type}
@@ -47,7 +47,7 @@ case class InstrLDC(o: Object) extends Instruction {
 
     override def updateStack(s: VBCFrame) = o match {
         case integer: java.lang.Integer => s.push(INT_TYPE(), this)
-        case string: java.lang.String => s.push(VBCValue.newValue(Type.getObjectType("java/lang/String")), this)
+        case string: java.lang.String => s.push(VBCType(Type.getObjectType("java/lang/String")), this)
         case _ => throw new RuntimeException("Incomplete support for LDC")
     }
 
@@ -58,5 +58,5 @@ case class InstrACONST_NULL() extends Instruction {
 
     override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = mv.visitInsn(ACONST_NULL)
 
-    override def updateStack(s: VBCFrame): VBCFrame = s.push(VBCValue.newValue(Type.getObjectType("null")), this)
+    override def updateStack(s: VBCFrame): VBCFrame = s.push(VBCType(Type.getObjectType("null")), this)
 }

@@ -8,32 +8,32 @@ import org.objectweb.asm.Type
   * @todo some other basic types (float, long, double)
   * @author chupanw
   */
-sealed abstract class VBCValue
+sealed abstract class VBCType
 
-case class INT_TYPE() extends VBCValue {
+case class INT_TYPE() extends VBCType {
   override def toString: String = "I"
 }
 
-case class V_TYPE() extends VBCValue {
+case class V_TYPE() extends VBCType {
   override def toString: String = "V"
 }
 
-case class REF_TYPE() extends VBCValue {
+case class REF_TYPE() extends VBCType {
   override def toString: String = "R"
 }
 
-case class UNINITIALIZED_TYPE() extends VBCValue {
+case class UNINITIALIZED_TYPE() extends VBCType {
   override def toString: String = "?"
 }
 
-object VBCValue {
+object VBCType {
   /**
     * Create a new value based on type
     *
     * @param t
     * @return
     */
-  def newValue(t: Type): VBCValue = t match {
+  def apply(t: Type): VBCType = t match {
     case null => UNINITIALIZED_TYPE()
     case _ => {
       t.getSort match {

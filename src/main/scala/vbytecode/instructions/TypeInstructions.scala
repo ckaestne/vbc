@@ -1,9 +1,9 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
-import edu.cmu.cs.vbc.analysis.{VBCValue, VBCFrame}
+import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType}
 import edu.cmu.cs.vbc.vbytecode._
-import org.objectweb.asm.{Type, MethodVisitor}
 import org.objectweb.asm.Opcodes._
+import org.objectweb.asm.{MethodVisitor, Type}
 
 /**
   * @author chupanw
@@ -18,5 +18,5 @@ case class InstrNEW(t: String) extends Instruction {
         mv.visitTypeInsn(NEW, t)
     }
 
-    override def updateStack(s: VBCFrame) = s.push(VBCValue.newValue(Type.getObjectType(t)), this)
+    override def updateStack(s: VBCFrame) = s.push(VBCType(Type.getObjectType(t)), this)
 }

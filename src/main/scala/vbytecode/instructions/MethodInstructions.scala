@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
-import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCValue}
+import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.{ClassVisitor, Handle, MethodVisitor, Type}
@@ -54,7 +54,7 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
     for (j <- 0 until Type.getArgumentTypes(desc).length)
       stack = stack.pop()._3
     if (Type.getReturnType(desc) != Type.VOID_TYPE)
-      stack = stack.push(VBCValue.newValue(Type.getReturnType(desc)), this)
+      stack = stack.push(VBCType(Type.getReturnType(desc)), this)
     stack
   }
 
@@ -157,7 +157,7 @@ case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Bo
     for (j <- 0 until Type.getArgumentTypes(desc).length)
       stack = stack.pop()._3
     if (Type.getReturnType(desc) != Type.VOID_TYPE)
-      stack = stack.push(VBCValue.newValue(Type.getReturnType(desc)), this)
+      stack = stack.push(VBCType(Type.getReturnType(desc)), this)
     stack
   }
 
@@ -206,7 +206,7 @@ case class InstrINVOKESTATIC(owner: String, name: String, desc: String, itf: Boo
     for (j <- 0 until Type.getArgumentTypes(desc).length)
       stack = stack.pop()._3
     if (Type.getReturnType(desc) != Type.VOID_TYPE)
-      stack = stack.push(VBCValue.newValue(Type.getReturnType(desc)), this)
+      stack = stack.push(VBCType(Type.getReturnType(desc)), this)
     stack
   }
 

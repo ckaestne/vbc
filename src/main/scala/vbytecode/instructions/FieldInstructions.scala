@@ -1,9 +1,9 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
-import edu.cmu.cs.vbc.analysis.{VBCValue, VBCFrame}
+import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType}
 import edu.cmu.cs.vbc.vbytecode._
-import org.objectweb.asm.{Type, MethodVisitor}
 import org.objectweb.asm.Opcodes._
+import org.objectweb.asm.{MethodVisitor, Type}
 
 /**
   * @author chupanw
@@ -26,7 +26,7 @@ case class InstrGETSTATIC(owner: String, name: String, desc: String) extends Ins
         mv.visitFieldInsn(GETSTATIC, owner, name, desc)
     }
 
-    override def updateStack(s: VBCFrame) = s.push(VBCValue.newValue(Type.getType(desc)), this)
+    override def updateStack(s: VBCFrame) = s.push(VBCType(Type.getType(desc)), this)
 
 }
 
@@ -66,7 +66,7 @@ case class InstrGETFIELD(owner: String, name: String, desc: String) extends Inst
         mv.visitFieldInsn(GETFIELD, owner, name, "Ledu/cmu/cs/varex/V;")
     }
 
-    override def updateStack(s: VBCFrame) = s.pop()._3.push(VBCValue.newValue(Type.getType(desc)), this)
+    override def updateStack(s: VBCFrame) = s.pop()._3.push(VBCType(Type.getType(desc)), this)
 }
 
 
