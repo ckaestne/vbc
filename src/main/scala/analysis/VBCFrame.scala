@@ -68,6 +68,7 @@ case class VBCFrame(
             case (None, Some(v)) => (UNINITIALIZED_TYPE(), v._2)
             case (Some(v), None) => (UNINITIALIZED_TYPE(), v._2)
             case (Some(v1), Some(v2)) => VBCFrame.mergeEntry(v1, v2)
+            case (None, None) => throw new RuntimeException("should not happen")
           }
         }),
         (this.stack zip that.stack).map(v => VBCFrame.mergeEntry(v._1, v._2))
