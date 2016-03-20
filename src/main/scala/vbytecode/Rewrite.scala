@@ -26,7 +26,7 @@ object Rewrite {
         //if the last instruction in the last block is the only return statement, we are happy
         val returnInstr = for (block <- m.body.blocks; instr <- block.instr if instr.isReturnInstr) yield instr
         assert(returnInstr.nonEmpty, "no return instruction found in method")
-        assert(returnInstr.distinct.size == 1, "inconsistency: different kinds of return instructions found in method")
+        assert(returnInstr.map(_.getClass).distinct.size == 1, "inconsistency: different kinds of return instructions found in method")
         if (returnInstr.size == 1 && returnInstr.head == m.body.blocks.last.instr.last)
             m
         else unifyReturnInstr(m: VBCMethodNode, returnInstr.head)

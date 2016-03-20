@@ -216,7 +216,7 @@ case class CFG(blocks: List[Block]) extends LiftUtils {
 
 
         //TODO: exclude those block vars
-        for (v <- env.getFreshVars()) {
+        for (v <- (env.getFreshVars() ++ env.unbalancedStackVariables)) {
             mv.visitInsn(ACONST_NULL)
             storeV(mv, env, v)
         }

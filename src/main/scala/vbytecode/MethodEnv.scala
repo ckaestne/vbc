@@ -180,9 +180,13 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
     ////////// Unbalanced Stack //////////
     val analyzer = new VBCAnalyzer(this)
 
+    // a map storing the frame before executing a specific instruction
     lazy val beforeFrame = analyzer.computeBeforeFrames
+    // extra variables map values left on the stack in one block with variables needed as initial values on the stack in other blocks, see VBCAnalyzer
     lazy val (blockExpectedVars: Map[Block, List[Variable]], blockLeftVars: Map[Block, List[Set[Variable]]]) =
         analyzer.computeUnbalancedStack()
+    // extra variables for handling the unbalanced stack
+    lazy val unbalancedStackVariables: Set[Variable] = blockExpectedVars.values.flatten.toSet
 
 
 
