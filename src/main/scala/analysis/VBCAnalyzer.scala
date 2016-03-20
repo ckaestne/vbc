@@ -104,9 +104,12 @@ class VBCAnalyzer(env: VMethodEnv) {
     * it expects to read from, and the previous blocks have
     * to identify which variables store left values.
     *
+    * This is a first sound, but not necessarily efficient solution.
     * TODO A better analysis will identify when values actually
     * need to be read within a block (if a value remains unmodified
-    * on the stack it does not need to be read and stored)
+    * on the stack it does not need to be read and stored).
+    * TODO A better analysis will also avoid writing to multiple
+    * variables in many cases.
     */
 
   /**
