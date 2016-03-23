@@ -20,7 +20,7 @@ public class VInteger {
         this.value = value;
     }
 
-    public VInteger(V<Integer> value) {
+    public VInteger(V<Integer> value, FeatureExpr fe) {
         this.value = ((Integer) ((One) value).getOne());
     }
 

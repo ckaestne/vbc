@@ -22,6 +22,15 @@ case class REF_TYPE() extends VBCValue {
   override def toString: String = "R"
 }
 
+/**
+  * Represents reference that created by NEW instruction
+  *
+  * @param id used to distinguish object, potentially there could be a lot of different new object references on stack
+  */
+case class V_REF_TYPE(id: Int) extends VBCValue {
+  override def toString: String = "N"
+}
+
 case class UNINITIALIZED_TYPE() extends VBCValue {
   override def toString: String = "?"
 }
@@ -44,5 +53,12 @@ object VBCValue {
     }
   }
 
-  def merge(v1: VBCValue, v2: VBCValue): VBCValue = if (v1 != v2) UNINITIALIZED_TYPE() else v1
+  def merge(v1: VBCValue, v2: VBCValue): VBCValue = v2
+
+  var id = 0
+
+  def nextID: Int = {
+    id += 1
+    id - 1
+  }
 }

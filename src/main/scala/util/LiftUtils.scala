@@ -8,139 +8,141 @@ import org.objectweb.asm.{MethodVisitor, Type}
 
 
 trait LiftUtils {
-    //    val liftedPackagePrefixes = Set("edu.cmu.cs.vbc.test", "edu.cmu.cs.vbc.prog")
-    val vclassname = "edu/cmu/cs/varex/V"
-    val fexprclassname = "de/fosd/typechef/featureexpr/FeatureExpr"
-    val fexprfactoryClassName = "de/fosd/typechef/featureexpr/FeatureExprFactory"
-    val vopsclassname = "edu/cmu/cs/varex/VOps"
-    val vclasstype = "L" + vclassname + ";"
-    val fexprclasstype = "L" + fexprclassname + ";"
-    val ctxParameterOffset = 1
+  //    val liftedPackagePrefixes = Set("edu.cmu.cs.vbc.test", "edu.cmu.cs.vbc.prog")
+  val vclassname = "edu/cmu/cs/varex/V"
+  val fexprclassname = "de/fosd/typechef/featureexpr/FeatureExpr"
+  val fexprfactoryClassName = "de/fosd/typechef/featureexpr/FeatureExprFactory"
+  val vopsclassname = "edu/cmu/cs/varex/VOps"
+  val vclasstype = "L" + vclassname + ";"
+  val fexprclasstype = "L" + fexprclassname + ";"
+  val ctxParameterOffset = 1
 
-    //    protected def shouldLift(classname: String) = liftedPackagePrefixes.exists(classname startsWith _)
+  //    protected def shouldLift(classname: String) = liftedPackagePrefixes.exists(classname startsWith _)
 
-    protected def liftType(t: Type): String =
-        if (t == Type.VOID_TYPE) t.getDescriptor
-        else
-            vclasstype
+  protected def liftType(t: Type): String =
+    if (t == Type.VOID_TYPE) t.getDescriptor
+    else
+      vclasstype
 
-    /**
-      * lift each parameter and add a new fexpr parameter at the end for the context
-      */
-    protected def liftMethodDescription(desc: String): String = {
-        val mtype = Type.getMethodType(desc)
-        (mtype.getArgumentTypes.map(liftType) :+ Type.getObjectType(fexprclassname)).mkString("(", "", ")") + liftType(mtype.getReturnType)
+  /**
+    * lift each parameter and add a new fexpr parameter at the end for the context
+    */
+  protected def liftMethodDescription(desc: String): String = {
+    val mtype = Type.getMethodType(desc)
+    (mtype.getArgumentTypes.map(liftType) :+ Type.getObjectType(fexprclassname)).mkString("(", "", ")") + liftType(mtype.getReturnType)
+  }
+
+  /**
+    * lift each parameter but DO NOT add a new fexpr parameter at the end for the context
+    * For example, the <init> method of model classes should not contain
+    */
+  protected def liftMtdDescNoFE(desc: String): String = {
+    val mtype = Type.getMethodType(desc)
+    mtype.getArgumentTypes.map(liftType).mkString("(", "", ")") + liftType(mtype.getReturnType)
+  }
+
+  protected def liftMethodSignature(desc: String, sig: Option[String]): Option[String] = {
+    val sigReader = new SignatureReader(sig.getOrElse(desc))
+    val sw = new LiftSignatureWriter()
+    sigReader.accept(sw)
+    val newSig = sw.getSignature()
+    if (sig != None || newSig != liftMethodDescription(desc))
+      Some(newSig)
+    else None
+  }
+
+  def pushConstant(mv: MethodVisitor, value: Int): Unit = {
+    value match {
+      case 0 => mv.visitInsn(ICONST_0)
+      case 1 => mv.visitInsn(ICONST_1)
+      case 2 => mv.visitInsn(ICONST_2)
+      case 3 => mv.visitInsn(ICONST_3)
+      case 4 => mv.visitInsn(ICONST_4)
+      case 5 => mv.visitInsn(ICONST_5)
+      case v if v <= Byte.MaxValue && v >= Byte.MinValue => mv.visitIntInsn(BIPUSH, v)
+      //TODO other push operation for larger constants
     }
+  }
 
-    /**
-      * lift each parameter but DO NOT add a new fexpr parameter at the end for the context
-      * For example, the <init> method of model classes should not contain
-      */
-    protected def liftMtdDescNoFE(desc: String): String = {
-        val mtype = Type.getMethodType(desc)
-        mtype.getArgumentTypes.map(liftType).mkString("(", "", ")") + liftType(mtype.getReturnType)
-    }
+  def pushConstantFALSE(mv: MethodVisitor) =
+    mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "False", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
 
-    protected def liftMethodSignature(desc: String, sig: Option[String]): Option[String] = {
-        val sigReader = new SignatureReader(sig.getOrElse(desc))
-        val sw = new LiftSignatureWriter()
-        sigReader.accept(sw)
-        val newSig = sw.getSignature()
-        if (sig != None || newSig != liftMethodDescription(desc))
-            Some(newSig)
-        else None
-    }
+  def pushConstantTRUE(mv: MethodVisitor) =
+    mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "True", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
 
-    def pushConstant(mv: MethodVisitor, value: Int): Unit = {
-        value match {
-            case 0 => mv.visitInsn(ICONST_0)
-            case 1 => mv.visitInsn(ICONST_1)
-            case 2 => mv.visitInsn(ICONST_2)
-            case 3 => mv.visitInsn(ICONST_3)
-            case 4 => mv.visitInsn(ICONST_4)
-            case 5 => mv.visitInsn(ICONST_5)
-            case v if v <= Byte.MaxValue && v >= Byte.MinValue => mv.visitIntInsn(BIPUSH, v)
-            //TODO other push operation for larger constants
-        }
-    }
+  def callFExprIsSatisfiable(mv: MethodVisitor) =
+    mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "isSatisfiable", "()Z", true)
 
-    def pushConstantFALSE(mv: MethodVisitor) =
-        mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "False", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
+  def callFExprIsContradiction(mv: MethodVisitor) =
+    mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "isContradiction", "()Z", true)
 
-    def pushConstantTRUE(mv: MethodVisitor) =
-        mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "True", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
+  def callFExprOr(mv: MethodVisitor) =
+    mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "or", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
 
-    def callFExprIsSatisfiable(mv: MethodVisitor) =
-        mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "isSatisfiable", "()Z", true)
+  def callFExprAnd(mv: MethodVisitor) =
+    mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "and", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
 
-    def callFExprIsContradiction(mv: MethodVisitor) =
-        mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "isContradiction", "()Z", true)
+  def callFExprNot(mv: MethodVisitor) =
+    mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "not", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
 
-    def callFExprOr(mv: MethodVisitor) =
-        mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "or", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
+  def storeFExpr(mv: MethodVisitor, env: MethodEnv, v: Variable) =
+    mv.visitVarInsn(ASTORE, env.getVarIdx(v))
 
-    def callFExprAnd(mv: MethodVisitor) =
-        mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "and", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
+  def loadFExpr(mv: MethodVisitor, env: MethodEnv, v: Variable) =
+    mv.visitVarInsn(ALOAD, env.getVarIdx(v))
 
-    def callFExprNot(mv: MethodVisitor) =
-        mv.visitMethodInsn(INVOKEINTERFACE, fexprclassname, "not", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", true)
+  def storeV(mv: MethodVisitor, env: MethodEnv, v: Variable) =
+    mv.visitVarInsn(ASTORE, env.getVarIdx(v))
 
-    def storeFExpr(mv: MethodVisitor, env: MethodEnv, v: Variable) =
-        mv.visitVarInsn(ASTORE, env.getVarIdx(v))
+  def loadV(mv: MethodVisitor, env: MethodEnv, v: Variable) =
+    mv.visitVarInsn(ALOAD, env.getVarIdx(v))
 
-    def loadFExpr(mv: MethodVisitor, env: MethodEnv, v: Variable) =
-        mv.visitVarInsn(ALOAD, env.getVarIdx(v))
+  /**
+    * precondition: plain reference on top of stack
+    * postcondition: V reference on top of stack
+    */
+  def callVCreateOne(mv: MethodVisitor) =
+    mv.visitMethodInsn(INVOKESTATIC, vclassname, "one", "(Ljava/lang/Object;)Ledu/cmu/cs/varex/V;", true)
 
-    def storeV(mv: MethodVisitor, env: MethodEnv, v: Variable) =
-        mv.visitVarInsn(ASTORE, env.getVarIdx(v))
-
-    def loadV(mv: MethodVisitor, env: MethodEnv, v: Variable) =
-        mv.visitVarInsn(ALOAD, env.getVarIdx(v))
-
-    /**
-      * precondition: plain reference on top of stack
-      * postcondition: V reference on top of stack
-      */
-    def callVCreateOne(mv: MethodVisitor) =
-        mv.visitMethodInsn(INVOKESTATIC, vclassname, "one", "(Ljava/lang/Object;)Ledu/cmu/cs/varex/V;", true)
-
-    /**
-      * precondition: feature expression and two V references on top of stack
-      * postcondition: V reference on top of stack
-      */
-    def callVCreateChoice(mv: MethodVisitor) =
-        mv.visitMethodInsn(INVOKESTATIC, vclassname, "choice", "(Lde/fosd/typechef/featureexpr/FeatureExpr;Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Ledu/cmu/cs/varex/V;", true)
+  /**
+    * precondition: feature expression and two V references on top of stack
+    * postcondition: V reference on top of stack
+    */
+  def callVCreateChoice(mv: MethodVisitor) =
+    mv.visitMethodInsn(INVOKESTATIC, vclassname, "choice", "(Lde/fosd/typechef/featureexpr/FeatureExpr;Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Ledu/cmu/cs/varex/V;", true)
 
 
-    def liftPrimitiveType(desc: String): String =
-        liftObjectType(primitiveToObjectType(desc))
+  def liftPrimitiveType(desc: String): String =
+    liftObjectType(primitiveToObjectType(desc))
 
 
-    def liftObjectType(s: String) = "Ledu/cmu/cs/varex/V<" + s + ">;"
+  def liftObjectType(s: String) = "Ledu/cmu/cs/varex/V<" + s + ">;"
 
 
-    def primitiveToObjectType(t: String): String = t match {
-        case "Z" => "Ljava/lang/Boolean;"
-        case "C" => "Ljava/lang/Char;"
-        case "B" => "Ljava/lang/Byte;"
-        case "S" => "Ljava/lang/Short;"
-        case "I" => "Ljava/lang/Integer;"
-        case "F" => "Ljava/lang/Float;"
-        case "J" => "Ljava/lang/Long;"
-        case "D" => "Ljava/lang/Double;"
-        case "O" => "Ljava/lang/Object;"
-        case _ => t
-    }
+  def primitiveToObjectType(t: String): String = t match {
+    case "Z" => "Ljava/lang/Boolean;"
+    case "C" => "Ljava/lang/Char;"
+    case "B" => "Ljava/lang/Byte;"
+    case "S" => "Ljava/lang/Short;"
+    case "I" => "Ljava/lang/Integer;"
+    case "F" => "Ljava/lang/Float;"
+    case "J" => "Ljava/lang/Long;"
+    case "D" => "Ljava/lang/Double;"
+    case "O" => "Ljava/lang/Object;"
+    case _ => t
+  }
 
 
-    /**
-      * Helper function to get the method descriptor
-      *
-      * @param strs strs.last is the return type, the rest is parameter list
-      * @return method descriptor according to ASM library standard
-      */
-    def genSign(strs: String*): String =
-        strs.dropRight(1).mkString("(", "", ")") + strs.last
+  /**
+    * Helper function to get the method descriptor
+    *
+    * @param strs strs.last is the return type, the rest is parameter list
+    * @return method descriptor according to ASM library standard
+    */
+  def genSign(strs: String*): String =
+    strs.dropRight(1).mkString("(", "", ")") + strs.last
 
+  def replaceArgsWithObject(desc: String): String =
+    "(" + "Ljava/lang/Object;" * Type.getArgumentTypes(desc).length + ")" + Type.getReturnType(desc)
 
 }

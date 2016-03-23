@@ -85,15 +85,32 @@ class VBCAnalyzer(env: VMethodEnv) {
       queued(insn) = false
       val instr: Instruction = env.instructions(insn)
       val current = new VBCFrame(frames(insn))
-      current.execute(instr, env)
-      if (instr.isJumpInstr) {
-        val j = instr.asInstanceOf[JumpInstruction]
-        val (uncond, cond) = j.getSuccessor()
-        if (cond.isDefined) merge(env.getBlockStart(cond.get), current)
-        if (uncond.isDefined) merge(env.getBlockStart(uncond.get), current) else merge(insn + 1, current)
+      val prev = current.execute(instr, env)
+      if (prev.isDefined) {
+        val idx = env.getInsnIdx(prev.get)
+        env.setInsnToTrue(prev.get)
+        // Put the current instruction back
+        if (!queued(insn)) {
+          queued(insn) = true
+          queue(top) = insn
+          top += 1
+        }
+        if (!queued(idx)) {
+          queued(idx) = true
+          queue(top) = idx
+          top += 1
+        }
       }
-      else if (!instr.isReturnInstr) {
-        merge(insn + 1, current)
+      else {
+        if (instr.isJumpInstr) {
+          val j = instr.asInstanceOf[JumpInstruction]
+          val (uncond, cond) = j.getSuccessor()
+          if (cond.isDefined) merge(env.getBlockStart(cond.get), current)
+          if (uncond.isDefined) merge(env.getBlockStart(uncond.get), current) else merge(insn + 1, current)
+        }
+        else if (!instr.isReturnInstr) {
+          merge(insn + 1, current)
+        }
       }
     }
     Some(frames)
