@@ -170,39 +170,29 @@ class VBCFrame(nLocals: Int) {
         None
       }
       case i: InstrILOAD => {
-        if (env.isArgument(i.variable)) {
-          /* we assume that all arguments are V, so we are loading a V to stack */
-          env.setInsnToTrue(i)
-          push(V_TYPE(), Some(i))
-          None
-        }
-        else {
-          if (isV) {
-            push(V_TYPE(), Some(i))
-            sourceInstrs(env.getVarIdxNoCtx(i.variable))
-          }
-          else {
-            push(values(env.getVarIdxNoCtx(i.variable)), Some(i))
-            None
-          }
-        }
+        env.setInsnToTrue(i)
+        push(V_TYPE(), Some(i))
+        if (values(env.getVarIdxNoCtx(i.variable)) != V_TYPE())
+          sourceInstrs(env.getVarIdxNoCtx(i.variable))
+        else None
       }
       case i: InstrALOAD => {
-        if (env.isArgument(i.variable)) {
-          /* we assume that all arguments are V, so we are loading a V to stack */
-          env.setInsnToTrue(i)
-          push(V_TYPE(), Some(i))
+        /*
+         * This assumes that all local variables other than this parameter to be V.
+         *
+         * In the future, if STORE operations are optimized, this could also be optimized to avoid loading V and
+         * save some instructions.
+         */
+        if (env.isL0(i.variable)) {
+          push(REF_TYPE(), Some(i))
           None
         }
         else {
-          if (isV) {
-            push(V_TYPE(), Some(i))
+          env.setInsnToTrue(i)
+          push(V_TYPE(), Some(i))
+          if (values(env.getVarIdxNoCtx(i.variable)) != V_TYPE())
             sourceInstrs(env.getVarIdxNoCtx(i.variable))
-          }
-          else {
-            push(values(env.getVarIdxNoCtx(i.variable)), Some(i))
-            None
-          }
+          else None
         }
       }
       case i: InstrISTORE => {
@@ -300,73 +290,57 @@ class VBCFrame(nLocals: Int) {
       case i: InstrIFEQ => {
         // For now, no instructions will backtrack to jump instructions
         val (v, prev) = pop()
-        if (v.isInstanceOf[V_TYPE]) env.setInsnToTrue(i)
-        None
+        env.setInsnToTrue(i)
+        if (v != V_TYPE()) prev else None
       }
       case i: InstrIFNE => {
         val (v, prev) = pop()
-        if (v.isInstanceOf[V_TYPE]) env.setInsnToTrue(i)
-        None
+        env.setInsnToTrue(i)
+        if (v != V_TYPE()) prev else None
       }
       case i: InstrIFGE => {
         val (v, prev) = pop()
-        if (v.isInstanceOf[V_TYPE]) env.setInsnToTrue(i)
-        None
+        env.setInsnToTrue(i)
+        if (v != V_TYPE()) prev else None
       }
       case i: InstrIFGT => {
         val (v, prev) = pop()
-        if (v.isInstanceOf[V_TYPE]) env.setInsnToTrue(i)
-        None
+        env.setInsnToTrue(i)
+        if (v != V_TYPE()) prev else None
       }
       case i: InstrIF_ICMPEQ => {
+        env.setInsnToTrue(i)
         val (v1, prev1) = pop()
         val (v2, prev2) = pop()
-        if (v1.isInstanceOf[V_TYPE] || v2.isInstanceOf[V_TYPE]) {
-          env.setInsnToTrue(i)
-          if (!v1.isInstanceOf[V_TYPE]) return prev1
-          if (!v2.isInstanceOf[V_TYPE]) return prev2
-          None
-        }
-        else
-          None
+        if (v1 != V_TYPE()) prev1
+        else if (v2 != V_TYPE()) prev2
+        else None
       }
       case i: InstrIF_ICMPNE => {
+        env.setInsnToTrue(i)
         val (v1, prev1) = pop()
         val (v2, prev2) = pop()
-        if (v1.isInstanceOf[V_TYPE] || v2.isInstanceOf[V_TYPE]) {
-          env.setInsnToTrue(i)
-          if (!v1.isInstanceOf[V_TYPE]) return prev1
-          if (!v2.isInstanceOf[V_TYPE]) return prev2
-          None
-        }
-        else
-          None
+        if (v1 != V_TYPE()) prev1
+        else if (v2 != V_TYPE()) prev2
+        else None
       }
       case i: InstrIF_ICMPLT => {
+        env.setInsnToTrue(i)
         val (v1, prev1) = pop()
         val (v2, prev2) = pop()
-        if (v1.isInstanceOf[V_TYPE] || v2.isInstanceOf[V_TYPE]) {
-          env.setInsnToTrue(i)
-          if (!v1.isInstanceOf[V_TYPE]) return prev1
-          if (!v2.isInstanceOf[V_TYPE]) return prev2
-          None
-        }
-        else
-          None
+        if (v1 != V_TYPE()) prev1
+        else if (v2 != V_TYPE()) prev2
+        else None
       }
       case i: InstrIF_ICMPGE => {
+        env.setInsnToTrue(i)
         val (v1, prev1) = pop()
         val (v2, prev2) = pop()
-        if (v1.isInstanceOf[V_TYPE] || v2.isInstanceOf[V_TYPE]) {
-          env.setInsnToTrue(i)
-          if (!v1.isInstanceOf[V_TYPE]) return prev1
-          if (!v2.isInstanceOf[V_TYPE]) return prev2
-          None
-        }
-        else
-          None
+        if (v1 != V_TYPE()) prev1
+        else if (v2 != V_TYPE()) prev2
+        else None
       }
-      case i: InstrGOTO => None // does not affect locals and stack
+      case i: InstrGOTO => env.setInsnToTrue(i); None // does not affect locals and stack
       case i: InstrIRETURN => {
         // assuming all methods return V
         env.setInsnToTrue(i)
@@ -468,7 +442,10 @@ class VBCFrame(nLocals: Int) {
         None
       }
       case i: InstrINIT_CONDITIONAL_FIELDS => None // does not change stack
-      case i: InstrDBGIPrint => pop(); None
+      case i: InstrDBGIPrint => {
+        val (value, prev) = pop()
+        if (value != V_TYPE()) prev else None
+      }
       case i: InstrLoadConfig => push(V_TYPE(), Some(i)); None
       case i: InstrDBGCtx => None // does not change stack
       case i: TraceInstr_ConfigInit => None // does not change stack

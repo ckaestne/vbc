@@ -89,7 +89,8 @@ class VBCAnalyzer(env: VMethodEnv) {
       if (prev.isDefined) {
         val idx = env.getInsnIdx(prev.get)
         env.setInsnToTrue(prev.get)
-        // Put the current instruction back
+        /* Put the current instruction back because backtracking does not guarantee revisit of this instruction */
+        /* (if at some point merging two frames does not change, it stops scanning) */
         if (!queued(insn)) {
           queued(insn) = true
           queue(top) = insn

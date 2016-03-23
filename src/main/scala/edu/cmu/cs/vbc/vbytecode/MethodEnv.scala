@@ -204,9 +204,9 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
 
   def needsWrapping(i: Instruction): Boolean = needsWrappingInstrs.contains(i)
 
-  def isArgument(variable: Variable): Boolean = {
-    if (method.isStatic()) getVarIdxNoCtx(variable) < parameterCount
-    else 0 < getVarIdxNoCtx(variable) && getVarIdxNoCtx(variable) < parameterCount
+  def isL0(variable: Variable): Boolean = {
+    if (method.isStatic()) false
+    else getVarIdxNoCtx(variable) == 0
   }
 
   ////////// Unbalanced Stack //////////
