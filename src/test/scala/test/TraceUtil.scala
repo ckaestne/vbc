@@ -93,7 +93,10 @@ case class TraceInstr_ConfigInit() extends Instruction {
             mv.visitVarInsn(ALOAD, 0)
             mv.visitLdcInsn(conditionalField.name)
             mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TraceConfig", "getConfig", "(Ljava/lang/String;)Z", false)
-            mv.visitFieldInsn(PUTFIELD, env.clazz.name, conditionalField.name, "Z")
+            if (conditionalField.isStatic)
+                mv.visitFieldInsn(PUTSTATIC, env.clazz.name, conditionalField.name, "Z")
+            else
+                mv.visitFieldInsn(PUTFIELD, env.clazz.name, conditionalField.name, "Z")
         }
     }
 
@@ -103,7 +106,10 @@ case class TraceInstr_ConfigInit() extends Instruction {
             mv.visitVarInsn(ALOAD, 0)
             mv.visitLdcInsn(conditionalField.name)
             mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TraceConfig", "getVConfig", "(Ljava/lang/String;)Ledu/cmu/cs/varex/V;", false)
-            mv.visitFieldInsn(PUTFIELD, env.clazz.name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
+            if (conditionalField.isStatic)
+                mv.visitFieldInsn(PUTSTATIC, env.clazz.name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
+            else
+                mv.visitFieldInsn(PUTFIELD, env.clazz.name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
         }
     }
 }

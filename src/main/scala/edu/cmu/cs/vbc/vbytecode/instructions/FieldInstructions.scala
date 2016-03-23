@@ -123,8 +123,12 @@ case class InstrGETSTATIC(owner: String, name: String, desc: String) extends Fie
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    //TODO: work for println, but what if we are getting conditional?
-    mv.visitFieldInsn(GETSTATIC, owner, name, desc)
+    if (env.shouldLiftInstr(this)) {
+      mv.visitFieldInsn(GETSTATIC, owner, name, "Ledu/cmu/cs/varex/V;")
+    }
+    else {
+      mv.visitFieldInsn(GETSTATIC, owner, name, desc)
+    }
   }
 }
 
@@ -142,7 +146,10 @@ case class InstrPUTSTATIC(owner: String, name: String, desc: String) extends Fie
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     //TODO: work for println, but what if we are getting conditional?
-    mv.visitFieldInsn(PUTSTATIC, owner, name, desc)
+    if (env.shouldLiftInstr(this))
+      mv.visitFieldInsn(PUTSTATIC, owner, name, "Ledu/cmu/cs/varex/V;")
+    else
+      mv.visitFieldInsn(PUTSTATIC, owner, name, desc)
   }
 }
 

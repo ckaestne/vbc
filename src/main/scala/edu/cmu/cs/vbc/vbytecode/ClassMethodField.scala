@@ -189,6 +189,8 @@ case class VBCFieldNode(
     def hasConditionalAnnotation() =
         (visibleAnnotations ++ invisibleAnnotations).exists(_.desc == "Ledu/cmu/cs/varex/annotation/VConditional;")
 
+    def isStatic: Boolean = (access & ACC_STATIC) != 0
+
 
     private def commonToByteCode(fv: FieldVisitor): Unit = {
         visibleAnnotations.foreach(a => a.accept(fv.visitAnnotation(a.desc, true)))

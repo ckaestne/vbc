@@ -139,6 +139,12 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   // by default all elements are false
   def getBlockIdx(b: Block) = blocks.indexWhere(_ eq b)
 
+  /**
+    * For each instruction, mark whether or not we need to lift it
+    *
+    * However, lifting means differently for different kinds of instructions. For example, for GETFIELD and PUTFIELD,
+    * lifting means operating on V objects, thus we need invokedynamic.
+    */
   val instructionTags = new Array[Boolean](instructions.length)
 
   // by default all elements are false

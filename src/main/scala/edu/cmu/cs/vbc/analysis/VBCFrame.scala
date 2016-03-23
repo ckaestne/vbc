@@ -355,20 +355,31 @@ class VBCFrame(nLocals: Int) {
       }
       case i: InstrRETURN => None // do nothing
       case i: InstrGETSTATIC => {
-        if (LiftingFilter.shouldLiftField(i.owner, i.name, i.desc))
+        /*
+         * We assume that all fields are V
+         */
+        if (LiftingFilter.shouldLiftField(i.owner, i.name, i.desc)) {
           push(V_TYPE(), Some(i))
+          env.setInsnToTrue(i)
+        }
         else
           push(VBCValue.newValue(Type.getType(i.desc)), Some(i))
         None
       }
       case i: InstrPUTSTATIC => {
         val (v, prev) = pop()
+        env.setInsnToTrue(i)
         // Assuming all static fields are of V type
         if (v != V_TYPE()) return prev
         None
       }
       case i: InstrGETFIELD => {
         val (v, prev) = pop()
+        /*
+         * Lifting PUTFIELD or not depends solely on the object on stack.
+         * By default VBCAnalyzer would set this instruction to true if backtracked, so here
+         * we need to check the object again and avoid that
+         */
         if (v == V_TYPE()) env.setInsnToTrue(i) else env.setInsnToFalse(i) // lifting GETFIELD or not depends on L0
         push(V_TYPE(), Some(i))
         None
@@ -377,6 +388,11 @@ class VBCFrame(nLocals: Int) {
         val (value, prev1) = pop()
         val (ref, prev2) = pop()
         if (value != V_TYPE()) return prev1
+        /*
+         * Lifting PUTFIELD or not depends solely on the object on stack.
+         * By default VBCAnalyzer would set this instruction to true if backtracked, so here
+         * we need to check the object again and avoid that
+         */
         if (ref == V_TYPE()) env.setInsnToTrue(i) else env.setInsnToFalse(i)
         None
       }
@@ -387,6 +403,11 @@ class VBCFrame(nLocals: Int) {
           if (shouldLift && vj != V_TYPE()) return prevj
         }
         val (ref, prev) = pop() // L0
+        /*
+         * Lifting PUTFIELD or not depends solely on the object on stack.
+         * By default VBCAnalyzer would set this instruction to true if backtracked, so here
+         * we need to check the object again and avoid that
+         */
         if (ref == V_TYPE()) env.setInsnToTrue(i) else env.setInsnToFalse(i)
         if (Type.getReturnType(i.desc) != Type.VOID_TYPE) {
           if (shouldLift)
@@ -402,8 +423,9 @@ class VBCFrame(nLocals: Int) {
           val (vj, prevj) = pop()
           if (shouldLift && vj != V_TYPE()) return prevj
         }
-        if (Type.getReturnType(i.desc) != Type.VOID_TYPE)
+        if (Type.getReturnType(i.desc) != Type.VOID_TYPE) {
           push(V_TYPE(), Some(i))
+        }
         None
       }
       case i: InstrINVOKESPECIAL => {
@@ -413,6 +435,11 @@ class VBCFrame(nLocals: Int) {
           if (shouldLift && vj != V_TYPE()) return prevj
         }
         val (ref, prev) = pop() // L0
+        /*
+         * Lifting PUTFIELD or not depends solely on the object on stack.
+         * By default VBCAnalyzer would set this instruction to true if backtracked, so here
+         * we need to check the object again and avoid that
+         */
         if (ref == V_TYPE()) env.setInsnToTrue(i) else env.setInsnToFalse(i)
         // Special handling for <init>:
         // Whenever we see a V_REF_TYPE reference, we know that the initialized object would be consumed later as

@@ -79,7 +79,10 @@ case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
             mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
             callVCreateOne(mv)
             callVCreateChoice(mv)
-            mv.visitFieldInsn(PUTFIELD, env.clazz.name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
+            if (conditionalField.isStatic)
+                mv.visitFieldInsn(PUTSTATIC, env.clazz.name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
+            else
+                mv.visitFieldInsn(PUTFIELD, env.clazz.name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
         }
     }
 }

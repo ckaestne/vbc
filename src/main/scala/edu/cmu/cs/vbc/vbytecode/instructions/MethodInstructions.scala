@@ -187,24 +187,17 @@ case class InstrINVOKESTATIC(owner: String, name: String, desc: String, itf: Boo
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    //TODO: better filtering
-    if (isValueOf)
-      return
-    if (owner.startsWith("java/")) {
+    if (env.shouldLiftInstr(this)) {
+      loadFExpr(mv, env, env.getBlockVar(block))
+      mv.visitMethodInsn(INVOKESTATIC, owner, name, liftMethodDescription(desc), itf)
+      if (Type.getReturnType(desc) != Type.VOID_TYPE) {
+        callVCreateOne(mv)
+      }
+    }
+    else {
       mv.visitMethodInsn(INVOKESTATIC, owner, name, desc, itf)
     }
 
-    loadFExpr(mv, env, env.getBlockVar(block))
-    mv.visitMethodInsn(INVOKESTATIC, owner, name, liftMethodDescription(desc), itf)
   }
 
-  /**
-    * Every time we do a ICONST_N, we automatically wrap it with Integer and then a One,
-    * so there is no need to invoke valueOf again.
-    *
-    * @todo same for Long, Short, Float, Double, Byte, etc.
-    */
-  def isValueOf = {
-    owner == "java/lang/Integer" && name == "valueOf" && desc == "(I)Ljava/lang/Integer;"
-  }
 }
