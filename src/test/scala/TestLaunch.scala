@@ -27,7 +27,7 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
         testMain("edu.cmu.cs.vbc.prog.UnbalancedStackExample")
     }
 
-    ignore("bankaccount") {
+    test("bankaccount") {
         testMain("edu.cmu.cs.vbc.prog.bankaccount.Main")
     }
 

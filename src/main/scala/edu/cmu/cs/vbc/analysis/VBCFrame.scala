@@ -170,7 +170,7 @@ class VBCFrame(nLocals: Int) {
         None
       }
       case i: InstrILOAD => {
-        env.setInsnToTrue(i)
+        env.setLift(i)
         push(V_TYPE(), Some(i))
         if (values(env.getVarIdxNoCtx(i.variable)) != V_TYPE())
           sourceInstrs(env.getVarIdxNoCtx(i.variable))
@@ -188,7 +188,7 @@ class VBCFrame(nLocals: Int) {
           None
         }
         else {
-          env.setInsnToTrue(i)
+          env.setLift(i)
           push(V_TYPE(), Some(i))
           if (values(env.getVarIdxNoCtx(i.variable)) != V_TYPE())
             sourceInstrs(env.getVarIdxNoCtx(i.variable))
@@ -199,7 +199,7 @@ class VBCFrame(nLocals: Int) {
         // Now we assume all blocks are executed under some ctx other than method ctx,
         // meaning that all local variables should be a V, and so all ISTORE instructions
         // should be lifted
-        env.setInsnToTrue(i)
+        env.setLift(i)
         val (value, prev) = pop()
         if (value == V_TYPE()) {
           setLocal(env.getVarIdxNoCtx(i.variable), V_TYPE(), Some(i)) //TODO: float and double
@@ -211,7 +211,7 @@ class VBCFrame(nLocals: Int) {
       }
       case i: InstrASTORE => {
         // The same as ISTORE
-        env.setInsnToTrue(i)
+        env.setLift(i)
         val (value, prev) = pop()
         if (value == V_TYPE()) {
           setLocal(env.getVarIdxNoCtx(i.variable), V_TYPE(), Some(i)) //TODO: float and double
@@ -283,33 +283,33 @@ class VBCFrame(nLocals: Int) {
         // Now we assume all blocks are executed under some ctx other than method ctx,
         // meaning that all local variables should be a V, and so IINC instructions
         // should be lifted
-        env.setInsnToTrue(i)
+        env.setLift(i)
         setLocal(env.getVarIdxNoCtx(i.variable), V_TYPE(), Some(i))
         None
       }
       case i: InstrIFEQ => {
         // For now, no instructions will backtrack to jump instructions
         val (v, prev) = pop()
-        env.setInsnToTrue(i)
+        env.setLift(i)
         if (v != V_TYPE()) prev else None
       }
       case i: InstrIFNE => {
         val (v, prev) = pop()
-        env.setInsnToTrue(i)
+        env.setLift(i)
         if (v != V_TYPE()) prev else None
       }
       case i: InstrIFGE => {
         val (v, prev) = pop()
-        env.setInsnToTrue(i)
+        env.setLift(i)
         if (v != V_TYPE()) prev else None
       }
       case i: InstrIFGT => {
         val (v, prev) = pop()
-        env.setInsnToTrue(i)
+        env.setLift(i)
         if (v != V_TYPE()) prev else None
       }
       case i: InstrIF_ICMPEQ => {
-        env.setInsnToTrue(i)
+        env.setLift(i)
         val (v1, prev1) = pop()
         val (v2, prev2) = pop()
         if (v1 != V_TYPE()) prev1
@@ -317,7 +317,7 @@ class VBCFrame(nLocals: Int) {
         else None
       }
       case i: InstrIF_ICMPNE => {
-        env.setInsnToTrue(i)
+        env.setLift(i)
         val (v1, prev1) = pop()
         val (v2, prev2) = pop()
         if (v1 != V_TYPE()) prev1
@@ -325,7 +325,7 @@ class VBCFrame(nLocals: Int) {
         else None
       }
       case i: InstrIF_ICMPLT => {
-        env.setInsnToTrue(i)
+        env.setLift(i)
         val (v1, prev1) = pop()
         val (v2, prev2) = pop()
         if (v1 != V_TYPE()) prev1
@@ -333,23 +333,23 @@ class VBCFrame(nLocals: Int) {
         else None
       }
       case i: InstrIF_ICMPGE => {
-        env.setInsnToTrue(i)
+        env.setLift(i)
         val (v1, prev1) = pop()
         val (v2, prev2) = pop()
         if (v1 != V_TYPE()) prev1
         else if (v2 != V_TYPE()) prev2
         else None
       }
-      case i: InstrGOTO => env.setInsnToTrue(i); None // does not affect locals and stack
+      case i: InstrGOTO => env.setLift(i); None // does not affect locals and stack
       case i: InstrIRETURN => {
         // assuming all methods return V
-        env.setInsnToTrue(i)
+        env.setLift(i)
         val (v, prev) = pop()
         if (v != V_TYPE()) return prev else None
       }
       case i: InstrARETURN => {
         // assuming all methods return V
-        env.setInsnToTrue(i)
+        env.setLift(i)
         val (v, prev) = pop()
         if (v != V_TYPE()) return prev else None
       }
@@ -360,7 +360,7 @@ class VBCFrame(nLocals: Int) {
          */
         if (LiftingFilter.shouldLiftField(i.owner, i.name, i.desc)) {
           push(V_TYPE(), Some(i))
-          env.setInsnToTrue(i)
+          env.setLift(i)
         }
         else
           push(VBCValue.newValue(Type.getType(i.desc)), Some(i))
@@ -368,7 +368,7 @@ class VBCFrame(nLocals: Int) {
       }
       case i: InstrPUTSTATIC => {
         val (v, prev) = pop()
-        env.setInsnToTrue(i)
+        env.setLift(i)
         // Assuming all static fields are of V type
         if (v != V_TYPE()) return prev
         None
@@ -380,7 +380,7 @@ class VBCFrame(nLocals: Int) {
          * By default VBCAnalyzer would set this instruction to true if backtracked, so here
          * we need to check the object again and avoid that
          */
-        if (v == V_TYPE()) env.setInsnToTrue(i) else env.setInsnToFalse(i) // lifting GETFIELD or not depends on L0
+        if (v == V_TYPE()) env.setLift(i) else env.unsetLift(i) // lifting GETFIELD or not depends on L0
         push(V_TYPE(), Some(i))
         None
       }
@@ -393,24 +393,31 @@ class VBCFrame(nLocals: Int) {
          * By default VBCAnalyzer would set this instruction to true if backtracked, so here
          * we need to check the object again and avoid that
          */
-        if (ref == V_TYPE()) env.setInsnToTrue(i) else env.setInsnToFalse(i)
+        if (ref == V_TYPE()) env.setLift(i) else env.unsetLift(i)
         None
       }
       case i: InstrINVOKEVIRTUAL => {
-        val shouldLift = LiftingFilter.shouldLiftMethod(i.owner, i.name, i.desc)
+        var argSet: Set[(VBCValue, Option[Instruction])] = Set()
         for (j <- Type.getArgumentTypes(i.desc).indices) {
-          val (vj, prevj) = pop()
-          if (shouldLift && vj != V_TYPE()) return prevj
+          argSet += pop()
         }
         val (ref, prev) = pop() // L0
+
+        val shouldLift = LiftingFilter.shouldLiftMethod(i.owner, i.name, i.desc)
+        val hasVArgs = argSet.exists(_._1 == V_TYPE())
+        if (hasVArgs) env.setTag(i, env.TAG_HAS_VARG)
         /*
-         * Lifting PUTFIELD or not depends solely on the object on stack.
-         * By default VBCAnalyzer would set this instruction to true if backtracked, so here
-         * we need to check the object again and avoid that
+         * If has at least one V argument or we should lift this method, ensure that all
+         * arguments are Vs.
          */
-        if (ref == V_TYPE()) env.setInsnToTrue(i) else env.setInsnToFalse(i)
+        if (hasVArgs || shouldLift)
+          for ((vi, previ) <- argSet if vi != V_TYPE()) return previ
+        if (ref == V_TYPE()) env.setLift(i)
         if (Type.getReturnType(i.desc) != Type.VOID_TYPE) {
-          if (shouldLift)
+          if (env.shouldLiftInstr(i)) env.setTag(i, env.TAG_NEED_V_RETURN)
+          if (env.getTag(i, env.TAG_NEED_V_RETURN))
+            push(V_TYPE(), Some(i))
+          else if (shouldLift || (hasVArgs && !shouldLift))
             push(V_TYPE(), Some(i))
           else
             push(VBCValue.newValue(Type.getReturnType(i.desc)), Some(i))
@@ -418,34 +425,46 @@ class VBCFrame(nLocals: Int) {
         None
       }
       case i: InstrINVOKESTATIC => {
-        val shouldLift = LiftingFilter.shouldLiftMethod(i.owner, i.name, i.desc)
+        var argSet: Set[(VBCValue, Option[Instruction])] = Set()
         for (j <- Type.getArgumentTypes(i.desc).indices) {
-          val (vj, prevj) = pop()
-          if (shouldLift && vj != V_TYPE()) return prevj
+          argSet += pop()
         }
+
+        val shouldLift = LiftingFilter.shouldLiftMethod(i.owner, i.name, i.desc)
+        val hasVArgs = argSet.exists(_._1 == V_TYPE())
+        if (hasVArgs) env.setTag(i, env.TAG_HAS_VARG)
+        if (hasVArgs || shouldLift)
+          for ((vi, previ) <- argSet if vi != V_TYPE()) return previ
+
         if (Type.getReturnType(i.desc) != Type.VOID_TYPE) {
-          push(V_TYPE(), Some(i))
+          //          if (hasVArgs && !shouldLift) env.setTag(i, env.TAG_NEED_V_RETURN)
+          if (env.getTag(i, env.TAG_NEED_V_RETURN))
+            push(V_TYPE(), Some(i))
+          else if (shouldLift || (hasVArgs && !shouldLift))
+            push(V_TYPE(), Some(i))
+          else
+            push(VBCValue.newValue(Type.getReturnType(i.desc)), Some(i))
         }
         None
       }
       case i: InstrINVOKESPECIAL => {
-        val shouldLift = LiftingFilter.shouldLiftMethod(i.owner, i.name, i.desc)
+        var argSet: Set[(VBCValue, Option[Instruction])] = Set()
         for (j <- Type.getArgumentTypes(i.desc).indices) {
-          val (vj, prevj) = pop()
-          if (shouldLift && vj != V_TYPE()) return prevj
+          argSet += pop()
         }
         val (ref, prev) = pop() // L0
-        /*
-         * Lifting PUTFIELD or not depends solely on the object on stack.
-         * By default VBCAnalyzer would set this instruction to true if backtracked, so here
-         * we need to check the object again and avoid that
-         */
-        if (ref == V_TYPE()) env.setInsnToTrue(i) else env.setInsnToFalse(i)
+
+        val shouldLift = LiftingFilter.shouldLiftMethod(i.owner, i.name, i.desc)
+        val hasVArgs = argSet.exists(_._1 == V_TYPE())
+        if (hasVArgs) env.setTag(i, env.TAG_HAS_VARG)
+        if (hasVArgs || shouldLift)
+          for ((vi, previ) <- argSet if vi != V_TYPE()) return previ
+        if (ref == V_TYPE()) env.setLift(i)
         // Special handling for <init>:
         // Whenever we see a V_REF_TYPE reference, we know that the initialized object would be consumed later as
         // method arguments or field values, so we scan the stack and wrap it into a V
         if (ref.isInstanceOf[V_REF_TYPE] && i.name == "<init>") {
-          env.addToWrappingInstrs(i)
+          env.setTag(i, env.TAG_WRAP_DUPLICATE)
           // we only expect one duplicate on stack, otherwise calling one createOne is not enough
           assert(values(nLocals + top - 1) == ref, "No duplicate UNINITIALIZED value on stack")
           val exists = values.drop(nLocals).take(top - 1).contains(ref)
@@ -454,7 +473,10 @@ class VBCFrame(nLocals: Int) {
           push(V_TYPE(), prev2)
         }
         if (Type.getReturnType(i.desc) != Type.VOID_TYPE) {
-          if (shouldLift)
+          if (env.shouldLiftInstr(i)) env.setTag(i, env.TAG_NEED_V_RETURN)
+          if (env.getTag(i, env.TAG_NEED_V_RETURN))
+            push(V_TYPE(), Some(i))
+          else if (shouldLift || (hasVArgs && !shouldLift))
             push(V_TYPE(), Some(i))
           else
             push(VBCValue.newValue(Type.getReturnType(i.desc)), Some(i))

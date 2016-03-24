@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.analysis
 
-import edu.cmu.cs.vbc.vbytecode.instructions.{Instruction, JumpInstruction}
+import edu.cmu.cs.vbc.vbytecode.instructions.{Instruction, JumpInstruction, MethodInstruction}
 import edu.cmu.cs.vbc.vbytecode.{VBCMethodNode, VMethodEnv}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.Type
@@ -88,7 +88,11 @@ class VBCAnalyzer(env: VMethodEnv) {
       val prev = current.execute(instr, env)
       if (prev.isDefined) {
         val idx = env.getInsnIdx(prev.get)
-        env.setInsnToTrue(prev.get)
+        //TODO: this is inconvenient, change to dynamic dispatch and have backtracked() method for each instruction
+        if (prev.get.isInstanceOf[MethodInstruction])
+          env.setTag(prev.get, env.TAG_NEED_V_RETURN)
+        else
+          env.setLift(prev.get)
         /* Put the current instruction back because backtracking does not guarantee revisit of this instruction */
         /* (if at some point merging two frames does not change, it stops scanning) */
         if (!queued(insn)) {

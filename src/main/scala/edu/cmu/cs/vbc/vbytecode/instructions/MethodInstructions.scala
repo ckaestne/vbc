@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
+import edu.cmu.cs.vbc.model.LiftCall._
 import edu.cmu.cs.vbc.utils.LiftingFilter
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
@@ -59,10 +60,16 @@ trait MethodInstruction extends Instruction {
       mv.visitVarInsn(ALOAD, nArg + 1) // load obj
       for (i <- 0 until nArg) mv.visitVarInsn(ALOAD, i) // load arguments
       mv.visitVarInsn(ALOAD, nArg) // load ctx
-      if (isSpecial)
-        mv.visitMethodInsn(INVOKESPECIAL, owner, name, liftMethodDescription(desc), false)
-      else
-        mv.visitMethodInsn(INVOKEVIRTUAL, owner, name, liftMethodDescription(desc), false)
+      val (invokeStatic, nOwner, nName, nDesc) = liftCall(true, owner, name, desc, false)
+      if (invokeStatic) {
+        mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, true)
+      }
+      else {
+        if (isSpecial)
+          mv.visitMethodInsn(INVOKESPECIAL, nOwner, nName, nDesc, itf)
+        else
+          mv.visitMethodInsn(INVOKEVIRTUAL, nOwner, nName, nDesc, itf)
+      }
       if (isReturnVoid) {
         mv.visitInsn(ACONST_NULL) // this is because flatMap requires some return values
         mv.visitInsn(ARETURN)
@@ -104,15 +111,20 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
       invokeDynamic(owner, name, desc, itf, mv, env, block, true)
     }
     else {
-      if (!LiftingFilter.shouldLiftMethod(owner, name, desc)) {
-        // TODO: replacing arguments with object types is not enough
-        mv.visitMethodInsn(INVOKESPECIAL, owner, name, replaceArgsWithObject(desc), itf)
-      }
-      else {
+      val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
+      val shouldLiftMethod = LiftingFilter.shouldLiftMethod(owner, name, desc)
+      if (hasVArgs || shouldLiftMethod) {
         if (env.isMain) pushConstantTRUE(mv) else loadFExpr(mv, env, env.getBlockVar(block))
-        mv.visitMethodInsn(INVOKESPECIAL, owner, name, liftMethodDescription(desc), itf)
-        if (env.needsWrapping(this)) callVCreateOne(mv)
       }
+
+      val (invokeStatic, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false)
+      if (invokeStatic)
+        mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, true)
+      else
+        mv.visitMethodInsn(INVOKESPECIAL, nOwner, nName, nDesc, itf)
+
+      if (env.getTag(this, env.TAG_WRAP_DUPLICATE)) callVCreateOne(mv)
+      if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv)
     }
   }
 
@@ -141,8 +153,8 @@ case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Bo
 
 
   /**
-    * Generate variability-aware method invocation. For method invocations, we always expect that arguments are V (this
-    * limitation could be relaxed later with more optimization). Thus, method descriptors always need to be lifted.
+    * Generate variability-aware method invocation.
+    *
     * Should lift or not depends on the object reference on stack. If the object reference (on which method is going to
     * invoke on) is not a V, we generate INVOKEVIRTUAL as it is. But if it is a V, we need INVOKEDYNAMIC to invoke
     * methods on all the objects in V.
@@ -161,13 +173,19 @@ case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Bo
       invokeDynamic(owner, name, desc, itf, mv, env, block, false)
     }
     else {
-      if (!LiftingFilter.shouldLiftMethod(owner, name, desc)) {
-        mv.visitMethodInsn(INVOKEVIRTUAL, owner, name, replaceArgsWithObject(desc), itf)
-      }
-      else {
+      val shouldLiftMethod = LiftingFilter.shouldLiftMethod(owner, name, desc)
+      val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
+      if (hasVArgs || shouldLiftMethod) {
         if (env.isMain) pushConstantTRUE(mv) else loadFExpr(mv, env, env.getBlockVar(block))
-        mv.visitMethodInsn(INVOKEVIRTUAL, owner, name, liftMethodDescription(desc), itf)
       }
+
+      val (invokeStatic, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false)
+      if (invokeStatic)
+        mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, true)
+      else
+        mv.visitMethodInsn(INVOKEVIRTUAL, nOwner, nName, nDesc, itf)
+
+      if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv)
     }
   }
 }
@@ -181,23 +199,20 @@ case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Bo
   * @param desc
   * @param itf
   */
-case class InstrINVOKESTATIC(owner: String, name: String, desc: String, itf: Boolean) extends Instruction {
+case class InstrINVOKESTATIC(owner: String, name: String, desc: String, itf: Boolean) extends MethodInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitMethodInsn(INVOKESTATIC, owner, name, desc, itf)
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)) {
-      loadFExpr(mv, env, env.getBlockVar(block))
-      mv.visitMethodInsn(INVOKESTATIC, owner, name, liftMethodDescription(desc), itf)
-      if (Type.getReturnType(desc) != Type.VOID_TYPE) {
-        callVCreateOne(mv)
-      }
-    }
-    else {
-      mv.visitMethodInsn(INVOKESTATIC, owner, name, desc, itf)
-    }
+    val shouldLiftMethod = LiftingFilter.shouldLiftMethod(owner, name, desc)
+    val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
+    if (hasVArgs || shouldLiftMethod) loadFExpr(mv, env, env.getBlockVar(block))
 
+    val (invokeStatic, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, true)
+    mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, itf)
+
+    if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv)
   }
 
 }

@@ -1,7 +1,6 @@
 package edu.cmu.cs.vbc.prog;
 
 import edu.cmu.cs.varex.annotation.VConditional;
-import edu.cmu.cs.vbc.model.VInteger;
 
 /**
  * Toy example for method invocation.
@@ -14,17 +13,17 @@ public class InvokeExample {
 
     @VConditional boolean A = false;
 
-    VInteger a;
+    Integer a;
 
     /**
      * Initialize field a depending on Conditional A
      */
     public InvokeExample() {
         if (A) {
-            a = new VInteger(1);
+            a = new Integer(1);
         }
         else {
-            a = new VInteger(3);
+            a = new Integer(3);
         }
     }
 
@@ -34,7 +33,7 @@ public class InvokeExample {
      * @return Choice<A, -1, 1>
      */
     public Integer simpleInvoke() {
-        VInteger b = new VInteger(2);
+        Integer b = new Integer(2);
         return a.compareTo(b);
     }
 

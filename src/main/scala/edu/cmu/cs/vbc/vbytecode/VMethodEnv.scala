@@ -2,7 +2,7 @@ package edu.cmu.cs.vbc.vbytecode
 
 import edu.cmu.cs.vbc.analysis.VBCAnalyzer
 import edu.cmu.cs.vbc.utils.Statistics
-import edu.cmu.cs.vbc.vbytecode.instructions.{InstrINVOKESPECIAL, Instruction}
+import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
 
 /**
   * Environment used during generation of the byte code and variational
@@ -28,15 +28,52 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   /**
     * For each instruction, mark whether or not we need to lift it
     *
-    * However, lifting means differently for different kinds of instructions. For example, for GETFIELD and PUTFIELD,
-    * lifting means operating on V objects, thus we need invokedynamic.
+    * However, different instructions have different needs for tags. For example, for GETFIELD,
+    * since we assume that all fields are Vs, the only concern is whether GETFIELD is performed on
+    * a V. But for INVOKESPECIAL, we need more information, such as whether or not wrapping
+    * method return value into a V, whether current method is invoked on a V, etc.
+    *
+    * Using an Int to represent instruction tag, we could have 32 different tags.
     */
-  val instructionTags = new Array[Boolean](instructions.length)
+  val instructionTags = new Array[Int](instructions.length)
+  /**
+    * Lift or not lift? Lifting means differently for different instructions.
+    */
+  val TAG_LIFT = 1
+  /**
+    * Method instructions only, whether we are having V arguments
+    *
+    * For some library methods that could not be lifted (e.g. java/lang/xxx), we try to invoke methods
+    * with non-V arguments. But there might be cases where having V arguments is unavoidable (e.g. print
+    * the value stored in local variable). For those cases, we use this tag to switch to model classes.
+    */
+  val TAG_HAS_VARG = 2
+  /**
+    * Method instructions only, whether we need to wrap return value into a V.
+    *
+    * We could always wrap all the return values into Vs, but that is not efficient and hard to debug from
+    * reading bytecode.
+    */
+  val TAG_NEED_V_RETURN = 4
+  /**
+    * INVOKESPECIAL only. Handle special case like NEW DUP INVOKESPECIAL sequence.
+    */
+  val TAG_WRAP_DUPLICATE = 8
+
+  def setTag(instr: Instruction, tag: Int): Unit = {
+    assert(tag == TAG_LIFT || tag == TAG_HAS_VARG || tag == TAG_NEED_V_RETURN || tag == TAG_WRAP_DUPLICATE)
+    instructionTags(getInsnIdx(instr)) |= tag
+  }
+
+  def getTag(instr: Instruction, tag: Int): Boolean = {
+    assert(tag == TAG_LIFT || tag == TAG_HAS_VARG || tag == TAG_NEED_V_RETURN || tag == TAG_WRAP_DUPLICATE)
+    (instructionTags(getInsnIdx(instr)) & tag) != 0
+  }
 
   // by default all elements are false
   def getInsnIdx(instr: Instruction) = instructions.indexWhere(_ eq instr)
 
-  def shouldLiftInstr(instr: Instruction) = instructionTags(getInsnIdx(instr))
+  def shouldLiftInstr(instr: Instruction): Boolean = (instructionTags(getInsnIdx(instr)) & TAG_LIFT) != 0
 
   def getOrderedSuccessorsIndexes(b: Block): List[Int] = {
     var idxSet = Set[Int]()
@@ -67,34 +104,18 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
     l1.find(l2.contains(_)).get
   }
 
-  def setChainToTrue(chain: List[Instruction]): Unit = {
-    for (i <- chain) instructionTags(getInsnIdx(i)) = true
+  def setLift(instr: Instruction): Unit = {
+    instructionTags(getInsnIdx(instr)) |= TAG_LIFT
   }
 
-  def setInsnToTrue(instr: Instruction): Unit = {
-    instructionTags(getInsnIdx(instr)) = true
-  }
-
-  def setInsnToFalse(instr: Instruction): Unit = {
-    instructionTags(getInsnIdx(instr)) = false
+  def unsetLift(instr: Instruction): Unit = {
+    if (getTag(instr, TAG_LIFT)) instructionTags(getInsnIdx(instr)) -= TAG_LIFT
   }
 
   def isBlockUnderCtx(i: Instruction): Boolean = {
     val blockIdx = blocks.indexWhere((bb) => bb.instr.exists((insn) => insn eq i))
     blockTags(blockIdx)
   }
-
-  /**
-    * Special hacking for cases like NEW DUP INVOKESPECIAL sequence, where careful wrapping is required
-    */
-  var needsWrappingInstrs: Set[Instruction] = Set()
-
-  def addToWrappingInstrs(i: Instruction) = {
-    assert(i.isInstanceOf[InstrINVOKESPECIAL], "Not an INVOKESPECIAL instruction: " + i)
-    needsWrappingInstrs += i
-  }
-
-  def needsWrapping(i: Instruction): Boolean = needsWrappingInstrs.contains(i)
 
   def isL0(variable: Variable): Boolean = {
     if (method.isStatic()) false
@@ -199,6 +220,6 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   //////////////////////////////////////////////////
   // Statistics
   //////////////////////////////////////////////////
-  Statistics.collectLiftingRatio(method.name, instructionTags.count(_ == true), instructionTags.length)
+  Statistics.collectLiftingRatio(method.name, instructionTags.count(_ != 0), instructionTags.length)
 
 }
