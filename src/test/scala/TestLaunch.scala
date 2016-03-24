@@ -31,4 +31,8 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
         testMain("edu.cmu.cs.vbc.prog.bankaccount.Main")
     }
 
+    test("static fields") {
+        testMain("edu.cmu.cs.vbc.prog.StaticFieldsExample")
+    }
+
 }

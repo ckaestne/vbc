@@ -108,9 +108,34 @@ case class VBCClassNode(
         //if the class has a main method, create also an unlifted main method
         if (methods.exists(_.isMain))
             createUnliftedMain(cv)
+        // create <clinit> method
+        if (hasStaticConditionalFields) createCLINIT(cv)
         // Write lambda methods
         lambdaMethods.foreach(_ (cv))
         cv.visitEnd()
+    }
+
+    def hasStaticConditionalFields = fields.exists(_.isStatic)
+
+    def createCLINIT(cv: ClassVisitor) = {
+        val mv = cv.visitMethod(ACC_STATIC, "<clinit>", "()V", null, Array.empty)
+        mv.visitCode()
+        for (conditionalField <- fields
+             if conditionalField.hasConditionalAnnotation; if conditionalField.isStatic) {
+            mv.visitLdcInsn(conditionalField.name)
+            mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "createDefinedExternal", "(Ljava/lang/String;)Lde/fosd/typechef/featureexpr/SingleFeatureExpr;", false)
+            mv.visitInsn(ICONST_1)
+            mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
+            callVCreateOne(mv)
+            mv.visitInsn(ICONST_0)
+            mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
+            callVCreateOne(mv)
+            callVCreateChoice(mv)
+            mv.visitFieldInsn(PUTSTATIC, name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
+        }
+        mv.visitInsn(RETURN)
+        mv.visitMaxs(10, 10)
+        mv.visitEnd()
     }
 
     /**

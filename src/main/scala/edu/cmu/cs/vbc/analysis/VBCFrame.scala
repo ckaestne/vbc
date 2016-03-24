@@ -15,7 +15,7 @@ class VBCFrame(nLocals: Int) {
   /**
     * Store values of local variables and stack elements
     */
-  val values: Array[VBCValue] = new Array(nLocals * 10) // this is just an approximation
+  val values: Array[VBCValue] = new Array(nLocals * 10 + 10) // this is just an approximation
 
   /**
     * If value is updated, also store the previous instructions that update this value

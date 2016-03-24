@@ -68,7 +68,7 @@ case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
 
     override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
         for (conditionalField <- env.clazz.fields
-             if conditionalField.hasConditionalAnnotation) {
+             if conditionalField.hasConditionalAnnotation; if !conditionalField.isStatic) {
             mv.visitVarInsn(ALOAD, 0)
             mv.visitLdcInsn(conditionalField.name)
             mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "createDefinedExternal", "(Ljava/lang/String;)Lde/fosd/typechef/featureexpr/SingleFeatureExpr;", false)
@@ -79,10 +79,7 @@ case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
             mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
             callVCreateOne(mv)
             callVCreateChoice(mv)
-            if (conditionalField.isStatic)
-                mv.visitFieldInsn(PUTSTATIC, env.clazz.name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
-            else
-                mv.visitFieldInsn(PUTFIELD, env.clazz.name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
+            mv.visitFieldInsn(PUTFIELD, env.clazz.name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
         }
     }
 }
