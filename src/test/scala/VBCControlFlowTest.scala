@@ -170,4 +170,11 @@ class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
             Block(InstrDBGIPrint(), InstrDBGIPrint(), InstrICONST(0), InstrDBGIPrint(), InstrRETURN())
         )
     }
+
+    test("redundant jump") {
+        method(
+            Block(InstrLoadConfig("A"), InstrIFNE(1)),
+            Block(InstrRETURN())
+        )
+    }
 }

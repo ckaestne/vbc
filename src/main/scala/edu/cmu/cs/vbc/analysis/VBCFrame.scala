@@ -183,12 +183,11 @@ class VBCFrame(nLocals: Int) {
          * In the future, if STORE operations are optimized, this could also be optimized to avoid loading V and
          * save some instructions.
          */
-        if (env.isL0(i.variable)) {
+        if (!isV && env.isL0(i.variable)) {
           push(REF_TYPE(), Some(i))
           None
         }
         else {
-          env.setLift(i)
           push(V_TYPE(), Some(i))
           if (values(env.getVarIdxNoCtx(i.variable)) != V_TYPE())
             sourceInstrs(env.getVarIdxNoCtx(i.variable))
@@ -291,22 +290,62 @@ class VBCFrame(nLocals: Int) {
         // For now, no instructions will backtrack to jump instructions
         val (v, prev) = pop()
         env.setLift(i)
-        if (v != V_TYPE()) prev else None
+        if (v != V_TYPE()) {
+          prev
+        }
+        else {
+          // across block boundary, everything left on the stack is going to be V
+          for (i <- 0 until top) {
+            if (values(nLocals + i) != V_TYPE())
+              return sourceInstrs(nLocals + i)
+          }
+          None
+        }
       }
       case i: InstrIFNE => {
         val (v, prev) = pop()
         env.setLift(i)
-        if (v != V_TYPE()) prev else None
+        if (v != V_TYPE()) {
+          prev
+        }
+        else {
+          // across block boundary, everything left on the stack is going to be V
+          for (i <- 0 until top) {
+            if (values(nLocals + i) != V_TYPE())
+              return sourceInstrs(nLocals + i)
+          }
+          None
+        }
       }
       case i: InstrIFGE => {
         val (v, prev) = pop()
         env.setLift(i)
-        if (v != V_TYPE()) prev else None
+        if (v != V_TYPE()) {
+          prev
+        }
+        else {
+          // across block boundary, everything left on the stack is going to be V
+          for (i <- 0 until top) {
+            if (values(nLocals + i) != V_TYPE())
+              return sourceInstrs(nLocals + i)
+          }
+          None
+        }
       }
       case i: InstrIFGT => {
         val (v, prev) = pop()
         env.setLift(i)
-        if (v != V_TYPE()) prev else None
+        if (v != V_TYPE()) {
+          prev
+        }
+        else {
+          // across block boundary, everything left on the stack is going to be V
+          for (i <- 0 until top) {
+            if (values(nLocals + i) != V_TYPE())
+              return sourceInstrs(nLocals + i)
+          }
+          None
+        }
       }
       case i: InstrIF_ICMPEQ => {
         env.setLift(i)
@@ -314,7 +353,14 @@ class VBCFrame(nLocals: Int) {
         val (v2, prev2) = pop()
         if (v1 != V_TYPE()) prev1
         else if (v2 != V_TYPE()) prev2
-        else None
+        else {
+          // across block boundary, everything left on the stack is going to be V
+          for (i <- 0 until top) {
+            if (values(nLocals + i) != V_TYPE())
+              return sourceInstrs(nLocals + i)
+          }
+          None
+        }
       }
       case i: InstrIF_ICMPNE => {
         env.setLift(i)
@@ -322,7 +368,14 @@ class VBCFrame(nLocals: Int) {
         val (v2, prev2) = pop()
         if (v1 != V_TYPE()) prev1
         else if (v2 != V_TYPE()) prev2
-        else None
+        else {
+          // across block boundary, everything left on the stack is going to be V
+          for (i <- 0 until top) {
+            if (values(nLocals + i) != V_TYPE())
+              return sourceInstrs(nLocals + i)
+          }
+          None
+        }
       }
       case i: InstrIF_ICMPLT => {
         env.setLift(i)
@@ -330,7 +383,14 @@ class VBCFrame(nLocals: Int) {
         val (v2, prev2) = pop()
         if (v1 != V_TYPE()) prev1
         else if (v2 != V_TYPE()) prev2
-        else None
+        else {
+          // across block boundary, everything left on the stack is going to be V
+          for (i <- 0 until top) {
+            if (values(nLocals + i) != V_TYPE())
+              return sourceInstrs(nLocals + i)
+          }
+          None
+        }
       }
       case i: InstrIF_ICMPGE => {
         env.setLift(i)
@@ -338,9 +398,23 @@ class VBCFrame(nLocals: Int) {
         val (v2, prev2) = pop()
         if (v1 != V_TYPE()) prev1
         else if (v2 != V_TYPE()) prev2
-        else None
+        else {
+          // across block boundary, everything left on the stack is going to be V
+          for (i <- 0 until top) {
+            if (values(nLocals + i) != V_TYPE())
+              return sourceInstrs(nLocals + i)
+          }
+          None
+        }
       }
-      case i: InstrGOTO => env.setLift(i); None // does not affect locals and stack
+      case i: InstrGOTO => {
+        env.setLift(i)
+        for (i <- 0 until top) {
+          if (values(nLocals + i) != V_TYPE())
+            return sourceInstrs(nLocals + i)
+        }
+        None
+      }
       case i: InstrIRETURN => {
         // assuming all methods return V
         env.setLift(i)
