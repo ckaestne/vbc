@@ -32,7 +32,12 @@ public class VOps {
    * @return
      */
   public static FeatureExpr whenEQ(V<? extends Integer> a) {
-    return a.when(v -> v == 0);
+    return a.when(v -> {
+      if (v == null)
+        return false;
+      else
+        return v == 0;
+    });
   }
 
   /**
@@ -63,7 +68,12 @@ public class VOps {
   }
 
   public static FeatureExpr whenLT(V<? extends Integer> a) {
-    return a.when(v -> v < 0);
+    return a.when(v -> {
+      if (v == null)
+        return false;
+      else
+        return v < 0;
+    });
   }
 
   public static FeatureExpr whenIEQ(V<? extends Integer> a, V<? extends Integer> b) {

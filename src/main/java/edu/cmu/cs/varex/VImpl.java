@@ -98,7 +98,9 @@ class VImpl<T> implements V<T> {
     public <U> V<? extends U> flatMap(Function<? super T, V<? extends U>> fun) {
         Map<U, FeatureExpr> result = new HashMap<>(values.size());
         for (HashMap.Entry<T, FeatureExpr> e : values.entrySet()) {
-            V<? extends U> u = fun.apply(e.getKey());
+            V<? extends U> u = null;
+            if (e.getKey() != null)
+                u = fun.apply(e.getKey());
             addVToMap(result, e.getValue(), u);
         }
         return createV(result);
@@ -109,7 +111,9 @@ class VImpl<T> implements V<T> {
     public <U> V<? extends U> vflatMap(BiFunction<FeatureExpr, ? super T, V<? extends U>> fun, FeatureExpr ctx) {
         Map<U, FeatureExpr> result = new HashMap<>(values.size());
         for (HashMap.Entry<T, FeatureExpr> e : values.entrySet()) {
-            V<? extends U> u = fun.apply(ctx.and(e.getValue()), e.getKey());
+            V<? extends U> u = null;
+            if (e.getKey() != null)
+                u = fun.apply(ctx.and(e.getValue()), e.getKey());
             addVToMap(result, e.getValue(), u);
         }
         return createV(result);

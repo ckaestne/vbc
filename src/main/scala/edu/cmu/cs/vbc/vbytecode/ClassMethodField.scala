@@ -65,13 +65,9 @@ sealed trait Variable {
   def getIdx(): Option[Int] = None
 }
 
-class Parameter(val idx: Int) extends Variable {
+case class Parameter(val idx: Int) extends Variable {
   override def getIdx(): Option[Int] = Some(idx)
 
-  override def equals(obj: scala.Any): Boolean = {
-    assert(obj.isInstanceOf[Parameter])
-    obj.asInstanceOf[Parameter].idx == this.idx
-  }
 }
 
 class LocalVar() extends Variable

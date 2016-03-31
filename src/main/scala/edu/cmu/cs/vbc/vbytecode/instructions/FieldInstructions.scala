@@ -157,11 +157,15 @@ case class InstrPUTSTATIC(owner: String, name: String, desc: String) extends Fie
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    //TODO: work for println, but what if we are getting conditional?
-    if (env.shouldLiftInstr(this))
-      mv.visitFieldInsn(PUTSTATIC, owner, name, "Ledu/cmu/cs/varex/V;")
-    else
-      mv.visitFieldInsn(PUTSTATIC, owner, name, desc)
+    if (env.isConditionalField(owner, name, desc)) {
+      mv.visitInsn(POP)
+    }
+    else {
+      if (env.shouldLiftInstr(this))
+        mv.visitFieldInsn(PUTSTATIC, owner, name, "Ledu/cmu/cs/varex/V;")
+      else
+        mv.visitFieldInsn(PUTSTATIC, owner, name, desc)
+    }
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {

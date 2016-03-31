@@ -45,8 +45,10 @@ object TestTraceOutput {
     def vtrace_int(v: V[Any], ctx: FeatureExpr, s: String): Unit = {
         assert(ctx.isInstanceOf[FeatureExpr], "ctx not FeatureExpr but " + ctx.getClass)
         assert(v.isInstanceOf[V[_]], "v not V[Int] but " + v.getClass)
-        for ((ctx, i) <- VHelper.explode(t, v))
-            trace ::=(ctx, s + ";" + i.toString)
+        for ((ctx, i) <- VHelper.explode(t, v)) {
+            if (i != null)
+                trace ::=(ctx, s + ";" + i.toString)
+        }
     }
 
     def trace_string(s: java.lang.Object): Unit = {

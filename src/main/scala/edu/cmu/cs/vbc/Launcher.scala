@@ -2,6 +2,7 @@ package edu.cmu.cs.vbc
 
 import java.lang.reflect.{Method, Modifier}
 
+import de.fosd.typechef.featureexpr.FeatureExprFactory
 import edu.cmu.cs.vbc.utils.Statistics
 
 /**
@@ -14,6 +15,8 @@ import edu.cmu.cs.vbc.utils.Statistics
 object Launcher extends App {
   if (args.size < 1)
     throw new RuntimeException("provide main class as parameter")
+
+  FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
 
   VBCLauncher.launch(args(0), args.size < 2 || args(1) == "true", args.drop(2))
 
