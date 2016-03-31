@@ -26,14 +26,14 @@ case class VBCMethodNode(access: Int, name: String,
         mv.visitEnd()
     }
 
-    def returnsVoid() = Type.getMethodType(desc).getReturnType == Type.VOID_TYPE
+    lazy val returnsVoid = Type.getMethodType(desc).getReturnType == Type.VOID_TYPE
 
-    def isMain() =
-        desc == "([Ljava/lang/String;)V" && isStatic() && isPublic()
+    lazy val isMain =
+        desc == "([Ljava/lang/String;)V" && isStatic && isPublic
 
-    def isStatic(): Boolean = (access & Opcodes.ACC_STATIC) > 0
+    lazy val isStatic: Boolean = (access & Opcodes.ACC_STATIC) > 0
 
-    def isPublic(): Boolean = (access & Opcodes.ACC_PUBLIC) > 0
+    lazy val isPublic: Boolean = (access & Opcodes.ACC_PUBLIC) > 0
 
   /**
     * We need special handling for <init> method lifting.
@@ -46,7 +46,7 @@ case class VBCMethodNode(access: Int, name: String,
     * @see [[CFG.toVByteCode()]] and [[Rewrite]]
     * @return
     */
-  def isInit() =
+  lazy val isInit =
         name == "<init>"
 
 }
@@ -65,6 +65,11 @@ sealed trait Variable {
 
 class Parameter(val idx: Int) extends Variable {
     override def getIdx(): Option[Int] = Some(idx)
+
+    override def equals(obj: scala.Any): Boolean = {
+        assert(obj.isInstanceOf[Parameter])
+        obj.asInstanceOf[Parameter].idx == this.idx
+    }
 }
 
 class LocalVar() extends Variable

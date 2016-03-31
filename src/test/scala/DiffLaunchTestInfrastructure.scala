@@ -45,7 +45,26 @@ trait DiffLaunchTestInfrastructure {
         )
 
 
+    def checkCrash(classname: String): Unit = {
+        //test instrumented version, executed variationally
+        TestTraceOutput.trace = Nil
+        TraceConfig.options = Set()
+        val vloader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, true, instrumentMethod)
+        val vcls: Class[_] = vloader.loadClass(classname)
+        VBCLauncher.invokeMain(vcls, new Array[String](0))
 
+        val vtrace = TestTraceOutput.trace
+        val usedOptions = TraceConfig.options.map(_.feature)
+
+        println("Used Options: " + TraceConfig.options.mkString(", "))
+
+        //run benchmark (without instrumentation)
+        val vbenchmarkloader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, true, instrumentCustomInit)
+        val vbenchmarkcls: Class[_] = vbenchmarkloader.loadClass(classname)
+        val benchmarkloader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, false, instrumentCustomInit)
+        val benchmarkcls: Class[_] = benchmarkloader.loadClass(classname)
+        benchmark(classname, vbenchmarkcls, benchmarkcls, usedOptions)
+    }
 
     def testMain(classname: String): Unit = {
         //test uninstrumented variational execution to see whether it crashes

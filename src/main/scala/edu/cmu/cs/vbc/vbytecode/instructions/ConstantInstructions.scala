@@ -1,8 +1,9 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
+import edu.cmu.cs.vbc.analysis.{INT_TYPE, VBCFrame, VBCType, V_TYPE}
 import edu.cmu.cs.vbc.vbytecode._
-import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
+import org.objectweb.asm.{MethodVisitor, Type}
 
 /**
   * @author chupanw
@@ -28,6 +29,15 @@ case class InstrICONST(v: Int) extends Instruction {
       pushConstant(mv, v)
     }
   }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    val newFrame =
+      if (env.shouldLiftInstr(this))
+        s.push(V_TYPE(), Some(this))
+      else
+        s.push(INT_TYPE(), Some(this))
+    (newFrame, None)
+  }
 }
 
 
@@ -44,12 +54,25 @@ case class InstrLDC(o: Object) extends Instruction {
         if (o.isInstanceOf[Integer]) {
           mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
         }
-        callVCreateOne(mv)
       }
+      callVCreateOne(mv)
     }
     else {
       mv.visitLdcInsn(o)
     }
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    val newFrame =
+      if (env.shouldLiftInstr(this))
+        s.push(V_TYPE(), Some(this))
+      else
+        o match {
+          case i: java.lang.Integer => s.push(INT_TYPE(), Some(this))
+          case str: java.lang.String => s.push(VBCType(Type.getObjectType("java/lang/String")), Some(this))
+          case _ => throw new RuntimeException("Incomplete support for LDC")
+        }
+    (newFrame, None)
   }
 }
 
@@ -65,5 +88,12 @@ case class InstrACONST_NULL() extends Instruction {
       mv.visitInsn(ACONST_NULL)
     }
 
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    if (env.shouldLiftInstr(this))
+      (s.push(V_TYPE(), Some(this)), None)
+    else
+      (s.push(VBCType(Type.getObjectType("null")), Some(this)), None)
   }
 }

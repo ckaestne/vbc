@@ -11,7 +11,8 @@ import edu.cmu.cs.varex.annotation.VConditional;
  */
 public class InvokeExample {
 
-    @VConditional boolean A = false;
+    @VConditional
+    boolean A;
 
     Integer a;
 

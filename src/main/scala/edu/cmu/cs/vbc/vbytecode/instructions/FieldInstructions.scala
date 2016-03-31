@@ -1,5 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
+import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_TYPE}
+import edu.cmu.cs.vbc.utils.LiftingFilter
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.{ClassVisitor, Handle, MethodVisitor, Type}
@@ -130,6 +132,16 @@ case class InstrGETSTATIC(owner: String, name: String, desc: String) extends Fie
       mv.visitFieldInsn(GETSTATIC, owner, name, desc)
     }
   }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    if (LiftingFilter.shouldLiftField(owner, name, desc)) {
+      env.setLift(this)
+      (s.push(V_TYPE(), Some(this)), None)
+    }
+    else {
+      (s.push(VBCType(Type.getType(desc)), Some(this)), None)
+    }
+  }
 }
 
 /**
@@ -151,6 +163,17 @@ case class InstrPUTSTATIC(owner: String, name: String, desc: String) extends Fie
     else
       mv.visitFieldInsn(PUTSTATIC, owner, name, desc)
   }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    val (v, prev, newFrame) = s.pop()
+    env.setLift(this)
+    val backtrack =
+      if (v != V_TYPE())
+        prev
+      else
+        None
+    (newFrame, backtrack)
+  }
 }
 
 /**
@@ -170,6 +193,18 @@ case class InstrGETFIELD(owner: String, name: String, desc: String) extends Fiel
       getFieldFromV(mv, env, owner, name, desc)
     else
       mv.visitFieldInsn(GETFIELD, owner, name, "Ledu/cmu/cs/varex/V;")
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    val (v, prev, frame) = s.pop()
+    if (v == V_TYPE()) env.setLift(this)
+    val newFrame = frame.push(V_TYPE(), Some(this))
+    (newFrame, None)
+  }
+
+  override def doBacktrack(env: VMethodEnv): Unit = {
+    // if backtracked, do nothing
+    // lifting or not will be set in updateStack()
   }
 }
 
@@ -220,5 +255,18 @@ case class InstrPUTFIELD(owner: String, name: String, desc: String) extends Fiel
       else
         mv.visitFieldInsn(PUTFIELD, owner, name, "Ledu/cmu/cs/varex/V;")
     }
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    val (value, prev1, frame) = s.pop()
+    val (ref, prev2, newFrame) = frame.pop()
+    if (value != V_TYPE()) return (newFrame, prev1)
+    if (ref == V_TYPE()) env.setLift(this)
+    (newFrame, None)
+  }
+
+  override def doBacktrack(env: VMethodEnv): Unit = {
+    // if backtracked, do nothing
+    // lifting or not will be set in updateStack()
   }
 }

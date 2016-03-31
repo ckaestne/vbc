@@ -3,6 +3,7 @@ package edu.cmu.cs.vbc.test
 
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory, SingleFeatureExpr}
 import edu.cmu.cs.varex.{V, VHelper}
+import edu.cmu.cs.vbc.analysis.{VBCFrame, V_TYPE}
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
 import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, VMethodEnv}
 import org.objectweb.asm.MethodVisitor
@@ -48,18 +49,18 @@ object TestTraceOutput {
             trace ::=(ctx, s + ";" + i.toString)
     }
 
-    def trace_string(s: String): Unit = {
-        trace ::=(t, s)
+    def trace_string(s: java.lang.Object): Unit = {
+        trace ::=(t, s.toString)
     }
 
-    def vtrace_string(v: V[String], ctx: FeatureExpr): Unit = {
+    def vtrace_string(v: V[java.lang.Object], ctx: FeatureExpr): Unit = {
         assert(ctx.isInstanceOf[FeatureExpr], "ctx not FeatureExpr but " + ctx.getClass)
         //v might be of type String for now, due to incomplete lifting
-        if (v.isInstanceOf[String])
-            trace ::=(ctx, v.asInstanceOf[String])
-        else
-            for ((ctx, s) <- VHelper.explode(t, v))
-                trace ::=(ctx, s)
+        //        if (v.isInstanceOf[String])
+        //            trace ::=(ctx, v.asInstanceOf[String])
+        //        else
+        for ((ictx, s) <- VHelper.explode(t, v))
+            trace ::=(ctx.and(ictx), s.toString)
     }
 
 }
@@ -112,6 +113,8 @@ case class TraceInstr_ConfigInit() extends Instruction {
                 mv.visitFieldInsn(PUTFIELD, env.clazz.name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
         }
     }
+
+    override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = (s, None)
 }
 
 
@@ -129,6 +132,8 @@ case class TraceInstr_S(s: String) extends Instruction {
         mv.visitLdcInsn(s)
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestTraceOutput", "vtrace_s", "(Lde/fosd/typechef/featureexpr/FeatureExpr;Ljava/lang/String;)V", false)
     }
+
+    override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = (s, None)
 }
 
 /**
@@ -137,13 +142,20 @@ case class TraceInstr_S(s: String) extends Instruction {
 case class TraceInstr_Print() extends Instruction {
     override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
         mv.visitInsn(DUP)
-        mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestTraceOutput", "trace_string", "(Ljava/lang/String;)V", false)
+        mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestTraceOutput", "trace_string", "(Ljava/lang/Object;)V", false)
     }
 
     override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
         mv.visitInsn(DUP)
         loadFExpr(mv, env, env.getBlockVar(block))
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestTraceOutput", "vtrace_string", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
+    }
+
+    override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+        val backtrack =
+            if (s.stack.head._1 != V_TYPE()) s.stack.head._2
+            else None
+        (s, backtrack)
     }
 }
 
@@ -161,8 +173,20 @@ case class TraceInstr_GetField(s: String, desc: String) extends Instruction {
 
     override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
         mv.visitInsn(DUP)
-        loadFExpr(mv, env, env.getBlockVar(block))
-        mv.visitLdcInsn(s)
-        mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestTraceOutput", "vtrace_int", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;Ljava/lang/String;)V", false)
+        if (env.shouldLiftInstr(this)) {
+            loadFExpr(mv, env, env.getBlockVar(block))
+            mv.visitLdcInsn(s)
+            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestTraceOutput", "vtrace_int", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;Ljava/lang/String;)V", false)
+        }
+        else {
+            assert(desc == "I" || desc == "Z", "only integer fields supported for now")
+            mv.visitLdcInsn(s)
+            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestTraceOutput", "trace_int", "(ILjava/lang/String;)V", false)
+        }
+    }
+
+    override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+        if (s.stack.head._1 == V_TYPE()) env.setLift(this)
+        (s, None)
     }
 }

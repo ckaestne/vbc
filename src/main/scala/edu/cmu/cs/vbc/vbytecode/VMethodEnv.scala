@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode
 
-import edu.cmu.cs.vbc.analysis.VBCAnalyzer
+import edu.cmu.cs.vbc.analysis.{VBCAnalyzer, VBCFrame}
 import edu.cmu.cs.vbc.utils.Statistics
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
 
@@ -108,17 +108,13 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
     instructionTags(getInsnIdx(instr)) |= TAG_LIFT
   }
 
-  def unsetLift(instr: Instruction): Unit = {
-    if (getTag(instr, TAG_LIFT)) instructionTags(getInsnIdx(instr)) -= TAG_LIFT
-  }
-
   def isBlockUnderCtx(i: Instruction): Boolean = {
     val blockIdx = blocks.indexWhere((bb) => bb.instr.exists((insn) => insn eq i))
     blockTags(blockIdx)
   }
 
   def isL0(variable: Variable): Boolean = {
-    if (method.isStatic()) false
+    if (method.isStatic) false
     else getVarIdxNoCtx(variable) == 0
   }
 
@@ -127,15 +123,12 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   //////////////////////////////////////////////////
 
   val analyzer = new VBCAnalyzer(this)
-  assert(analyzer.beforeFrames.isDefined, "No frames available")
-  assert(analyzer.afterFrames.isDefined, "No frames available")
-  val framesBefore = analyzer.beforeFrames.get
-  val framesAfter = analyzer.afterFrames.get
-  var expectingVars: Map[Block, List[Variable]] = Map()
-  blocks.foreach(getExpectingVars(_))
+  val framesBefore: Array[VBCFrame] = analyzer.computeBeforeFrames
+  val framesAfter: Array[VBCFrame] = analyzer.computeAfterFrames(framesBefore)
+  val expectingVars: Map[Block, List[Variable]] = blocks.map(computeExpectingVars(_)).toMap
 
   def getLeftVars(block: Block): List[Set[Variable]] = {
-    val afterFrame = framesAfter(getFrameIdx(block.instr.last))
+    val afterFrame = framesAfter(getInsnIdx(block.instr.last))
     val (succ1, succ2) = getSuccessors(block)
     getVarSetList(Nil, succ1, succ2, afterFrame.getStackSize)
   }
@@ -160,16 +153,13 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
     List(set)
   }
 
-  def getExpectingVars(block: Block): List[Variable] = {
-    if (!(expectingVars contains block)) {
-      val beforeFrame = framesBefore(getFrameIdx(block.instr.head))
-      val newVars: List[Variable] = createNewVars(Nil, beforeFrame.getStackSize)
-      expectingVars += (block -> newVars)
-    }
-    expectingVars(block)
-  }
+  def getExpectingVars(block: Block): List[Variable] = expectingVars(block)
 
-  def getFrameIdx(insn: Instruction): Int = instructions.indexWhere(_ eq insn)
+  def computeExpectingVars(block: Block): (Block, List[Variable]) = {
+    val beforeFrame = framesBefore(getInsnIdx(block.instr.head))
+    val newVars: List[Variable] = createNewVars(Nil, beforeFrame.getStackSize)
+    (block, newVars)
+  }
 
 
   //////////////////////////////////////////////////

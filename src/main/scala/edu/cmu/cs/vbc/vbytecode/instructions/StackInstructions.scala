@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
+import edu.cmu.cs.vbc.analysis.{INT_TYPE, VBCFrame, V_TYPE}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
@@ -17,6 +18,13 @@ case class InstrDUP() extends Instruction {
     //TODO, when applied to LONG, use the int one instead of the 2byte one
     mv.visitInsn(DUP)
   }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    val (v, prev, frame1) = s.pop()
+    val frame2 = frame1.push(v, prev)
+    val frame3 = frame2.push(v, prev)
+    (frame3, None)
+  }
 }
 
 
@@ -30,6 +38,11 @@ case class InstrPOP() extends Instruction {
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     mv.visitInsn(POP)
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    val (v, prev, newFrame) = s.pop()
+    (newFrame, None)
   }
 }
 
@@ -53,6 +66,15 @@ case class InstrBIPUSH(value: Int) extends Instruction {
     else
       toByteCode(mv, env, block)
   }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    val newFrame =
+      if (env.shouldLiftInstr(this))
+        s.push(V_TYPE(), Some(this))
+      else
+        s.push(INT_TYPE(), Some(this))
+    (newFrame, None)
+  }
 }
 
 
@@ -74,5 +96,14 @@ case class InstrSIPUSH(value: Int) extends Instruction {
     }
     else
       toByteCode(mv, env, block)
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    val newFrame =
+      if (env.shouldLiftInstr(this))
+        s.push(V_TYPE(), Some(this))
+      else
+        s.push(INT_TYPE(), Some(this))
+    (newFrame, None)
   }
 }

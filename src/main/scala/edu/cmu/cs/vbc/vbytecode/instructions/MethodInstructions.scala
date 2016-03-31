@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
+import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_REF_TYPE, V_TYPE}
 import edu.cmu.cs.vbc.model.LiftCall._
 import edu.cmu.cs.vbc.utils.LiftingFilter
 import edu.cmu.cs.vbc.vbytecode._
@@ -80,6 +81,62 @@ trait MethodInstruction extends Instruction {
 
     env.clazz.lambdaMethods ::= lambda
   }
+
+  override def doBacktrack(env: VMethodEnv): Unit = env.setTag(this, env.TAG_NEED_V_RETURN)
+
+  def updateStack(
+                   s: VBCFrame,
+                   env: VMethodEnv,
+                   owner: String,
+                   name: String,
+                   desc: String
+                 ): (VBCFrame, Option[Instruction]) = {
+    val shouldLift = LiftingFilter.shouldLiftMethod(owner, name, desc)
+    val nArg = Type.getArgumentTypes(desc).length
+    val argList: List[(VBCType, Option[Instruction])] = s.stack.take(nArg)
+
+    // arguments
+    val hasVArgs = argList.exists(_._1 == V_TYPE())
+    if (hasVArgs) env.setTag(this, env.TAG_HAS_VARG)
+    if (hasVArgs || shouldLift) {
+      // ensure that all arguments are V
+      for (ele <- argList if ele._1 != V_TYPE()) return (s, ele._2)
+    }
+
+    // object reference
+    var frame = s
+    1 to nArg foreach { _ => frame = frame.pop()._3 }
+    if (!this.isInstanceOf[InstrINVOKESTATIC]) {
+      val (ref, ref_prev, baseFrame) = frame.pop() // L0
+      frame = baseFrame
+      if (ref == V_TYPE()) env.setLift(this)
+      if (this.isInstanceOf[InstrINVOKESPECIAL] && ref.isInstanceOf[V_REF_TYPE] && name == "<init>") {
+        // Special handling for <init>:
+        // Whenever we see a V_REF_TYPE reference, we know that the initialized object would be consumed later as
+        // method arguments or field values, so we scan the stack and wrap it into a V
+        env.setTag(this, env.TAG_WRAP_DUPLICATE)
+        // we only expect one duplicate on stack, otherwise calling one createOne is not enough
+        assert(frame.stack.head._1 == ref, "No duplicate UNINITIALIZED value on stack")
+        val moreThanOne = frame.stack.tail.contains(ref)
+        assert(!moreThanOne, "More than one UNINITIALIZED value on stack")
+        val (ref2, prev2, frame2) = frame.pop()
+        frame = frame2.push(V_TYPE(), prev2)
+      }
+    }
+
+    // return value
+    if (Type.getReturnType(desc) != Type.VOID_TYPE) {
+      if (env.getTag(this, env.TAG_NEED_V_RETURN))
+        frame = frame.push(V_TYPE(), Some(this))
+      else if (env.shouldLiftInstr(this))
+        frame = frame.push(V_TYPE(), Some(this))
+      else if (shouldLift || (hasVArgs && !shouldLift))
+        frame = frame.push(V_TYPE(), Some(this))
+      else
+        frame = frame.push(VBCType(Type.getReturnType(desc)), Some(this))
+    }
+    (frame, None)
+  }
 }
 
 /**
@@ -135,6 +192,9 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
     */
   override def isINVOKESPECIAL_OBJECT_INIT: Boolean =
     owner == "java/lang/Object" && name == "<init>" && desc == "()V" && !itf
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) =
+    updateStack(s, env, owner, name, desc)
 }
 
 
@@ -188,6 +248,9 @@ case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Bo
       if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv)
     }
   }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) =
+    updateStack(s, env, owner, name, desc)
 }
 
 
@@ -215,4 +278,6 @@ case class InstrINVOKESTATIC(owner: String, name: String, desc: String, itf: Boo
     if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv)
   }
 
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) =
+    updateStack(s, env, owner, name, desc)
 }

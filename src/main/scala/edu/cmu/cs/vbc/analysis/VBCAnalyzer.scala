@@ -1,9 +1,11 @@
 package edu.cmu.cs.vbc.analysis
 
-import edu.cmu.cs.vbc.vbytecode.instructions.{Instruction, JumpInstruction, MethodInstruction}
-import edu.cmu.cs.vbc.vbytecode.{VBCMethodNode, VMethodEnv}
+import edu.cmu.cs.vbc.vbytecode.instructions.{Instruction, JumpInstruction}
+import edu.cmu.cs.vbc.vbytecode.{Parameter, VBCMethodNode, VMethodEnv}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.Type
+
+import scala.collection.mutable.Queue
 
 /**
   * Compute frames before and after bytecode execution
@@ -25,112 +27,93 @@ class VBCAnalyzer(env: VMethodEnv) {
     */
   val n: Int = instructions.length
   /**
-    * An array of frames before executing each instruction
+    * A map of frames before executing each instruction
     */
-  val beforeFrames: Option[Array[VBCFrame]] = {
+  def computeBeforeFrames: Array[VBCFrame] = {
     // we don't compute frames for abstract or native methods
     if ((mn.access & (ACC_ABSTRACT | ACC_NATIVE)) != 0) {
-      None
+      Map()
     }
     // init
-    val frames: Array[VBCFrame] = new Array(n)
-    val queued: Array[Boolean] = new Array(n)
-    val queue: Array[Int] = new Array(n)
-    var top: Int = 0
-    val current: VBCFrame = new VBCFrame(env.maxLocals)
+    val beforeInstructionFrames: Array[VBCFrame] = new Array(instructions.size)
+    val queue: Queue[Int] = Queue()
+    var initialFrame: VBCFrame = new VBCFrame(Map(), Nil)
     var local: Int = 0
     // init this
-    if ((mn.access & ACC_STATIC) == 0) {
-      current.setLocal(local, VBCValue.newValue(Type.getObjectType(env.clazz.name)), None)
-      local += 1
+    if (!env.method.isStatic) {
+      initialFrame = initialFrame.setLocal(env.thisParameter, VBCType(Type.getObjectType(env.clazz.name)), None)
     }
     // init args
-    for (t <- Type.getArgumentTypes(mn.desc)) {
-      current.setLocal(local, VBCValue.newValue(t), None)
-      local += 1
+    val args = Type.getArgumentTypes(env.method.desc)
+    for (argIdx <- 0 until args.size) {
+      initialFrame = initialFrame.setLocal(new Parameter(if (env.method.isStatic) argIdx else argIdx + 1), VBCType(args(argIdx)), None)
     }
-    // init other local variables
-    while (local < env.maxLocals) {
-      current.setLocal(local, VBCValue.newValue(null), None)
-      local += 1
-    }
+
+    def getInstr(insn: Int) = instructions(insn)
 
     /**
       * Merge the new frame into frames array
-      *
-      * @param insn
-      * @param frame
       */
-    def merge(insn: Int, frame: VBCFrame): Unit = {
-      val oldFrame = frames(insn)
+    def updateFrameForInstr(insn: Int, frame: VBCFrame): Unit = {
+      val oldFrame = beforeInstructionFrames(insn)
       var changed = false
+      var result: VBCFrame = frame
       if (oldFrame == null) {
-        frames(insn) = new VBCFrame(frame)
         changed = true
       }
-      else {
-        changed = oldFrame.merge(frame)
+      else if (oldFrame != frame) {
+        result = oldFrame.merge(frame)
+        changed = true
       }
-      if (changed && !queued(insn)) {
-        queued(insn) = true
-        queue(top) = insn
-        top += 1
+
+      if (changed && !(queue contains insn)) {
+        queue.enqueue(insn)
       }
+      beforeInstructionFrames(insn) = result
     }
-    merge(0, current)
+
+    beforeInstructionFrames(0) = initialFrame
+    queue.enqueue(0)
     // control flow analysis
-    while (top > 0) {
-      top -= 1
-      val insn: Int = queue(top)
-      queued(insn) = false
+    while (queue.nonEmpty) {
+      val insn: Int = queue.dequeue()
       val instr: Instruction = env.instructions(insn)
-      val current = new VBCFrame(frames(insn))
-      val prev = current.execute(instr, env)
-      if (prev.isDefined) {
-        val idx = env.getInsnIdx(prev.get)
-        //TODO: this is inconvenient, change to dynamic dispatch and have backtracked() method for each instruction
-        if (prev.get.isInstanceOf[MethodInstruction])
-          env.setTag(prev.get, env.TAG_NEED_V_RETURN)
-        else
-          env.setLift(prev.get)
+      val (frame, backtrack) = instr.updateStack(beforeInstructionFrames(insn), env)
+      if (backtrack.isDefined) {
+        val idx = env.getInsnIdx(backtrack.get)
+        backtrack.get.doBacktrack(env)
         /* Put the current instruction back because backtracking does not guarantee revisit of this instruction */
         /* (if at some point merging two frames does not change, it stops scanning) */
-        if (!queued(insn)) {
-          queued(insn) = true
-          queue(top) = insn
-          top += 1
-        }
-        if (!queued(idx)) {
-          queued(idx) = true
-          queue(top) = idx
-          top += 1
-        }
+        if (!(queue contains insn))
+          queue.enqueue(insn)
+        if (!(queue contains idx))
+          queue.enqueue(idx)
       }
       else {
-        if (instr.isJumpInstr) {
-          val j = instr.asInstanceOf[JumpInstruction]
-          val (uncond, cond) = j.getSuccessor()
-          if (cond.isDefined) merge(env.getBlockStart(cond.get), current)
-          if (uncond.isDefined) merge(env.getBlockStart(uncond.get), current) else merge(insn + 1, current)
-        }
-        else if (!instr.isReturnInstr) {
-          merge(insn + 1, current)
+        instr match {
+          case jump: JumpInstruction =>
+            val (uncond, cond) = jump.getSuccessor()
+            if (cond.isDefined) updateFrameForInstr(env.getBlockStart(cond.get), frame)
+            if (uncond.isDefined)
+              updateFrameForInstr(env.getBlockStart(uncond.get), frame)
+            else
+              updateFrameForInstr(insn + 1, frame)
+          case i if !i.isReturnInstr =>
+            updateFrameForInstr(insn + 1, frame)
+          case _ =>
         }
       }
     }
-    Some(frames)
+    assert(!beforeInstructionFrames.contains(null), "Missing some frames")
+    beforeInstructionFrames
   }
 
-  val afterFrames: Option[Array[VBCFrame]] = {
-    if (beforeFrames.isDefined) {
-      val frames: Array[VBCFrame] = new Array[VBCFrame](beforeFrames.get.length)
-      for (i <- frames.indices)
-        frames(i) = new VBCFrame(beforeFrames.get(i))
-      (frames zip instructions).foreach((pair) => pair._1.execute(pair._2, env))
-      Some(frames)
+  def computeAfterFrames(beforeFrames: Array[VBCFrame]): Array[VBCFrame] = {
+    val array: Array[VBCFrame] = new Array(beforeFrames.size)
+    0 until array.size foreach {
+      i => array(i) = instructions(i).updateStack(beforeFrames(i), env)._1
     }
-    else
-      None
+    array
   }
 }
 

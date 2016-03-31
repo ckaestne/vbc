@@ -9,7 +9,7 @@ import edu.cmu.cs.varex.V;
 public class StringBuilder {
 
     public static V append(java.lang.StringBuilder obj, V v, FeatureExpr fe) {
-        java.lang.StringBuilder ret = obj.append(v);
+        java.lang.StringBuilder ret = obj.append(v.vmap(fe, (ctx, x) -> x));
         return V.one(ret);
     }
 

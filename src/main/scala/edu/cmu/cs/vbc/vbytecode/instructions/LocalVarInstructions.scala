@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
+import edu.cmu.cs.vbc.analysis.{REF_TYPE, VBCFrame, V_TYPE}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
@@ -36,6 +37,21 @@ case class InstrISTORE(variable: Variable) extends Instruction {
       case lv: LocalVar => Set(lv)
     }
   }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    // Now we assume all blocks are executed under some ctx other than method ctx,
+    // meaning that all local variables should be a V, and so all ISTORE instructions
+    // should be lifted
+    env.setLift(this)
+    val (value, prev, frame) = s.pop()
+    val newFrame = frame.setLocal(variable, V_TYPE(), Some(this))
+    val backtrack =
+      if (value != V_TYPE())
+        prev
+      else
+        None
+    (newFrame, backtrack)
+  }
 }
 
 
@@ -60,6 +76,17 @@ case class InstrILOAD(variable: Variable) extends Instruction {
       case p: Parameter => Set()
       case lv: LocalVar => Set(lv)
     }
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    env.setLift(this)
+    val newFrame = s.push(V_TYPE(), Some(this))
+    val backtrack =
+      if (s.localVar(variable)._1 != V_TYPE())
+        s.localVar(variable)._2
+      else
+        None
+    (newFrame, backtrack)
   }
 }
 
@@ -98,6 +125,15 @@ case class InstrIINC(variable: Variable, increment: Int) extends Instruction {
       case lv: LocalVar => Set(lv)
     }
   }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    // Now we assume all blocks are executed under some ctx other than method ctx,
+    // meaning that all local variables should be a V, and so IINC instructions
+    // should be lifted
+    env.setLift(this)
+    val newFrame = s.setLocal(variable, V_TYPE(), Some(this))
+    (newFrame, None)
+  }
 }
 
 
@@ -133,6 +169,26 @@ case class InstrALOAD(variable: Variable) extends Instruction {
     * @see [[Rewrite.rewrite()]]
     */
   override def isALOAD0: Boolean = variable.getIdx().contains(0)
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    /*
+     * This assumes that all local variables other than this parameter to be V.
+     *
+     * In the future, if STORE operations are optimized, this could also be optimized to avoid loading V and
+     * save some instructions.
+     */
+    if (!env.shouldLiftInstr(this) && env.isL0(variable))
+      (s.push(REF_TYPE(), Some(this)), None)
+    else {
+      val newFrame = s.push(V_TYPE(), Some(this))
+      val backtrack =
+        if (newFrame.localVar(variable)._1 != V_TYPE())
+          newFrame.localVar(variable)._2
+        else
+          None
+      (newFrame, backtrack)
+    }
+  }
 }
 
 
@@ -169,6 +225,18 @@ case class InstrASTORE(variable: Variable) extends Instruction {
       case p: Parameter => Set()
       case lv: LocalVar => Set(lv)
     }
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    env.setLift(this)
+    val (value, prev, frame) = s.pop()
+    val newFrame = frame.setLocal(variable, V_TYPE(), Some(this))
+    val backtrack =
+      if (value != V_TYPE())
+        prev
+      else
+        None
+    (newFrame, backtrack)
   }
 }
 

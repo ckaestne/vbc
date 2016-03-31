@@ -8,9 +8,9 @@ import edu.cmu.cs.varex.annotation.VConditional;
 
 public class StaticFieldsExample {
     @VConditional
-    public static boolean A = false;
+    public static boolean A;
     @VConditional
-    public static boolean B = false;
+    public static boolean B;
 
     public static void main(String[] args) {
         System.out.println("start.");
