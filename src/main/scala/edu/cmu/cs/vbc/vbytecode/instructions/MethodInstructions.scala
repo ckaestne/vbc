@@ -27,7 +27,7 @@ trait MethodInstruction extends Instruction {
     val lamdaFactoryDesc = "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;"
 
     val n = env.clazz.lambdaMethods.size
-    def getLambdaFunName = "lambda$" + env.method.name + "$" + n
+    def getLambdaFunName = "lambda$" + env.method.name.replace('<', '$').replace('>', '$') + "$" + n
     def getLambdaFunDesc = "(" + VType * Type.getArgumentTypes(desc).size + FEType + Type.getObjectType(owner) + ")" + VType
     def isReturnVoid = Type.getReturnType(desc) == Type.VOID_TYPE
     def getInvokeType = {
