@@ -1,11 +1,19 @@
 package edu.cmu.cs.vbc.prog.bankaccount;
 
+import edu.cmu.cs.varex.annotation.VConditional;
+
 public class Account {
   final int OVERDRAFT_LIMIT = -5000;
 
   int balance = 0;
 
+  @VConditional
+  public boolean LUCKY;
+
   Account() {
+    if (LUCKY) {
+      balance = 1000;
+    }
   }
 
   private boolean update__wrappee__BankAccount(int x) {

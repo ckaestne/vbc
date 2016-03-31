@@ -46,7 +46,7 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
         cr2.accept(getCheckClassAdapter(getTraceClassVisitor(null)), 0)
         // for debugging
         toFile(name, cw)
-        debugWriteClass(getResourceAsStream(resource))
+        //        debugWriteClass(getResourceAsStream(resource))
         defineClass(name, cw.toByteArray, 0, cw.toByteArray.length)
     }
 
@@ -56,7 +56,7 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
       * @param next next ClassVisitor in the chain, usually a ClassWriter in this case
       * @return a ClassVisitor that should be accepted by ClassReader
       */
-    def getTraceClassVisitor(next: ClassVisitor): ClassVisitor = new TraceClassVisitor(next, new PrintWriter(System.out))
+    def getTraceClassVisitor(next: ClassVisitor): ClassVisitor = new TraceClassVisitor(next, null)
 
     def getCheckClassAdapter(next: ClassVisitor): ClassVisitor = new CheckClassAdapter(next)
 

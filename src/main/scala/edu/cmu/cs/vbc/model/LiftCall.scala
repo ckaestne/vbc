@@ -1,0 +1,75 @@
+package edu.cmu.cs.vbc.model
+
+import edu.cmu.cs.vbc.utils.LiftingFilter
+import org.objectweb.asm.Type
+
+
+/**
+  * Handle method calls, especially methods that we don't lift (e.g. java/lang/)
+  *
+  * There are two cases to consider:
+  *
+  * 1. passing a V as argument actually makes sense (e.g. StringBuilder.append)
+  * 2. passing a V as argument is not necessary (e.g. Integer.valueOf)
+  *
+  * For both cases, we use model classes. But 2 is easier because we only need to call (flat)map
+  * on each V arguments.
+  *
+  * @author chupanw
+  */
+object LiftCall {
+
+  /**
+    * Classes that could accept V arguments
+    */
+  val acceptVArguments: Set[String] = Set(
+    "java/lang/StringBuilder"
+  )
+
+  /**
+    * Takes the method signature and returns the lifted method signature
+    *
+    * @param hasVArguments We assume that either all arguments are Vs, or all arguments are not Vs.
+    * @param owner
+    * @param name
+    * @param desc
+    * @return lifted owner, name, and desc
+    */
+  def liftCall(hasVArguments: Boolean, owner: String, name: String, desc: String, isStatic: Boolean): (Boolean, String, String, String) = {
+    val shouldLiftMethod = LiftingFilter.shouldLiftMethod(owner, name, desc)
+    if (shouldLiftMethod) return (false, owner, name, liftDesc(owner, desc, isStatic, false))
+    if (hasVArguments) {
+      /*
+       * Now all arguments are Vs. There should be a model class for this
+       */
+      (true, getModelOwner(owner), name, liftDesc(owner, desc, isStatic, true))
+    }
+    else {
+      /*
+       * No V arguments at all, we are happy
+       */
+      (false, owner, name, desc)
+    }
+  }
+
+  /**
+    * Change owner to our own model class name
+    *
+    * @param owner For now assume we are only lifting classes in java/xxx
+    * @return model class name
+    */
+  def getModelOwner(owner: String) = {
+    assert(owner.startsWith("java/"))
+    "edu/cmu/cs/vbc/model/" + owner.substring(5)
+  }
+
+  private def liftDesc(owner: String, desc: String, isStatic: Boolean, needHelps: Boolean): String = {
+    val liftType = (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else "Ledu/cmu/cs/varex/V;"
+    val mtype = Type.getMethodType(desc)
+    "(" +
+      (if (needHelps && !isStatic) Type.getObjectType(owner).getDescriptor else "") +
+      (mtype.getArgumentTypes.map(liftType) :+ "Lde/fosd/typechef/featureexpr/FeatureExpr;").mkString("", "", ")") +
+      liftType(mtype.getReturnType)
+  }
+
+}

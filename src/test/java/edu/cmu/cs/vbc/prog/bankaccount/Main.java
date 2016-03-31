@@ -24,9 +24,9 @@ public class Main {
     // Interest Estimation Feature
     a.account.estimatedInterest(10);
 
-//        // Credit Worthiness Feature
-//        a.account.credit(10);
-//        b.account.credit(20);
+    // Credit Worthiness Feature
+    a.account.credit(10);
+    b.account.credit(20);
 
     // Interest Feature
     a.account.update(1);
