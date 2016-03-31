@@ -32,6 +32,13 @@ trait LiftUtils {
     (mtype.getArgumentTypes.map(liftType) :+ Type.getObjectType(fexprclassname)).mkString("(", "", ")") + liftType(mtype.getReturnType)
   }
 
+  protected def liftMethodName(name: String): String = {
+    if (name == "<clinit>")
+      "______clinit______"
+    else
+      name
+  }
+
   /**
     * lift each parameter but DO NOT add a new fexpr parameter at the end for the context
     * For example, the <init> method of model classes should not contain

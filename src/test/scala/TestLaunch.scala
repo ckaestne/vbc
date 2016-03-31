@@ -9,30 +9,34 @@ import org.scalatest.FunSuite
   */
 class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
 
-    FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
+  FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
 
-    test("ifelse") {
-        testMain("edu.cmu.cs.vbc.prog.IfElseExample")
-    }
+  test("ifelse") {
+    testMain("edu.cmu.cs.vbc.prog.IfElseExample")
+  }
 
-    test("test1") {
-        testMain("edu.cmu.cs.vbc.prog.Test1")
-    }
+  test("test1") {
+    testMain("edu.cmu.cs.vbc.prog.Test1")
+  }
 
-    test("invoke example") {
-        testMain("edu.cmu.cs.vbc.prog.InvokeExample")
-    }
+  test("invoke example") {
+    testMain("edu.cmu.cs.vbc.prog.InvokeExample")
+  }
 
-    test("unbalanced stack example") {
-        testMain("edu.cmu.cs.vbc.prog.UnbalancedStackExample")
-    }
+  test("unbalanced stack example") {
+    testMain("edu.cmu.cs.vbc.prog.UnbalancedStackExample")
+  }
 
-    test("bankaccount") {
-        checkCrash("edu.cmu.cs.vbc.prog.bankaccount.Main")
-    }
+  test("bankaccount") {
+    checkCrash("edu.cmu.cs.vbc.prog.bankaccount.Main")
+  }
 
-    test("static fields") {
-        testMain("edu.cmu.cs.vbc.prog.StaticFieldsExample")
-    }
+  test("static fields") {
+    testMain("edu.cmu.cs.vbc.prog.StaticFieldsExample")
+  }
+
+  test("static fields with clinit") {
+    testMain("edu.cmu.cs.vbc.prog.StaticFieldsWithClinit")
+  }
 
 }
