@@ -8,12 +8,12 @@ import edu.cmu.cs.varex.V;
  */
 public class StringBuilder {
 
-    public static V append(java.lang.StringBuilder obj, V v, FeatureExpr fe) {
-        java.lang.StringBuilder ret = obj.append(v.vmap(fe, (ctx, x) -> x));
+    public static V append(java.lang.StringBuilder obj, V v, FeatureExpr ctx) {
+        java.lang.StringBuilder ret = obj.append(v.vmap(ctx, (c, x) -> x));
         return V.one(ret);
     }
 
-    public static V toString(java.lang.StringBuilder obj, FeatureExpr fe) {
+    public static V toString(java.lang.StringBuilder obj, FeatureExpr ctx) {
         return V.one(obj.toString());
     }
 }

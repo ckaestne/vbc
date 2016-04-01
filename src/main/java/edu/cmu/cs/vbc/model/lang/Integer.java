@@ -8,11 +8,11 @@ import edu.cmu.cs.varex.V;
  */
 public class Integer {
 
-    public static V compareTo(java.lang.Integer obj, V<java.lang.Integer> v, FeatureExpr fe) {
+    public static V compareTo(java.lang.Integer obj, V<java.lang.Integer> v, FeatureExpr ctx) {
         return v.map(obj::compareTo);
     }
 
-    public static V valueOf(V<java.lang.Integer> v, FeatureExpr fe) {
+    public static V valueOf(V<java.lang.Integer> v, FeatureExpr ctx) {
         return v;
     }
 }
