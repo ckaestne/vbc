@@ -22,7 +22,7 @@ trait MethodInstruction extends Instruction {
     val invokeName = "apply"
     val flatMapDesc = s"(Ljava/util/function/BiFunction;${FEType})$VType"
     val flatMapOwner = "edu/cmu/cs/varex/V"
-    val flatMapName = "vflatMap"
+    val flatMapName = "sflatMap"
     val lamdaFactoryOwner = "java/lang/invoke/LambdaMetafactory"
     val lamdaFactoryMethod = "metafactory"
     val lamdaFactoryDesc = "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;"
