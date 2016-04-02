@@ -76,9 +76,9 @@ object Rewrite {
         "second instruction in <inti> is not INVOKESPECIAL java/lang/Object.<init> ()V")
 
       // ALOAD and INVOKESPECIAL will be inserted in CFG
-      val newInstrs = firstBlock.instr.drop(2).reverse :+ InstrINIT_CONDITIONAL_FIELDS()
-      val newBlocks = m.body.blocks.reverse.dropRight(1) :+ new Block(newInstrs.reverse: _*)
-      m.copy(body = CFG(newBlocks.reverse))
+      val newInstrs = InstrINIT_CONDITIONAL_FIELDS() +: firstBlock.instr.drop(2)
+      val newBlocks = new Block(newInstrs: _*) +: m.body.blocks.drop(1)
+      m.copy(body = CFG(newBlocks))
     } else m
 
 }
