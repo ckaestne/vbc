@@ -6,7 +6,7 @@ import org.objectweb.asm.signature.SignatureReader
 import org.objectweb.asm.{MethodVisitor, Type}
 
 
-trait LiftUtils {
+object LiftUtils {
   //    val liftedPackagePrefixes = Set("edu.cmu.cs.vbc.test", "edu.cmu.cs.vbc.prog")
   val vclassname = "edu/cmu/cs/varex/V"
   val fexprclassname = "de/fosd/typechef/featureexpr/FeatureExpr"
@@ -23,7 +23,7 @@ trait LiftUtils {
 
   //    protected def shouldLift(classname: String) = liftedPackagePrefixes.exists(classname startsWith _)
 
-  protected def liftType(t: Type): String =
+  def liftType(t: Type): String =
     if (t == Type.VOID_TYPE) t.getDescriptor
     else
       vclasstype
@@ -31,12 +31,12 @@ trait LiftUtils {
   /**
     * lift each parameter and add a new fexpr parameter at the end for the context
     */
-  protected def liftMethodDescription(desc: String): String = {
+  def liftMethodDescription(desc: String): String = {
     val mtype = Type.getMethodType(desc)
     (mtype.getArgumentTypes.map(liftType) :+ Type.getObjectType(fexprclassname)).mkString("(", "", ")") + liftType(mtype.getReturnType)
   }
 
-  protected def liftMethodName(name: String): String = {
+  def liftMethodName(name: String): String = {
     if (name == "<clinit>")
       "______clinit______"
     else
@@ -47,12 +47,12 @@ trait LiftUtils {
     * lift each parameter but DO NOT add a new fexpr parameter at the end for the context
     * For example, the <init> method of model classes should not contain
     */
-  protected def liftMtdDescNoFE(desc: String): String = {
+  def liftMtdDescNoFE(desc: String): String = {
     val mtype = Type.getMethodType(desc)
     mtype.getArgumentTypes.map(liftType).mkString("(", "", ")") + liftType(mtype.getReturnType)
   }
 
-  protected def liftMethodSignature(desc: String, sig: Option[String]): Option[String] = {
+  def liftMethodSignature(desc: String, sig: Option[String]): Option[String] = {
     val sigReader = new SignatureReader(sig.getOrElse(desc))
     val sw = new LiftSignatureWriter()
     sigReader.accept(sw)

@@ -11,8 +11,9 @@ import org.objectweb.asm.Opcodes._
   */
 
 
-case class Block(instr: Instruction*) extends LiftUtils {
+case class Block(instr: Instruction*) {
 
+  import LiftUtils._
 
   def toByteCode(mv: MethodVisitor, env: MethodEnv) = {
     validate()
@@ -194,8 +195,9 @@ case class Block(instr: Instruction*) extends LiftUtils {
 }
 
 
-case class CFG(blocks: List[Block]) extends LiftUtils {
+case class CFG(blocks: List[Block]) {
 
+  import LiftUtils._
 
   def toByteCode(mv: MethodVisitor, env: MethodEnv) = {
     // For <init> methods, the first two instructions should be ALOAD 0 and INVOKESPECIAL
@@ -210,7 +212,7 @@ case class CFG(blocks: List[Block]) extends LiftUtils {
   def toVByteCode(mv: MethodVisitor, env: VMethodEnv) = {
     // allocate a variable for each block, except for the first, which can reuse the parameter slot
     blocks.headOption.map(env.setBlockVar(_, env.ctxParameter))
-    blocks.tail.foreach(env.setBlockVar(_, env.freshLocalVar()))
+    //    blocks.tail.foreach(env.setBlockVar(_, env.freshLocalVar()))
 
     // For <init> methods, the first two instructions should be ALOAD 0 and INVOKESPECIAL
     if (env.method.isInit) {

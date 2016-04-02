@@ -8,7 +8,8 @@ import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.{Label, MethodVisitor}
 
-trait Instruction extends LiftUtils {
+trait Instruction {
+
   def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block)
 
   def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block)
@@ -114,6 +115,7 @@ case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     for (conditionalField <- env.clazz.fields
          if conditionalField.hasConditionalAnnotation; if !conditionalField.isStatic) {
+      import LiftUtils._
       mv.visitVarInsn(ALOAD, 0)
       mv.visitLdcInsn(conditionalField.name)
       mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "createDefinedExternal", "(Ljava/lang/String;)Lde/fosd/typechef/featureexpr/SingleFeatureExpr;", false)

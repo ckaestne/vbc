@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode
 
+import edu.cmu.cs.vbc.utils.LiftUtils
 import edu.cmu.cs.vbc.vbytecode.instructions._
 
 
@@ -35,7 +36,7 @@ object Rewrite {
   private def unifyReturnInstr(method: VBCMethodNode, returnInstr: Instruction): VBCMethodNode = {
     //TODO technically, all methods will always return type V, so we should not have
     //to worry really about what kind of store/load/return instruction we generate here
-    val returnVariable = new LocalVar()
+    val returnVariable = new LocalVar("$result", LiftUtils.vclasstype)
 
     var newReturnBlockInstr = List(returnInstr)
     if (!method.returnsVoid)

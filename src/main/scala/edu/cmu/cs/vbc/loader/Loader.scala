@@ -52,16 +52,28 @@ class Loader {
     val ordered = methodAnalyzer.blocks.toArray :+ m.instructions.size()
 
     var varCache: Map[Int, Variable] = Map()
+    //    if (m.parameters != null)
+    //      for (paramIdx <- 0 until m.parameters.size())
+    //        varCache += (paramIdx -> new Parameter(paramIdx, m.parameters(paramIdx).name))
     val isStatic = (m.access & Opcodes.ACC_STATIC) > 0
-    val parameterCount = Type.getArgumentTypes(m.desc).size + (if (isStatic) 0 else 1) //TODO check whether this changes for static methods without a "this" parameter
+    val parameterCount = Type.getArgumentTypes(m.desc).size + (if (isStatic) 0 else 1)
+    if (m.localVariables != null)
+      for (vIdx <- 0 until m.localVariables.size())
+        if (vIdx < parameterCount)
+          varCache += (vIdx -> new Parameter(vIdx, m.localVariables(vIdx).name))
+        else
+          varCache += (vIdx -> new LocalVar(m.localVariables(vIdx).name, m.localVariables(vIdx).desc))
+
+    // typically we initialize all variables and parameters from the table, but that table is technically optional,
+    // so we need a fallback option and generate them on the fly with name "$unknown"
     def lookupVariable(idx: Int): Variable =
       if (varCache contains idx)
         varCache(idx)
       else {
         val newVar = if (idx < parameterCount)
-          new Parameter(idx)
+          new Parameter(idx, "$unknown")
         else
-          new LocalVar()
+          new LocalVar("$unknown", "V")
         varCache += (idx -> newVar)
         newVar
       }

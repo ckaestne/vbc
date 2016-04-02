@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode
 
 import edu.cmu.cs.vbc.analysis.{VBCAnalyzer, VBCFrame}
-import edu.cmu.cs.vbc.utils.Statistics
+import edu.cmu.cs.vbc.utils.{LiftUtils, Statistics}
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
 
 /**
@@ -169,9 +169,9 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   var blockVars: Map[Block, Variable] = Map()
 
   def createNewVars(l: List[Variable], n: Int): List[Variable] =
-    if (n == 0) l else createNewVars(List[Variable](freshLocalVar()) ::: l, n - 1)
+    if (n == 0) l else createNewVars(List[Variable](freshLocalVar("$unbalancedstack" + n, LiftUtils.vclasstype)) ::: l, n - 1)
 
-  val ctxParameter: Parameter = new Parameter(-1)
+  val ctxParameter: Parameter = new Parameter(-1, "ctx")
 
 
   def setBlockVar(block: Block, avar: Variable): Unit =
@@ -179,7 +179,7 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
 
   def getBlockVar(block: Block): Variable = {
     if (!(blockVars contains block))
-      blockVars += (block -> freshLocalVar())
+      blockVars += (block -> freshLocalVar("$blockctx" + method.body.blocks.indexOf(block), LiftUtils.fexprclasstype))
     blockVars(block)
   }
 

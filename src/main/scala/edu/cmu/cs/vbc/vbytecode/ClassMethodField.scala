@@ -7,7 +7,9 @@ import org.objectweb.asm.tree._
 
 
 case class VBCMethodNode(access: Int, name: String,
-                         desc: String, signature: Option[String], exceptions: List[String], body: CFG) extends LiftUtils {
+                         desc: String, signature: Option[String], exceptions: List[String], body: CFG) {
+
+  import LiftUtils._
 
   def toByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
     val mv = cw.visitMethod(access, name, desc, signature.getOrElse(null), exceptions.toArray)
@@ -22,7 +24,7 @@ case class VBCMethodNode(access: Int, name: String,
     mv.visitCode()
     val env = new VMethodEnv(clazz, this)
     body.toVByteCode(mv, env)
-    mv.visitMaxs(5, 5)
+    mv.visitMaxs(0, 0)
     mv.visitEnd()
   }
 
@@ -65,12 +67,26 @@ sealed trait Variable {
   def getIdx(): Option[Int] = None
 }
 
-case class Parameter(val idx: Int) extends Variable {
+/**
+  * the name is used solely for debugging purposes
+  *
+  * equality by idx
+  */
+class Parameter(val idx: Int, name: String) extends Variable {
   override def getIdx(): Option[Int] = Some(idx)
 
+  override def hashCode = idx
+
+  override def equals(that: Any) = that match {
+    case that: Parameter => this.idx == that.idx
+    case _ => false
+  }
 }
 
-class LocalVar() extends Variable
+/**
+  * the name and description are used solely for debugging purposes
+  */
+class LocalVar(val name: String, val desc: String) extends Variable
 
 
 case class VBCClassNode(
@@ -90,7 +106,9 @@ case class VBCClassNode(
                          invisibleTypeAnnotations: List[TypeAnnotationNode] = Nil,
                          attrs: List[Attribute] = Nil,
                          innerClasses: List[VBCInnerClassNode] = Nil
-                       ) extends LiftUtils {
+                       ) {
+
+  import LiftUtils._
 
   def toByteCode(cv: ClassVisitor, rewriter: VBCMethodNode => VBCMethodNode = a => a) = {
     cv.visit(version, access, name, signature.getOrElse(null), superName, interfaces.toArray)
@@ -202,7 +220,10 @@ case class VBCFieldNode(
                          visibleTypeAnnotations: List[TypeAnnotationNode] = Nil,
                          invisibleTypeAnnotations: List[TypeAnnotationNode] = Nil,
                          attrs: List[Attribute] = Nil
-                       ) extends LiftUtils {
+                       ) {
+
+  import LiftUtils._
+
   def toByteCode(cv: ClassVisitor) = {
     val fv = cv.visitField(access, name, desc, signature, value)
 

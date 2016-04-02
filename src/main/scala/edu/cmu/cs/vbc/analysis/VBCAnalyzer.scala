@@ -47,7 +47,7 @@ class VBCAnalyzer(env: VMethodEnv) {
     // init args
     val args = Type.getArgumentTypes(env.method.desc)
     for (argIdx <- 0 until args.size) {
-      initialFrame = initialFrame.setLocal(new Parameter(if (env.method.isStatic) argIdx else argIdx + 1), VBCType(args(argIdx)), Set())
+      initialFrame = initialFrame.setLocal(new Parameter(if (env.method.isStatic) argIdx else argIdx + 1, "ctx"), VBCType(args(argIdx)), Set())
     }
 
     def getInstr(insn: Int) = instructions(insn)

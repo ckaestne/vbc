@@ -1,10 +1,11 @@
 package edu.cmu.cs.vbc
 
-import edu.cmu.cs.vbc.utils.LiftUtils
 import org.scalatest.{FunSuite, ShouldMatchers}
 
 
-class LiftUtilsTest extends FunSuite with ShouldMatchers with DiffMethodTestInfrastructure with LiftUtils {
+class LiftUtilsTest extends FunSuite with ShouldMatchers with DiffMethodTestInfrastructure {
+
+  import edu.cmu.cs.vbc.utils.LiftUtils._
 
   test("liftDesc") {
     liftMethodDescription("()V") should equal("(" + fexprclasstype + ")V")
