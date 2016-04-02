@@ -62,7 +62,7 @@ case class InstrBIPUSH(value: Int) extends Instruction {
     if (env.shouldLiftInstr(this)) {
       pushConstant(mv, value)
       mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
-      callVCreateOne(mv)
+      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
     else
       toByteCode(mv, env, block)
@@ -93,7 +93,7 @@ case class InstrSIPUSH(value: Int) extends Instruction {
     if (env.shouldLiftInstr(this)) {
       mv.visitIntInsn(SIPUSH, value)
       mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", genSign("I", primitiveToObjectType("I")), false)
-      callVCreateOne(mv)
+      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
     else
       toByteCode(mv, env, block)

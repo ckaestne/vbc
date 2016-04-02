@@ -107,10 +107,10 @@ case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
       mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "createDefinedExternal", "(Ljava/lang/String;)Lde/fosd/typechef/featureexpr/SingleFeatureExpr;", false)
       mv.visitInsn(ICONST_1)
       mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
-      callVCreateOne(mv)
+      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
       mv.visitInsn(ICONST_0)
       mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
-      callVCreateOne(mv)
+      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
       callVCreateChoice(mv)
       mv.visitFieldInsn(PUTFIELD, env.clazz.name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
     }

@@ -83,9 +83,9 @@ case class InstrIDIV() extends BinOpInstruction {
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this))
+    if (env.shouldLiftInstr(this)) {
       mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "IDIV", "(Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Ledu/cmu/cs/varex/V;", false)
-    else
+    } else
       mv.visitInsn(IDIV)
   }
 }

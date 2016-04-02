@@ -234,11 +234,12 @@ case class CFG(blocks: List[Block]) extends LiftUtils {
 
     //there might be a smarter way, but as we need to load an old value when
     //conditionally storing an updated value, we need to initialize all lifted
-    //fields. here setting them all to null
+    //fields. here setting them all to One(null)
     //the same process occurs (not actually but as a potential case for the
     //analysis when jumping over unsatisfiable blocks)
     for (v <- env.getLocalVariables()) {
       mv.visitInsn(ACONST_NULL)
+      callVCreateOne(mv, (m) => loadFExpr(m, env, env.ctxParameter))
       storeV(mv, env, v)
     }
 

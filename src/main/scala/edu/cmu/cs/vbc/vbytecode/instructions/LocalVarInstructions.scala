@@ -155,7 +155,7 @@ case class InstrALOAD(variable: Variable) extends Instruction {
     val idx = env.getVarIdx(variable)
     mv.visitVarInsn(ALOAD, idx)
     if (env.shouldLiftInstr(this))
-      callVCreateOne(mv)
+      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
   }
 
   override def getVariables() = {

@@ -114,7 +114,7 @@ case class VBCClassNode(
     // create <clinit> method
     if (hasStaticConditionalFields) createCLINIT(cv)
     // Write lambda methods
-    lambdaMethods.foreach(_ (cv))
+    lambdaMethods.foreach(_._2(cv))
     cv.visitEnd()
   }
 
@@ -131,10 +131,10 @@ case class VBCClassNode(
       mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "createDefinedExternal", "(Ljava/lang/String;)Lde/fosd/typechef/featureexpr/SingleFeatureExpr;", false)
       mv.visitInsn(ICONST_1)
       mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
-      callVCreateOne(mv)
+      callVCreateOne(mv, (m) => pushConstantTRUE(m))
       mv.visitInsn(ICONST_0)
       mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
-      callVCreateOne(mv)
+      callVCreateOne(mv, (m) => pushConstantTRUE(m))
       callVCreateChoice(mv)
       mv.visitFieldInsn(PUTSTATIC, name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
     }
@@ -160,7 +160,7 @@ case class VBCClassNode(
     //load array param
     mv.visitVarInsn(ALOAD, 0)
     //create a V<String[]>
-    callVCreateOne(mv)
+    callVCreateOne(mv, (m) => pushConstantTRUE(m))
     //set context to True
     pushConstantTRUE(mv)
     mv.visitMethodInsn(INVOKESTATIC, name, "main", liftMethodDescription(mainMethodSig), false)
@@ -184,9 +184,9 @@ case class VBCClassNode(
   }
 
   /**
-    * Generated lambdaMethods
+    * Generated lambdaMethods, indexed by name
     */
-  var lambdaMethods: List[(ClassVisitor) => Unit] = Nil
+  var lambdaMethods: Map[String, (ClassVisitor) => Unit] = Map()
 
 }
 

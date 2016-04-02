@@ -24,7 +24,7 @@ case class InstrICONST(v: Int) extends Instruction {
     if (env.shouldLiftInstr(this)) {
       pushConstant(mv, v)
       mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
-      callVCreateOne(mv)
+      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
     else {
       pushConstant(mv, v)
@@ -56,7 +56,7 @@ case class InstrLDC(o: Object) extends Instruction {
           mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
         }
       }
-      callVCreateOne(mv)
+      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, blockA))
     }
     else {
       mv.visitLdcInsn(o)
@@ -83,7 +83,7 @@ case class InstrACONST_NULL() extends Instruction {
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
       mv.visitInsn(ACONST_NULL)
-      callVCreateOne(mv)
+      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
     else {
       mv.visitInsn(ACONST_NULL)
