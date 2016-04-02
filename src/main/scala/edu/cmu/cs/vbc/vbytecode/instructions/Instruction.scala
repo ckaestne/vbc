@@ -16,11 +16,14 @@ trait Instruction extends LiftUtils {
   /**
     * Update the stack symbolically after executing this instruction
     *
-    * @return UpdatedFrame is a tuple consisting of new VBCFrame and a backtrack instruction.
-    *         If backtrack instruction is not None, we need to backtrack because we finally realise we need to lift
+    * @return UpdatedFrame is a tuple consisting of new VBCFrame and a backtrack instructions.
+    *         If backtrack instruction set is not empty, we need to backtrack because we finally realise we need to lift
     *         that instruction. By default every backtracked instruction should be lifted, except for GETFIELD,
     *         PUTFIELD, INVOKEVIRTUAL, and INVOKESPECIAL, because lifting them or not depends on the type of object
     *         currently on stack. If the object is a V, we need to lift these instructions with INVOKEDYNAMIC.
+    *
+    *         If backtrack instruction set is not empty, the returned VBCFrame is useless, current frame will be pushed
+    *         to queue again and reanalyze later. (see [[edu.cmu.cs.vbc.analysis.VBCAnalyzer.computeBeforeFrames]]
     */
   def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame
 
@@ -48,6 +51,15 @@ trait Instruction extends LiftUtils {
       * @see [[Rewrite.rewrite()]]
       */
     def isINVOKESPECIAL_OBJECT_INIT: Boolean = false
+
+  /**
+    * instructions should not be compared for structural equality but for object identity.
+    * overwriting case class defaults to original Java defaults
+    */
+  override def equals(that: Any) = that match {
+    case t: AnyRef => t eq this
+    case _ => false
+  }
 }
 
 
@@ -61,7 +73,7 @@ case class UNKNOWN(opCode: Int = -1) extends Instruction {
     }
 
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) =
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame =
     throw new RuntimeException("Unknown Instruction: " + OpcodePrint.print(opCode))
 }
 
@@ -74,7 +86,7 @@ case class InstrNOP() extends Instruction {
     override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, None)
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set.empty[Instruction])
 }
 
 
@@ -104,5 +116,5 @@ case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
         }
     }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, None)
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set.empty[Instruction])
 }

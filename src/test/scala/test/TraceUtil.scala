@@ -3,6 +3,7 @@ package edu.cmu.cs.vbc.test
 
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory, SingleFeatureExpr}
 import edu.cmu.cs.varex.{V, VHelper}
+import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, V_TYPE}
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
 import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, VMethodEnv}
@@ -116,7 +117,7 @@ case class TraceInstr_ConfigInit() extends Instruction {
         }
     }
 
-    override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = (s, None)
+    override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set.empty[Instruction])
 }
 
 
@@ -135,7 +136,7 @@ case class TraceInstr_S(s: String) extends Instruction {
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestTraceOutput", "vtrace_s", "(Lde/fosd/typechef/featureexpr/FeatureExpr;Ljava/lang/String;)V", false)
     }
 
-    override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = (s, None)
+    override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set.empty[Instruction])
 }
 
 /**
@@ -153,10 +154,10 @@ case class TraceInstr_Print() extends Instruction {
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestTraceOutput", "vtrace_string", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
     }
 
-    override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
         val backtrack =
             if (s.stack.head._1 != V_TYPE()) s.stack.head._2
-            else None
+            else Set.empty[Instruction]
         (s, backtrack)
     }
 }
@@ -187,8 +188,8 @@ case class TraceInstr_GetField(s: String, desc: String) extends Instruction {
         }
     }
 
-    override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
         if (s.stack.head._1 == V_TYPE()) env.setLift(this)
-        (s, None)
+        (s, Set.empty[Instruction])
     }
 }

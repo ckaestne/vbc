@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
+import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{REF_TYPE, VBCFrame, V_TYPE}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
@@ -38,18 +39,19 @@ case class InstrISTORE(variable: Variable) extends Instruction {
     }
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     // Now we assume all blocks are executed under some ctx other than method ctx,
     // meaning that all local variables should be a V, and so all ISTORE instructions
     // should be lifted
     env.setLift(this)
     val (value, prev, frame) = s.pop()
-    val newFrame = frame.setLocal(variable, V_TYPE(), Some(this))
+    // For now, all local variables are V. Later, this could be relaxed with more careful tagV analysis
+    val newFrame = frame.setLocal(variable, V_TYPE(), Set(this))
     val backtrack =
       if (value != V_TYPE())
         prev
       else
-        None
+        Set.empty[Instruction]
     (newFrame, backtrack)
   }
 }
@@ -78,14 +80,14 @@ case class InstrILOAD(variable: Variable) extends Instruction {
     }
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     env.setLift(this)
-    val newFrame = s.push(V_TYPE(), Some(this))
+    val newFrame = s.push(V_TYPE(), Set(this))
     val backtrack =
       if (s.localVar(variable)._1 != V_TYPE())
         s.localVar(variable)._2
       else
-        None
+        Set.empty[Instruction]
     (newFrame, backtrack)
   }
 }
@@ -126,13 +128,13 @@ case class InstrIINC(variable: Variable, increment: Int) extends Instruction {
     }
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     // Now we assume all blocks are executed under some ctx other than method ctx,
     // meaning that all local variables should be a V, and so IINC instructions
     // should be lifted
     env.setLift(this)
-    val newFrame = s.setLocal(variable, V_TYPE(), Some(this))
-    (newFrame, None)
+    val newFrame = s.setLocal(variable, V_TYPE(), Set(this))
+    (newFrame, Set.empty[Instruction])
   }
 }
 
@@ -170,22 +172,22 @@ case class InstrALOAD(variable: Variable) extends Instruction {
     */
   override def isALOAD0: Boolean = variable.getIdx().contains(0)
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     /*
      * This assumes that all local variables other than this parameter to be V.
      *
      * In the future, if STORE operations are optimized, this could also be optimized to avoid loading V and
      * save some instructions.
      */
-    if (!env.shouldLiftInstr(this) && env.isL0(variable))
-      (s.push(REF_TYPE(), Some(this)), None)
+    if (!env.shouldLiftInstr(this) && env.isNonStaticL0(variable))
+      (s.push(REF_TYPE(), Set(this)), Set.empty[Instruction])
     else {
-      val newFrame = s.push(V_TYPE(), Some(this))
+      val newFrame = s.push(V_TYPE(), Set(this))
       val backtrack =
         if (newFrame.localVar(variable)._1 != V_TYPE())
           newFrame.localVar(variable)._2
         else
-          None
+          Set.empty[Instruction]
       (newFrame, backtrack)
     }
   }
@@ -227,15 +229,15 @@ case class InstrASTORE(variable: Variable) extends Instruction {
     }
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     env.setLift(this)
     val (value, prev, frame) = s.pop()
-    val newFrame = frame.setLocal(variable, V_TYPE(), Some(this))
+    val newFrame = frame.setLocal(variable, V_TYPE(), Set(this))
     val backtrack =
       if (value != V_TYPE())
         prev
       else
-        None
+        Set.empty[Instruction]
     (newFrame, backtrack)
   }
 }

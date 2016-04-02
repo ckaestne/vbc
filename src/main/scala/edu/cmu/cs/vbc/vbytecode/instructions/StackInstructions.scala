@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
+import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{INT_TYPE, VBCFrame, V_TYPE}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
@@ -19,11 +20,11 @@ case class InstrDUP() extends Instruction {
     mv.visitInsn(DUP)
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val (v, prev, frame1) = s.pop()
     val frame2 = frame1.push(v, prev)
     val frame3 = frame2.push(v, prev)
-    (frame3, None)
+    (frame3, Set.empty[Instruction])
   }
 }
 
@@ -40,9 +41,9 @@ case class InstrPOP() extends Instruction {
     mv.visitInsn(POP)
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val (v, prev, newFrame) = s.pop()
-    (newFrame, None)
+    (newFrame, Set.empty[Instruction])
   }
 }
 
@@ -67,13 +68,13 @@ case class InstrBIPUSH(value: Int) extends Instruction {
       toByteCode(mv, env, block)
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val newFrame =
       if (env.shouldLiftInstr(this))
-        s.push(V_TYPE(), Some(this))
+        s.push(V_TYPE(), Set(this))
       else
-        s.push(INT_TYPE(), Some(this))
-    (newFrame, None)
+        s.push(INT_TYPE(), Set(this))
+    (newFrame, Set.empty[Instruction])
   }
 }
 
@@ -98,12 +99,12 @@ case class InstrSIPUSH(value: Int) extends Instruction {
       toByteCode(mv, env, block)
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val newFrame =
       if (env.shouldLiftInstr(this))
-        s.push(V_TYPE(), Some(this))
+        s.push(V_TYPE(), Set(this))
       else
-        s.push(INT_TYPE(), Some(this))
-    (newFrame, None)
+        s.push(INT_TYPE(), Set(this))
+    (newFrame, Set.empty[Instruction])
   }
 }

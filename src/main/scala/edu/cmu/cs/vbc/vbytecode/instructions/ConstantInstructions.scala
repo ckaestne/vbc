@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
+import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{INT_TYPE, VBCFrame, VBCType, V_TYPE}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
@@ -30,13 +31,13 @@ case class InstrICONST(v: Int) extends Instruction {
     }
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val newFrame =
       if (env.shouldLiftInstr(this))
-        s.push(V_TYPE(), Some(this))
+        s.push(V_TYPE(), Set(this))
       else
-        s.push(INT_TYPE(), Some(this))
-    (newFrame, None)
+        s.push(INT_TYPE(), Set(this))
+    (newFrame, Set.empty[Instruction])
   }
 }
 
@@ -62,17 +63,17 @@ case class InstrLDC(o: Object) extends Instruction {
     }
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val newFrame =
       if (env.shouldLiftInstr(this))
-        s.push(V_TYPE(), Some(this))
+        s.push(V_TYPE(), Set(this))
       else
         o match {
-          case i: java.lang.Integer => s.push(INT_TYPE(), Some(this))
-          case str: java.lang.String => s.push(VBCType(Type.getObjectType("java/lang/String")), Some(this))
+          case i: java.lang.Integer => s.push(INT_TYPE(), Set(this))
+          case str: java.lang.String => s.push(VBCType(Type.getObjectType("java/lang/String")), Set(this))
           case _ => throw new RuntimeException("Incomplete support for LDC")
         }
-    (newFrame, None)
+    (newFrame, Set.empty[Instruction])
   }
 }
 
@@ -90,10 +91,10 @@ case class InstrACONST_NULL() extends Instruction {
 
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     if (env.shouldLiftInstr(this))
-      (s.push(V_TYPE(), Some(this)), None)
+      (s.push(V_TYPE(), Set(this)), Set.empty[Instruction])
     else
-      (s.push(VBCType(Type.getObjectType("null")), Some(this)), None)
+      (s.push(VBCType(Type.getObjectType("null")), Set(this)), Set.empty[Instruction])
   }
 }

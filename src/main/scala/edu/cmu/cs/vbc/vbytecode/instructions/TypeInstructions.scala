@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
+import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_REF_TYPE}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
@@ -32,11 +33,12 @@ case class InstrNEW(t: String) extends Instruction {
       *       is taken from stack, we wrap the stack value into a V from there, before using the value. Now, only PUTFIELD
       *       instruction could expect a NEW_REF_VALUE from stack.
       */
-    override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
-        val isV = env.shouldLiftInstr(this)
-        if (isV)
-            (s.push(V_REF_TYPE(VBCType.nextID), Some(this)), None)
+    override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
+        if (env.shouldLiftInstr(this)) {
+            // If the same new instructions are analyzed, ID always gets updated
+            (s.push(V_REF_TYPE(VBCType.nextID), Set(this)), Set.empty[Instruction])
+        }
         else
-            (s.push(VBCType(Type.getObjectType(t)), Some(this)), None)
+            (s.push(VBCType(Type.getObjectType(t)), Set(this)), Set.empty[Instruction])
     }
 }

@@ -1,6 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
-import edu.cmu.cs.vbc.analysis.{VBCFrame, V_TYPE}
+import edu.cmu.cs.vbc.analysis.VBCFrame.{FrameEntry, UpdatedFrame}
+import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_TYPE}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
@@ -20,27 +21,32 @@ trait JumpInstruction extends Instruction {
 
   override def getJumpInstr: Option[JumpInstruction] = Some(this)
 
-  def updateStack1(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+  def updateStack1(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val (v1, prev1, newFrame) = s.pop()
     env.setLift(this)
     if (v1 != V_TYPE()) return (newFrame, prev1)
-    val l = getNonVStackElement(s)
-    val backtrack = if (l.isEmpty) None else l.head
+    val backtrack = backtraceNonVStackElements(s)
     (newFrame, backtrack)
   }
 
-  def updateStack2(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+  def updateStack2(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val (v1, prev1, frame1) = s.pop()
     val (v2, prev2, newFrame) = frame1.pop()
     env.setLift(this)
     if (v1 != V_TYPE()) return (newFrame, prev1)
     if (v1 != V_TYPE()) return (newFrame, prev2)
-    val l = getNonVStackElement(s)
-    val backtrack = if (l.isEmpty) None else l.head
+    val backtrack = backtraceNonVStackElements(s)
     (newFrame, backtrack)
   }
 
-  def getNonVStackElement(f: VBCFrame): List[Option[Instruction]] = f.stack.filter(_._1 != V_TYPE()).unzip._2
+  def backtraceNonVStackElements(f: VBCFrame): Set[Instruction] = {
+    (Tuple2[VBCType, Set[Instruction]](V_TYPE(), Set.empty[Instruction]) /: f.stack) (
+      (a: FrameEntry, b: FrameEntry) => {
+        // a is always V_TYPE()
+        if (a._1 != b._1) (a._1, a._2 ++ b._2)
+        else a
+      })._2
+  }
 }
 
 /**
@@ -86,7 +92,7 @@ case class InstrIFEQ(targetBlockIdx: Int) extends JumpInstruction {
 
   override def getSuccessor() = (None, Some(targetBlockIdx))
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = updateStack1(s, env)
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = updateStack1(s, env)
 }
 
 
@@ -110,7 +116,7 @@ case class InstrIFNE(targetBlockIdx: Int) extends JumpInstruction {
       mv.visitJumpInsn(IFNE, env.getBlockLabel(env.getBlock(targetBlockIdx)))
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = updateStack1(s, env)
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = updateStack1(s, env)
 }
 
 
@@ -130,10 +136,9 @@ case class InstrGOTO(targetBlockIdx: Int) extends JumpInstruction {
 
   override def getSuccessor() = (Some(targetBlockIdx), None)
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     env.setLift(this)
-    val l = getNonVStackElement(s)
-    val backtrack = if (l.isEmpty) None else l.head
+    val backtrack = backtraceNonVStackElements(s)
     (s, backtrack)
   }
 }
@@ -157,7 +162,7 @@ case class InstrIF_ICMPEQ(targetBlockIdx: Int) extends JumpInstruction {
       mv.visitJumpInsn(IF_ICMPEQ, env.getBlockLabel(env.getBlock(targetBlockIdx)))
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = updateStack2(s, env)
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = updateStack2(s, env)
 }
 
 
@@ -179,7 +184,7 @@ case class InstrIF_ICMPGE(targetBlockIdx: Int) extends JumpInstruction {
       mv.visitJumpInsn(IF_ICMPGE, env.getBlockLabel(env.getBlock(targetBlockIdx)))
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = updateStack2(s, env)
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = updateStack2(s, env)
 }
 
 
@@ -201,7 +206,7 @@ case class InstrIFGE(targetBlockIdx: Int) extends JumpInstruction {
       mv.visitJumpInsn(IFGE, env.getBlockLabel(env.getBlock(targetBlockIdx)))
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = updateStack1(s, env)
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = updateStack1(s, env)
 }
 
 
@@ -223,7 +228,7 @@ case class InstrIF_ICMPLT(targetBlockIdx: Int) extends JumpInstruction {
       mv.visitJumpInsn(IF_ICMPLT, env.getBlockLabel(env.getBlock(targetBlockIdx)))
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = updateStack2(s, env)
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = updateStack2(s, env)
 }
 
 
@@ -245,7 +250,7 @@ case class InstrIF_ICMPNE(targetBlockIdx: Int) extends JumpInstruction {
       mv.visitJumpInsn(IF_ICMPNE, env.getBlockLabel(env.getBlock(targetBlockIdx)))
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = updateStack2(s, env)
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = updateStack2(s, env)
 }
 
 
@@ -267,5 +272,5 @@ case class InstrIFGT(targetBlockIdx: Int) extends JumpInstruction {
       mv.visitJumpInsn(IFGT, env.getBlockLabel(env.getBlock(targetBlockIdx)))
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = updateStack1(s, env)
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = updateStack1(s, env)
 }

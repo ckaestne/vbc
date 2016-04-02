@@ -113,7 +113,7 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
     blockTags(blockIdx)
   }
 
-  def isL0(variable: Variable): Boolean = {
+  def isNonStaticL0(variable: Variable): Boolean = {
     if (method.isStatic) false
     else getVarIdxNoCtx(variable) == 0
   }

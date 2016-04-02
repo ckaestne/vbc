@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
+import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_REF_TYPE, V_TYPE}
 import edu.cmu.cs.vbc.model.LiftCall._
 import edu.cmu.cs.vbc.utils.LiftingFilter
@@ -90,10 +91,10 @@ trait MethodInstruction extends Instruction {
                    owner: String,
                    name: String,
                    desc: String
-                 ): (VBCFrame, Option[Instruction]) = {
+                 ): UpdatedFrame = {
     val shouldLift = LiftingFilter.shouldLiftMethod(owner, name, desc)
     val nArg = Type.getArgumentTypes(desc).length
-    val argList: List[(VBCType, Option[Instruction])] = s.stack.take(nArg)
+    val argList: List[(VBCType, Set[Instruction])] = s.stack.take(nArg)
 
     // arguments
     val hasVArgs = argList.exists(_._1 == V_TYPE())
@@ -127,15 +128,15 @@ trait MethodInstruction extends Instruction {
     // return value
     if (Type.getReturnType(desc) != Type.VOID_TYPE) {
       if (env.getTag(this, env.TAG_NEED_V_RETURN))
-        frame = frame.push(V_TYPE(), Some(this))
+        frame = frame.push(V_TYPE(), Set(this))
       else if (env.shouldLiftInstr(this))
-        frame = frame.push(V_TYPE(), Some(this))
+        frame = frame.push(V_TYPE(), Set(this))
       else if (shouldLift || (hasVArgs && !shouldLift))
-        frame = frame.push(V_TYPE(), Some(this))
+        frame = frame.push(V_TYPE(), Set(this))
       else
-        frame = frame.push(VBCType(Type.getReturnType(desc)), Some(this))
+        frame = frame.push(VBCType(Type.getReturnType(desc)), Set(this))
     }
-    (frame, None)
+    (frame, Set.empty[Instruction])
   }
 }
 
@@ -193,7 +194,7 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
   override def isINVOKESPECIAL_OBJECT_INIT: Boolean =
     owner == "java/lang/Object" && name == "<init>" && desc == "()V" && !itf
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) =
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame =
     updateStack(s, env, owner, name, desc)
 }
 
@@ -249,7 +250,7 @@ case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Bo
     }
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) =
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame =
     updateStack(s, env, owner, name, desc)
 }
 
@@ -278,6 +279,6 @@ case class InstrINVOKESTATIC(owner: String, name: String, desc: String, itf: Boo
     if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv)
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) =
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame =
     updateStack(s, env, owner, name, desc)
 }

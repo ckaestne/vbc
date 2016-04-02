@@ -5,6 +5,17 @@ import org.objectweb.asm.Type
 /**
   * Symbolic value for interpretation of bytecode
   *
+  * Lattice:
+  *
+  * V_TYPE
+  * /     \
+  * /      V_REF_TYPE
+  * /        \
+  * INT_TYPE     REF_TYPE
+  * \        /
+  * \       /
+  * UNINITIALIZED_TYPE
+  *
   * @todo some other basic types (float, long, double)
   * @author chupanw
   */

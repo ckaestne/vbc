@@ -41,12 +41,12 @@ class VBCAnalyzer(env: VMethodEnv) {
     var local: Int = 0
     // init this
     if (!env.method.isStatic) {
-      initialFrame = initialFrame.setLocal(env.thisParameter, VBCType(Type.getObjectType(env.clazz.name)), None)
+      initialFrame = initialFrame.setLocal(env.thisParameter, VBCType(Type.getObjectType(env.clazz.name)), Set.empty[Instruction])
     }
     // init args
     val args = Type.getArgumentTypes(env.method.desc)
     for (argIdx <- 0 until args.size) {
-      initialFrame = initialFrame.setLocal(new Parameter(if (env.method.isStatic) argIdx else argIdx + 1), VBCType(args(argIdx)), None)
+      initialFrame = initialFrame.setLocal(new Parameter(if (env.method.isStatic) argIdx else argIdx + 1), VBCType(args(argIdx)), Set.empty[Instruction])
     }
 
     def getInstr(insn: Int) = instructions(insn)
@@ -79,15 +79,17 @@ class VBCAnalyzer(env: VMethodEnv) {
       val insn: Int = queue.dequeue()
       val instr: Instruction = env.instructions(insn)
       val (frame, backtrack) = instr.updateStack(beforeInstructionFrames(insn), env)
-      if (backtrack.isDefined) {
-        val idx = env.getInsnIdx(backtrack.get)
-        backtrack.get.doBacktrack(env)
+      if (backtrack.nonEmpty) {
+        val idxSet: Set[Int] = backtrack.map(env.getInsnIdx)
+        backtrack.foreach(_.doBacktrack(env))
         /* Put the current instruction back because backtracking does not guarantee revisit of this instruction */
-        /* (if at some point merging two frames does not change, it stops scanning) */
-        if (!(queue contains insn))
+        /* (if at some point merging two frames does not change, it stops scanning forward) */
+        if (!(queue contains insn)) {
           queue.enqueue(insn)
-        if (!(queue contains idx))
-          queue.enqueue(idx)
+        }
+        idxSet.foreach(
+          idx => if (!(queue contains idx)) queue.enqueue(idx)
+        )
       }
       else {
         instr match {

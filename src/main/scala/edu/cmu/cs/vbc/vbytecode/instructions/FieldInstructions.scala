@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
+import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_TYPE}
 import edu.cmu.cs.vbc.utils.LiftingFilter
 import edu.cmu.cs.vbc.vbytecode._
@@ -133,13 +134,13 @@ case class InstrGETSTATIC(owner: String, name: String, desc: String) extends Fie
     }
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     if (LiftingFilter.shouldLiftField(owner, name, desc)) {
       env.setLift(this)
-      (s.push(V_TYPE(), Some(this)), None)
+      (s.push(V_TYPE(), Set(this)), Set.empty[Instruction])
     }
     else {
-      (s.push(VBCType(Type.getType(desc)), Some(this)), None)
+      (s.push(VBCType(Type.getType(desc)), Set(this)), Set.empty[Instruction])
     }
   }
 }
@@ -168,14 +169,14 @@ case class InstrPUTSTATIC(owner: String, name: String, desc: String) extends Fie
     }
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val (v, prev, newFrame) = s.pop()
     env.setLift(this)
     val backtrack =
       if (v != V_TYPE())
         prev
       else
-        None
+        Set.empty[Instruction]
     (newFrame, backtrack)
   }
 }
@@ -199,11 +200,11 @@ case class InstrGETFIELD(owner: String, name: String, desc: String) extends Fiel
       mv.visitFieldInsn(GETFIELD, owner, name, "Ledu/cmu/cs/varex/V;")
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val (v, prev, frame) = s.pop()
     if (v == V_TYPE()) env.setLift(this)
-    val newFrame = frame.push(V_TYPE(), Some(this))
-    (newFrame, None)
+    val newFrame = frame.push(V_TYPE(), Set(this))
+    (newFrame, Set.empty[Instruction])
   }
 
   override def doBacktrack(env: VMethodEnv): Unit = {
@@ -261,12 +262,12 @@ case class InstrPUTFIELD(owner: String, name: String, desc: String) extends Fiel
     }
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val (value, prev1, frame) = s.pop()
     val (ref, prev2, newFrame) = frame.pop()
     if (value != V_TYPE()) return (newFrame, prev1)
     if (ref == V_TYPE()) env.setLift(this)
-    (newFrame, None)
+    (newFrame, Set.empty[Instruction])
   }
 
   override def doBacktrack(env: VMethodEnv): Unit = {

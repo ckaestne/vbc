@@ -3,6 +3,7 @@ package edu.cmu.cs.vbc.test
 
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
 import edu.cmu.cs.varex.{V, VHelper}
+import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, V_TYPE}
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
 import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, VMethodEnv}
@@ -67,9 +68,9 @@ case class InstrLoadConfig(config: String) extends Instruction {
     override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit =
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/Config", "V" + config, "()Ledu/cmu/cs/varex/V;", false)
 
-    override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
         env.setLift(this)
-        (s.push(V_TYPE(), Some(this)), None)
+        (s.push(V_TYPE(), Set(this)), Set.empty[Instruction])
     }
 }
 
@@ -84,12 +85,12 @@ case class InstrDBGIPrint() extends Instruction {
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printVI", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
     }
 
-    override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = {
+    override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
         env.setLift(this)
         val (v, prev, newFrame) = s.pop()
         val backtrack =
             if (v != V_TYPE()) prev
-            else None
+            else Set.empty[Instruction]
         (newFrame, backtrack)
     }
 }
@@ -105,5 +106,5 @@ case class InstrDBGCtx(name: String) extends Instruction {
         mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Ljava/lang/String;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
     }
 
-    override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Option[Instruction]) = (s, None)
+    override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set.empty[Instruction])
 }
