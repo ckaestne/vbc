@@ -12,6 +12,7 @@ public class Main {
         System.out.println(this.getClass().getClassLoader().toString());
 
     }
+
     public void run() {
         I a = foo();
         I b = bar();
@@ -34,7 +35,7 @@ class I {
     private final int i;
 
     I(int i) {
-        System.out.println("creating I."+i+" "+this.getClass().getClassLoader().toString());
+        System.out.println("creating I." + i + " " + this.getClass().getClassLoader().toString());
         this.i = i;
     }
 
