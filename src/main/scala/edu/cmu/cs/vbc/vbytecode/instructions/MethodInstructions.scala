@@ -140,7 +140,7 @@ trait MethodInstruction extends Instruction {
       else
         frame = frame.push(VBCType(Type.getReturnType(desc)), Set(this))
     }
-    (frame, Set.empty[Instruction])
+    (frame, Set())
   }
 }
 

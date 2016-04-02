@@ -94,10 +94,10 @@ case class InstrGETSTATIC(owner: String, name: String, desc: String) extends Fie
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     if (LiftingFilter.shouldLiftField(owner, name, desc)) {
       env.setLift(this)
-      (s.push(V_TYPE(), Set(this)), Set.empty[Instruction])
+      (s.push(V_TYPE(), Set(this)), Set())
     }
     else {
-      (s.push(VBCType(Type.getType(desc)), Set(this)), Set.empty[Instruction])
+      (s.push(VBCType(Type.getType(desc)), Set(this)), Set())
     }
   }
 }
@@ -133,7 +133,7 @@ case class InstrPUTSTATIC(owner: String, name: String, desc: String) extends Fie
       if (v != V_TYPE())
         prev
       else
-        Set.empty[Instruction]
+        Set[Instruction]()
     (newFrame, backtrack)
   }
 }
@@ -165,7 +165,7 @@ case class InstrGETFIELD(owner: String, name: String, desc: String) extends Fiel
     val (v, prev, frame) = s.pop()
     if (v == V_TYPE()) env.setLift(this)
     val newFrame = frame.push(V_TYPE(), Set(this))
-    (newFrame, Set.empty[Instruction])
+    (newFrame, Set())
   }
 
   override def doBacktrack(env: VMethodEnv): Unit = {
@@ -313,7 +313,7 @@ case class InstrPUTFIELD(owner: String, name: String, desc: String) extends Fiel
     val (ref, prev2, newFrame) = frame.pop()
     if (value != V_TYPE()) return (newFrame, prev1)
     if (ref == V_TYPE()) env.setLift(this)
-    (newFrame, Set.empty[Instruction])
+    (newFrame, Set())
   }
 
   override def doBacktrack(env: VMethodEnv): Unit = {

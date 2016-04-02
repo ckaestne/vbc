@@ -117,7 +117,7 @@ case class TraceInstr_ConfigInit() extends Instruction {
     }
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set.empty[Instruction])
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set())
 }
 
 
@@ -136,7 +136,7 @@ case class TraceInstr_S(s: String) extends Instruction {
     mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestTraceOutput", "vtrace_s", "(Lde/fosd/typechef/featureexpr/FeatureExpr;Ljava/lang/String;)V", false)
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set.empty[Instruction])
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set())
 }
 
 /**
@@ -157,7 +157,7 @@ case class TraceInstr_Print() extends Instruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val backtrack =
       if (s.stack.head._1 != V_TYPE()) s.stack.head._2
-      else Set.empty[Instruction]
+      else Set[Instruction]()
     (s, backtrack)
   }
 }
@@ -190,6 +190,6 @@ case class TraceInstr_GetField(s: String, desc: String) extends Instruction {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     if (s.stack.head._1 == V_TYPE()) env.setLift(this)
-    (s, Set.empty[Instruction])
+    (s, Set())
   }
 }

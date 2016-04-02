@@ -24,7 +24,7 @@ case class InstrDUP() extends Instruction {
     val (v, prev, frame1) = s.pop()
     val frame2 = frame1.push(v, prev)
     val frame3 = frame2.push(v, prev)
-    (frame3, Set.empty[Instruction])
+    (frame3, Set())
   }
 }
 
@@ -43,7 +43,7 @@ case class InstrPOP() extends Instruction {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val (v, prev, newFrame) = s.pop()
-    (newFrame, Set.empty[Instruction])
+    (newFrame, Set())
   }
 }
 
@@ -74,7 +74,7 @@ case class InstrBIPUSH(value: Int) extends Instruction {
         s.push(V_TYPE(), Set(this))
       else
         s.push(INT_TYPE(), Set(this))
-    (newFrame, Set.empty[Instruction])
+    (newFrame, Set())
   }
 }
 
@@ -105,6 +105,6 @@ case class InstrSIPUSH(value: Int) extends Instruction {
         s.push(V_TYPE(), Set(this))
       else
         s.push(INT_TYPE(), Set(this))
-    (newFrame, Set.empty[Instruction])
+    (newFrame, Set())
   }
 }

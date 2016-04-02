@@ -37,7 +37,7 @@ case class InstrICONST(v: Int) extends Instruction {
         s.push(V_TYPE(), Set(this))
       else
         s.push(INT_TYPE(), Set(this))
-    (newFrame, Set.empty[Instruction])
+    (newFrame, Set())
   }
 }
 
@@ -73,7 +73,7 @@ case class InstrLDC(o: Object) extends Instruction {
           case str: java.lang.String => s.push(VBCType(Type.getObjectType("java/lang/String")), Set(this))
           case _ => throw new RuntimeException("Incomplete support for LDC")
         }
-    (newFrame, Set.empty[Instruction])
+    (newFrame, Set())
   }
 }
 
@@ -93,8 +93,8 @@ case class InstrACONST_NULL() extends Instruction {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     if (env.shouldLiftInstr(this))
-      (s.push(V_TYPE(), Set(this)), Set.empty[Instruction])
+      (s.push(V_TYPE(), Set(this)), Set())
     else
-      (s.push(VBCType(Type.getObjectType("null")), Set(this)), Set.empty[Instruction])
+      (s.push(VBCType(Type.getObjectType("null")), Set(this)), Set())
   }
 }

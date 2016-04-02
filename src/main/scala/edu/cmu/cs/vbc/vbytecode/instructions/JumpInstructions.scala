@@ -40,7 +40,7 @@ trait JumpInstruction extends Instruction {
   }
 
   def backtraceNonVStackElements(f: VBCFrame): Set[Instruction] = {
-    (Tuple2[VBCType, Set[Instruction]](V_TYPE(), Set.empty[Instruction]) /: f.stack) (
+    (Tuple2[VBCType, Set[Instruction]](V_TYPE(), Set()) /: f.stack) (
       (a: FrameEntry, b: FrameEntry) => {
         // a is always V_TYPE()
         if (a._1 != b._1) (a._1, a._2 ++ b._2)

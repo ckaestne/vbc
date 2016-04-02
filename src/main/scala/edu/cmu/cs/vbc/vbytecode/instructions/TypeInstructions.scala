@@ -36,9 +36,9 @@ case class InstrNEW(t: String) extends Instruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     if (env.shouldLiftInstr(this)) {
       // If the same new instructions are analyzed, ID always gets updated
-      (s.push(V_REF_TYPE(VBCType.nextID), Set(this)), Set.empty[Instruction])
+      (s.push(V_REF_TYPE(VBCType.nextID), Set(this)), Set())
     }
     else
-      (s.push(VBCType(Type.getObjectType(t)), Set(this)), Set.empty[Instruction])
+      (s.push(VBCType(Type.getObjectType(t)), Set(this)), Set())
   }
 }

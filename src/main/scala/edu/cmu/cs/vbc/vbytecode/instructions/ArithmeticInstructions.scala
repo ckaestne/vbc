@@ -20,14 +20,14 @@ trait BinOpInstruction extends Instruction {
         //todo: float, double
         frame2.push(INT_TYPE(), Set(this))
       }
-    val backtrack =
+    val backtrack: Set[Instruction] =
       if (env.shouldLiftInstr(this)) {
         if (v1 != V_TYPE()) prev1
         else if (v2 != V_TYPE()) prev2
-        else Set.empty[Instruction]
+        else Set()
       }
       else
-        Set.empty[Instruction]
+        Set()
     (newFrame, backtrack)
   }
 }

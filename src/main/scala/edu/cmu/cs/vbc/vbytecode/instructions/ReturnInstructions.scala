@@ -20,7 +20,7 @@ case class InstrRETURN() extends ReturnInstruction {
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit =
     mv.visitInsn(RETURN)
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set.empty[Instruction])
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set())
 }
 
 
@@ -39,7 +39,7 @@ case class InstrIRETURN() extends ReturnInstruction {
     val (v, prev, newFrame) = s.pop()
     val backtrack =
       if (v != V_TYPE()) prev
-      else Set.empty[Instruction]
+      else Set[Instruction]()
     (newFrame, backtrack)
   }
 }
@@ -57,7 +57,7 @@ case class InstrARETURN() extends ReturnInstruction {
     val (v, prev, newFrame) = s.pop()
     val backtrack =
       if (v != V_TYPE()) prev
-      else Set.empty[Instruction]
+      else Set[Instruction]()
     (newFrame, backtrack)
   }
 }
