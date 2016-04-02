@@ -90,6 +90,7 @@ class VImpl<T> implements V<T> {
 
     @Override
     public <U> V<? extends U> map(@Nonnull BiFunction<FeatureExpr, ? super T, ? extends U> fun) {
+        assert fun != null;
         Map<U, FeatureExpr> result = new HashMap<>(values.size());
         for (HashMap.Entry<T, FeatureExpr> e : values.entrySet())
             put(result, fun.apply(e.getValue(), e.getKey()), e.getValue());
@@ -108,6 +109,7 @@ class VImpl<T> implements V<T> {
 
     @Override
     public <U> V<? extends U> flatMap(@Nonnull BiFunction<FeatureExpr, ? super T, V<? extends U>> fun) {
+        assert fun != null;
         Map<U, FeatureExpr> result = new HashMap<>(values.size());
         for (HashMap.Entry<T, FeatureExpr> e : values.entrySet()) {
             V<? extends U> u = fun.apply(e.getValue(), e.getKey());
@@ -118,6 +120,7 @@ class VImpl<T> implements V<T> {
 
 
     private static <U> void addVToMap(Map<U, FeatureExpr> result, FeatureExpr ctx, @Nonnull V<? extends U> u) {
+        assert u != null;
         assert (u instanceof One) || (u instanceof VImpl) : "unexpected V value: " + u;
         if (u instanceof One)
             put(result, ((One<U>) u).value, ctx.and(((One<U>) u).configSpace));
@@ -153,6 +156,7 @@ class VImpl<T> implements V<T> {
 
     @Override
     public void foreach(@Nonnull BiConsumer<FeatureExpr, T> fun) {
+        assert fun != null;
         for (HashMap.Entry<T, FeatureExpr> e : values.entrySet())
             fun.accept(e.getValue(), e.getKey());
     }
