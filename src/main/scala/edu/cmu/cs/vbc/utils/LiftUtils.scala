@@ -16,6 +16,11 @@ trait LiftUtils {
   val fexprclasstype = "L" + fexprclassname + ";"
   val ctxParameterOffset = 1
 
+  val lamdaFactoryOwner = "java/lang/invoke/LambdaMetafactory"
+  val lamdaFactoryMethod = "metafactory"
+  val lamdaFactoryDesc = "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;"
+
+
   //    protected def shouldLift(classname: String) = liftedPackagePrefixes.exists(classname startsWith _)
 
   protected def liftType(t: Type): String =
@@ -97,6 +102,9 @@ trait LiftUtils {
   def loadFExpr(mv: MethodVisitor, env: MethodEnv, v: Variable) =
     mv.visitVarInsn(ALOAD, env.getVarIdx(v))
 
+  def loadCurrentCtx(mv: MethodVisitor, env: VMethodEnv, block: Block) =
+    if (env.isMain) pushConstantTRUE(mv) else loadFExpr(mv, env, env.getBlockVar(block))
+
   def storeV(mv: MethodVisitor, env: MethodEnv, v: Variable) =
     mv.visitVarInsn(ASTORE, env.getVarIdx(v))
 
@@ -107,8 +115,11 @@ trait LiftUtils {
     * precondition: plain reference on top of stack
     * postcondition: V reference on top of stack
     */
-  def callVCreateOne(mv: MethodVisitor) =
-    mv.visitMethodInsn(INVOKESTATIC, vclassname, "one", "(Ljava/lang/Object;)Ledu/cmu/cs/varex/V;", true)
+  def callVCreateOne(mv: MethodVisitor, loadCtx: (MethodVisitor) => Unit) = {
+    loadCtx(mv)
+    mv.visitInsn(SWAP)
+    mv.visitMethodInsn(INVOKESTATIC, vclassname, "one", s"(${fexprclasstype}Ljava/lang/Object;)$vclasstype", true)
+  }
 
   /**
     * precondition: feature expression and two V references on top of stack
