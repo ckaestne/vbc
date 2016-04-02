@@ -15,9 +15,9 @@ public class Main {
     private Application b;
 
     public Main() {
+        a = new Application();
+        b = new Application();
         if (FM.bankaccount) {
-            a = new Application();
-            b = new Application();
             getA().account.update(100);
             getB().account.update(200);
             getA().nextDay();
