@@ -1,6 +1,5 @@
-package edu.cmu.cs.vbc.util
+package edu.cmu.cs.vbc.utils
 
-import edu.cmu.cs.vbc.vbytecode.util.LiftUtils
 import org.objectweb.asm.signature.{SignatureVisitor, SignatureWriter}
 
 /**

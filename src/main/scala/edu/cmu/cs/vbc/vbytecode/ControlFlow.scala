@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode
 
+import edu.cmu.cs.vbc.utils.LiftUtils
 import edu.cmu.cs.vbc.vbytecode.instructions._
-import edu.cmu.cs.vbc.vbytecode.util.LiftUtils
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
 

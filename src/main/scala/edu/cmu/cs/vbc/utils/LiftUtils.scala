@@ -1,6 +1,5 @@
-package edu.cmu.cs.vbc.vbytecode.util
+package edu.cmu.cs.vbc.utils
 
-import edu.cmu.cs.vbc.util.LiftSignatureWriter
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.signature.SignatureReader
