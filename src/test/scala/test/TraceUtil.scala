@@ -62,7 +62,7 @@ object TestTraceOutput {
     //        if (v.isInstanceOf[String])
     //            trace ::=(ctx, v.asInstanceOf[String])
     //        else
-    for ((ictx, s) <- VHelper.explode(t, v))
+    for ((ictx, s) <- VHelper.explode(ctx, v))
       trace ::=(ctx.and(ictx), if (s == null) "null" else s.toString)
   }
 

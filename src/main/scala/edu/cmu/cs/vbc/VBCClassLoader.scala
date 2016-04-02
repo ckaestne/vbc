@@ -19,7 +19,8 @@ import org.objectweb.asm.{ClassReader, ClassVisitor, ClassWriter}
   */
 class VBCClassLoader(parentClassLoader: ClassLoader,
                      isLift: Boolean = true,
-                     rewriter: VBCMethodNode => VBCMethodNode = a => a) extends ClassLoader(parentClassLoader) {
+                     rewriter: VBCMethodNode => VBCMethodNode = a => a,
+                     toFileDebugging: Boolean = true) extends ClassLoader(parentClassLoader) {
 
   val loader = new Loader()
 
@@ -45,7 +46,8 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
     val cr2 = new ClassReader(cw.toByteArray)
     cr2.accept(getCheckClassAdapter(getTraceClassVisitor(null)), 0)
     // for debugging
-    toFile(name, cw)
+    if (toFileDebugging)
+      toFile(name, cw)
     //        debugWriteClass(getResourceAsStream(resource))
     defineClass(name, cw.toByteArray, 0, cw.toByteArray.length)
   }

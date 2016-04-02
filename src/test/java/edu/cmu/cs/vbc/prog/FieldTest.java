@@ -14,8 +14,8 @@ public class FieldTest {
 
 
     public static void main(String[] args) {
-//        new FieldTest().test0();
-//        new FieldTest().test1();
+        new FieldTest().test0();
+        new FieldTest().test1();
         new FieldTest().test2();
     }
 

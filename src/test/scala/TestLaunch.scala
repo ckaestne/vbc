@@ -12,39 +12,40 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
   FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
 
   test("ifelse") {
-    testMain("edu.cmu.cs.vbc.prog.IfElseExample")
+    testMain(classOf[edu.cmu.cs.vbc.prog.IfElseExample])
   }
 
   test("test1") {
-    testMain("edu.cmu.cs.vbc.prog.Test1")
+    testMain(classOf[edu.cmu.cs.vbc.prog.Test1])
   }
 
-  test("fieldtest") {
-    testMain("edu.cmu.cs.vbc.prog.FieldTest")
-  }
 
   test("invoke example") {
-    testMain("edu.cmu.cs.vbc.prog.InvokeExample")
+    testMain(classOf[edu.cmu.cs.vbc.prog.InvokeExample])
   }
 
   test("unbalanced stack example") {
-    testMain("edu.cmu.cs.vbc.prog.UnbalancedStackExample")
+    testMain(classOf[edu.cmu.cs.vbc.prog.UnbalancedStackExample])
   }
 
   test("bankaccount") {
-    checkCrash("edu.cmu.cs.vbc.prog.bankaccount.Main")
+    checkCrash(classOf[edu.cmu.cs.vbc.prog.bankaccount.Main])
   }
 
   test("static fields") {
-    testMain("edu.cmu.cs.vbc.prog.StaticFieldsExample")
+    testMain(classOf[edu.cmu.cs.vbc.prog.StaticFieldsExample])
   }
 
   test("static fields with clinit") {
-    testMain("edu.cmu.cs.vbc.prog.StaticFieldsWithClinit")
+    testMain(classOf[edu.cmu.cs.vbc.prog.StaticFieldsWithClinit])
   }
 
   test("bankaccout2") {
-    checkCrash("edu.cmu.cs.vbc.prog.bankaccount2.Main")
+    checkCrash(classOf[edu.cmu.cs.vbc.prog.bankaccount2.Main])
+  }
+
+  test("conditional field assignment") {
+    testMain(classOf[edu.cmu.cs.vbc.prog.FieldTest], true, false)
   }
 
 }
