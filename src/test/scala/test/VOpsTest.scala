@@ -1,15 +1,16 @@
 package test
 
 import de.fosd.typechef.featureexpr.FeatureExprFactory
-import edu.cmu.cs.varex.{VOps, V}
+import edu.cmu.cs.varex.{V, VOps}
 import org.scalatest.FunSuite
 
 /**
   * @author chupanw
   */
-class VOpsTest extends FunSuite{
+class VOpsTest extends FunSuite {
 
   def getConfig(n: String) = FeatureExprFactory.createDefinedExternal(n)
+
   def getChoice(n: String, v1: java.lang.Integer, v2: java.lang.Integer) = V.choice(FeatureExprFactory.createDefinedExternal(n), v1, v2)
 
   test("whenEQ 1") {
