@@ -16,7 +16,7 @@ public class Test1 {
   private void run() {
     int a = 3;
     if (A)
-      a = a + 20000;
+      a = a + 200;
     if (B)
       a = a + 5;
 
