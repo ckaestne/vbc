@@ -48,4 +48,7 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
     testMain(classOf[edu.cmu.cs.vbc.prog.FieldTest], true, false)
   }
 
+  test("conditional method invocations") {
+    testMain(classOf[edu.cmu.cs.vbc.prog.MethodTest], true, false)
+  }
 }
