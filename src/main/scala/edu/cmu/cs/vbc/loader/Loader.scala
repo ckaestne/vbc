@@ -68,7 +68,7 @@ class Loader {
 
     def createBlock(start: Int, end: Int): Block = {
       val instrList = for (instrIdx <- start until end;
-                           if m.instructions.get(instrIdx).getOpcode >= 0)
+                           if m.instructions.get(instrIdx).getOpcode >= 0 || m.instructions.get(instrIdx).isInstanceOf[LineNumberNode])
         yield adaptBytecodeInstruction(m.instructions.get(instrIdx), methodAnalyzer.label2BlockIdx.apply, lookupVariable)
       new Block(instrList: _*)
     }
@@ -338,7 +338,12 @@ class Loader {
       case MULTIANEWARRAY => UNKNOWN(MULTIANEWARRAY)
       case IFNULL => UNKNOWN(IFNULL)
       case IFNONNULL => UNKNOWN(IFNONNULL)
-      case -1 => InstrNOP() // special nodes in ASM such as LineNumberNode and LabelNode
+      case -1 =>
+        // special nodes in ASM such as LineNumberNode and LabelNode
+        inst match {
+          case ln: LineNumberNode => InstrLINENUMBER(ln.line)
+          case _ => InstrNOP()
+        }
       case _ => {
         UNKNOWN()
       }
