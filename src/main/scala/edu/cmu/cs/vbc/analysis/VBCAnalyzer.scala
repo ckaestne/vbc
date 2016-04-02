@@ -26,6 +26,7 @@ class VBCAnalyzer(env: VMethodEnv) {
     * Number of instructions
     */
   val n: Int = instructions.length
+
   /**
     * A map of frames before executing each instruction
     */

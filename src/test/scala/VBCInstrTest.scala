@@ -9,37 +9,37 @@ import org.scalatest.FunSuite
 
 
 class VBCInstrTest extends FunSuite with DiffMethodTestInfrastructure {
-    FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
+  FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
 
-    private def simpleMethod(instrs: Instruction*) =
-        testMethod(new VBCMethodNode(ACC_PUBLIC, "test", "()V", Some("()V"), Nil,
-            CFG(List(Block(instrs: _*)))))
+  private def simpleMethod(instrs: Instruction*) =
+    testMethod(new VBCMethodNode(ACC_PUBLIC, "test", "()V", Some("()V"), Nil,
+      CFG(List(Block(instrs: _*)))))
 
-    test("simple method") {
-        simpleMethod(InstrICONST(0), InstrDBGIPrint(), InstrRETURN())
-    }
+  test("simple method") {
+    simpleMethod(InstrICONST(0), InstrDBGIPrint(), InstrRETURN())
+  }
 
-    test("load condition") {
-        simpleMethod(InstrLoadConfig("A"), InstrDBGIPrint(), InstrRETURN())
-    }
+  test("load condition") {
+    simpleMethod(InstrLoadConfig("A"), InstrDBGIPrint(), InstrRETURN())
+  }
 
-    test("conditional IADD") {
-        simpleMethod(InstrICONST(4), InstrLoadConfig("A"), InstrIADD(), InstrDBGIPrint(), InstrRETURN())
-    }
+  test("conditional IADD") {
+    simpleMethod(InstrICONST(4), InstrLoadConfig("A"), InstrIADD(), InstrDBGIPrint(), InstrRETURN())
+  }
 
 
-    test("2 conditional IADD") {
-        simpleMethod(InstrLoadConfig("B"), InstrLoadConfig("A"), InstrIADD(), InstrDBGIPrint(), InstrRETURN())
-    }
+  test("2 conditional IADD") {
+    simpleMethod(InstrLoadConfig("B"), InstrLoadConfig("A"), InstrIADD(), InstrDBGIPrint(), InstrRETURN())
+  }
 
-    test("LOAD, STORE") {
-        val l = new LocalVar()
-        simpleMethod(InstrLoadConfig("A"), InstrISTORE(l), InstrILOAD(l), InstrDBGIPrint(), InstrRETURN())
-    }
+  test("LOAD, STORE") {
+    val l = new LocalVar()
+    simpleMethod(InstrLoadConfig("A"), InstrISTORE(l), InstrILOAD(l), InstrDBGIPrint(), InstrRETURN())
+  }
 
-    test("LOAD, STORE, IINC") {
-        val l = new LocalVar()
-        simpleMethod(InstrLoadConfig("A"), InstrISTORE(l), InstrIINC(l, 1), InstrILOAD(l), InstrDBGIPrint(), InstrRETURN())
-    }
+  test("LOAD, STORE, IINC") {
+    val l = new LocalVar()
+    simpleMethod(InstrLoadConfig("A"), InstrISTORE(l), InstrIINC(l, 1), InstrILOAD(l), InstrDBGIPrint(), InstrRETURN())
+  }
 
 }
