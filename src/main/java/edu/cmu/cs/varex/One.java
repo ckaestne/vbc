@@ -3,6 +3,7 @@ package edu.cmu.cs.varex;
 import de.fosd.typechef.featureexpr.FeatureExpr;
 import de.fosd.typechef.featureexpr.FeatureExprFactory;
 
+import javax.annotation.Nonnull;
 import java.util.function.*;
 
 /**
@@ -31,46 +32,64 @@ public class One<T> implements V<T> {
     }
 
     @Override
-    public <U> V<? extends U> map(Function<? super T, ? extends U> fun) {
+    public <U> V<? extends U> map(@Nonnull Function<? super T, ? extends U> fun) {
+        assert fun != null;
         return new One(configSpace, fun.apply(value));
     }
 
     @Override
-    public <U> V<? extends U> map(BiFunction<FeatureExpr, ? super T, ? extends U> fun) {
+    public <U> V<? extends U> map(@Nonnull BiFunction<FeatureExpr, ? super T, ? extends U> fun) {
+        assert fun != null;
         return new One(configSpace, fun.apply(configSpace, value));
     }
 
     @Override
-    public <U> V<? extends U> flatMap(Function<? super T, V<? extends U>> fun) {
-        return fun.apply(value).select(configSpace);
+    public <U> V<? extends U> flatMap(@Nonnull Function<? super T, V<? extends U>> fun) {
+        assert fun != null;
+        V<? extends U> result = fun.apply(value);
+        assert result != null;
+        return result.reduce(configSpace);
     }
 
     @Override
-    public <U> V<? extends U> flatMap(BiFunction<FeatureExpr, ? super T, V<? extends U>> fun) {
-        return fun.apply(configSpace, value).select(configSpace);
+    public <U> V<? extends U> flatMap(@Nonnull BiFunction<FeatureExpr, ? super T, V<? extends U>> fun) {
+        assert fun != null;
+        V<? extends U> result = fun.apply(configSpace, value);
+        assert result != null;
+        return result.reduce(configSpace);
     }
 
     @Override
-    public void foreach(Consumer<T> fun) {
+    public void foreach(@Nonnull Consumer<T> fun) {
+        assert fun != null;
         fun.accept(value);
     }
 
     @Override
-    public void foreach(BiConsumer<FeatureExpr, T> fun) {
+    public void foreach(@Nonnull BiConsumer<FeatureExpr, T> fun) {
+        assert fun != null;
         fun.accept(configSpace, value);
     }
 
     @Override
-    public FeatureExpr when(Predicate<T> condition) {
+    public FeatureExpr when(@Nonnull Predicate<T> condition) {
+        assert condition != null;
         return condition.test(value) ? FeatureExprFactory.True() : FeatureExprFactory.False();
     }
 
     @Override
-    public V<T> select(FeatureExpr selectConfigSpace) {
+    public V<T> select(@Nonnull FeatureExpr selectConfigSpace) {
+        assert selectConfigSpace != null;
         assert selectConfigSpace.implies(configSpace).isTautology() :
                 "selecting under broader condition (" + selectConfigSpace + ") than the configuration space described by One (" + configSpace + ")";
 
-        FeatureExpr newCondition = configSpace.and(selectConfigSpace);
+        return reduce(selectConfigSpace);
+    }
+
+    @Override
+    public V<T> reduce(@Nonnull FeatureExpr reducedConfigSpace) {
+        assert reducedConfigSpace != null;
+        FeatureExpr newCondition = configSpace.and(reducedConfigSpace);
         if (newCondition.isSatisfiable())
             return new One(newCondition, value);
         else return VEmpty.instance();

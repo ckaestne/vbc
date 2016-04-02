@@ -66,6 +66,11 @@ public class VEmpty<T> implements V<T> {
   }
 
   @Override
+  public V<T> reduce(@Nonnull FeatureExpr reducedConfigSpace) {
+    return this;
+  }
+
+  @Override
   public FeatureExpr getConfigSpace() {
     return FeatureExprFactory.False();
   }

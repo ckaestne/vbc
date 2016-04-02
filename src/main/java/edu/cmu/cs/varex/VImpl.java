@@ -99,9 +99,11 @@ class VImpl<T> implements V<T> {
 
     @Override
     public <U> V<? extends U> flatMap(Function<? super T, V<? extends U>> fun) {
+        assert fun != null;
         Map<U, FeatureExpr> result = new HashMap<>(values.size());
         for (HashMap.Entry<T, FeatureExpr> e : values.entrySet()) {
             V<? extends U> u = fun.apply(e.getKey());
+            assert u != null;
             addVToMap(result, e.getValue(), u);
         }
         return createV(result);
@@ -113,6 +115,7 @@ class VImpl<T> implements V<T> {
         Map<U, FeatureExpr> result = new HashMap<>(values.size());
         for (HashMap.Entry<T, FeatureExpr> e : values.entrySet()) {
             V<? extends U> u = fun.apply(e.getValue(), e.getKey());
+            assert u != null;
             addVToMap(result, e.getValue(), u);
         }
         return createV(result);
@@ -149,9 +152,9 @@ class VImpl<T> implements V<T> {
     }
 
     @Override
-    public void foreach(Consumer<T> fun) {
+    public void foreach(@Nonnull Consumer<T> fun) {
+        assert fun != null;
         values.keySet().forEach(fun::accept);
-
     }
 
     @Override
@@ -163,7 +166,8 @@ class VImpl<T> implements V<T> {
 
 
     @Override
-    public FeatureExpr when(Predicate<T> condition) {
+    public FeatureExpr when(@Nonnull Predicate<T> condition) {
+        assert condition != null;
         FeatureExpr result = FeatureExprFactory.False();
         for (HashMap.Entry<T, FeatureExpr> e : values.entrySet())
             if (condition.test(e.getKey()))
@@ -172,15 +176,23 @@ class VImpl<T> implements V<T> {
     }
 
     @Override
-    public V<T> select(FeatureExpr configSpace) {
+    public V<T> select(@Nonnull FeatureExpr configSpace) {
+        assert configSpace != null;
         assert configSpace.implies(getConfigSpace()).isTautology() :
                 "selecting under broader condition (" + configSpace + ") than the configuration space described by One (" + getConfigSpace() + ")";
+
+        return reduce(configSpace);
+    }
+
+    @Override
+    public V<T> reduce(@Nonnull FeatureExpr reducedConfigSpace) {
+        assert reducedConfigSpace != null;
 
         Map<T, FeatureExpr> result = new HashMap<>(values.size());
         Iterator<Map.Entry<T, FeatureExpr>> it = values.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<T, FeatureExpr> entry = it.next();
-            FeatureExpr newCondition = entry.getValue().and(configSpace);
+            FeatureExpr newCondition = entry.getValue().and(reducedConfigSpace);
             if (newCondition.isSatisfiable())
                 result.put(entry.getKey(), newCondition);
         }

@@ -29,6 +29,8 @@ public interface V<T> {
      * result is another V describing the same (partial) configuration space
      * <p>
      * overloaded to access the condition of each entry if desired
+     * <p>
+     * fun may return null.
      */
     <U> V<? extends U> map(@Nonnull Function<? super T, ? extends U> fun);
 
@@ -40,6 +42,8 @@ public interface V<T> {
      * restricts the configuration space by ctx before applying map. removes all
      * entries that are not valid within ctx. result is at most defined in
      * configuration space ctx.
+     * <p>
+     * fun may return null.
      */
     default <U> V<? extends U> smap(@Nonnull FeatureExpr ctx, @Nonnull Function<? super T, ? extends U> fun) {
         assert ctx != null;
@@ -79,6 +83,9 @@ public interface V<T> {
         return V.choice(ctx, this.select(ctx).map(fun), this.select(ctx.not()).map(altFun));
     }
 
+    /**
+     * @param fun may not return null, but One(null)
+     */
     <U> V<? extends U> flatMap(@Nonnull Function<? super T, V<? extends U>> fun);
     <U> V<? extends U> flatMap(@Nonnull BiFunction<FeatureExpr, ? super T, V<? extends U>> fun);
 
@@ -95,6 +102,17 @@ public interface V<T> {
         assert ctx != null;
         assert fun != null;
         return this.select(ctx).flatMap(fun);
+    }
+
+    /**
+     * alternative parameter order to simplify lifting
+     */
+    default <U> V<? extends U> sflatMap(@Nonnull Function<? super T, V<? extends U>> fun, @Nonnull FeatureExpr ctx) {
+        return sflatMap(ctx, fun);
+    }
+
+    default <U> V<? extends U> sflatMap(@Nonnull BiFunction<FeatureExpr, ? super T, V<? extends U>> fun, @Nonnull FeatureExpr ctx) {
+        return sflatMap(ctx, fun);
     }
 
     /**
@@ -136,9 +154,33 @@ public interface V<T> {
         this.select(ctx).foreach(fun);
     }
 
+    /**
+     * alternative parameter order to simplify lifting
+     */
+    default void sforeach(@Nonnull Consumer<T> fun, @Nonnull FeatureExpr ctx) {
+        sforeach(ctx, fun);
+    }
+
+    default void sforeach(@Nonnull BiConsumer<FeatureExpr, T> fun, @Nonnull FeatureExpr ctx) {
+        sforeach(ctx, fun);
+    }
+
     FeatureExpr when(@Nonnull Predicate<T> condition);
 
-    V<T> select(FeatureExpr configSpace);
+    /**
+     * select a subconfiguration space of V
+     *
+     * @param configSpace must be the same or smaller than the configuration
+     *                    space provided by this V
+     */
+    V<T> select(@Nonnull FeatureExpr configSpace);
+
+    /**
+     * reduces the configuration space of V. Resulting V covers at most the
+     * provided configuration space. If it was original configuration space
+     * was smaller, the smaller space remains
+     */
+    V<T> reduce(@Nonnull FeatureExpr reducedConfigSpace);
 
     FeatureExpr getConfigSpace();
 
@@ -172,7 +214,9 @@ public interface V<T> {
     }
     static <U> V<? extends U> choice(@Nonnull FeatureExpr condition, @Nonnull V<? extends U> a, @Nonnull V<? extends U> b) {
         assert a != null;
-        assert b != null;
+        //TODO should not accept null values here. requires clean initialization of variational variables with One(null) instead of null
+        if (b == null)
+            b = V.one(null);
         assert condition != null;
         if (condition.isContradiction())
             return b;
