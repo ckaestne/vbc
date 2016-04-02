@@ -19,6 +19,10 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
     testMain("edu.cmu.cs.vbc.prog.Test1")
   }
 
+  test("fieldtest") {
+    testMain("edu.cmu.cs.vbc.prog.FieldTest")
+  }
+
   test("invoke example") {
     testMain("edu.cmu.cs.vbc.prog.InvokeExample")
   }
