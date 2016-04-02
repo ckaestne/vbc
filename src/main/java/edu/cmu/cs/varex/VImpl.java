@@ -46,7 +46,7 @@ class VImpl<T> implements V<T> {
 
     private boolean checkInvariant() {
         if (values.isEmpty()) return false;// : "empty V";
-        if (values.size()<2) return false;// : "singleton VImpl?";
+        if (values.size() < 2) return false;// : "singleton VImpl?";
         FeatureExpr conditions = FeatureExprFactory.False();
         for (FeatureExpr cond : values.values()) {
             if (!conditions.and(cond).isContradiction()) return false;// : "condition overlaps with previous condition";
@@ -234,7 +234,7 @@ class VImpl<T> implements V<T> {
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof VImpl) {
-            return ((VImpl)obj).values.equals(values);
+            return ((VImpl) obj).values.equals(values);
         }
         return super.equals(obj);
     }

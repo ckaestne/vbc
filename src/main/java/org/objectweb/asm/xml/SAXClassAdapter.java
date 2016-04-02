@@ -2,19 +2,19 @@
  * ASM XML Adapter
  * Copyright (c) 2004-2011, Eugene Kuleshov
  * All rights reserved.
- *
+ * <p>
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ * notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
+ * notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution.
  * 3. Neither the name of the copyright holders nor the names of its
- *    contributors may be used to endorse or promote products derived from
- *    this software without specific prior written permission.
- *
+ * contributors may be used to endorse or promote products derived from
+ * this software without specific prior written permission.
+ * <p>
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -29,12 +29,7 @@
  */
 package org.objectweb.asm.xml;
 
-import org.objectweb.asm.AnnotationVisitor;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.FieldVisitor;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.TypePath;
+import org.objectweb.asm.*;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.helpers.AttributesImpl;
 
@@ -43,10 +38,10 @@ import org.xml.sax.helpers.AttributesImpl;
  * events from the visited class. It can feed any kind of
  * {@link org.xml.sax.ContentHandler ContentHandler}, e.g. XML serializer, XSLT
  * or XQuery engines.
- * 
+ *
  * @see org.objectweb.asm.xml.Processor
  * @see org.objectweb.asm.xml.ASMContentHandler
- * 
+ *
  * @author Eugene Kuleshov
  */
 public final class SAXClassAdapter extends ClassVisitor {
@@ -72,7 +67,7 @@ public final class SAXClassAdapter extends ClassVisitor {
 
     /**
      * Constructs a new {@link SAXClassAdapter SAXClassAdapter} object.
-     * 
+     *
      * @param h
      *            content handler that will be used to send SAX 2.0 events.
      * @param singleDocument
@@ -104,7 +99,7 @@ public final class SAXClassAdapter extends ClassVisitor {
 
     @Override
     public void visitOuterClass(final String owner, final String name,
-            final String desc) {
+                                final String desc) {
         AttributesImpl att = new AttributesImpl();
         att.addAttribute("", "owner", "owner", "", owner);
         if (name != null) {
@@ -119,22 +114,22 @@ public final class SAXClassAdapter extends ClassVisitor {
 
     @Override
     public AnnotationVisitor visitAnnotation(final String desc,
-            final boolean visible) {
+                                             final boolean visible) {
         return new SAXAnnotationAdapter(sa, "annotation", visible ? 1 : -1,
                 null, desc);
     }
 
     @Override
     public AnnotationVisitor visitTypeAnnotation(int typeRef,
-            TypePath typePath, String desc, boolean visible) {
+                                                 TypePath typePath, String desc, boolean visible) {
         return new SAXAnnotationAdapter(sa, "typeAnnotation", visible ? 1 : -1,
                 null, desc, typeRef, typePath);
     }
 
     @Override
     public void visit(final int version, final int access, final String name,
-            final String signature, final String superName,
-            final String[] interfaces) {
+                      final String signature, final String superName,
+                      final String[] interfaces) {
         StringBuffer sb = new StringBuffer();
         appendAccess(access | ACCESS_CLASS, sb);
 
@@ -169,7 +164,7 @@ public final class SAXClassAdapter extends ClassVisitor {
 
     @Override
     public FieldVisitor visitField(final int access, final String name,
-            final String desc, final String signature, final Object value) {
+                                   final String desc, final String signature, final Object value) {
         StringBuffer sb = new StringBuffer();
         appendAccess(access | ACCESS_FIELD, sb);
 
@@ -190,7 +185,7 @@ public final class SAXClassAdapter extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(final int access, final String name,
-            final String desc, final String signature, final String[] exceptions) {
+                                     final String desc, final String signature, final String[] exceptions) {
         StringBuffer sb = new StringBuffer();
         appendAccess(access, sb);
 
@@ -218,7 +213,7 @@ public final class SAXClassAdapter extends ClassVisitor {
 
     @Override
     public final void visitInnerClass(final String name,
-            final String outerName, final String innerName, final int access) {
+                                      final String outerName, final String innerName, final int access) {
         StringBuffer sb = new StringBuffer();
         appendAccess(access | ACCESS_INNER, sb);
 

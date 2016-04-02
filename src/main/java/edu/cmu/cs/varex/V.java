@@ -16,6 +16,7 @@ public interface V<T> {
 
     @Deprecated
     T getOne();
+
     @Deprecated
     default T getOne(@Nonnull FeatureExpr ctx) {
         assert ctx != null;
@@ -87,6 +88,7 @@ public interface V<T> {
      * @param fun may not return null, but One(null)
      */
     <U> V<? extends U> flatMap(@Nonnull Function<? super T, V<? extends U>> fun);
+
     <U> V<? extends U> flatMap(@Nonnull BiFunction<FeatureExpr, ? super T, V<? extends U>> fun);
 
     /**
@@ -140,6 +142,7 @@ public interface V<T> {
     }
 
     void foreach(@Nonnull Consumer<T> fun);
+
     void foreach(@Nonnull BiConsumer<FeatureExpr, T> fun);
 
     default void sforeach(@Nonnull FeatureExpr ctx, @Nonnull Consumer<T> fun) {
@@ -212,6 +215,7 @@ public interface V<T> {
         else
             return VImpl.choice(condition, a.get(), b.get());
     }
+
     static <U> V<? extends U> choice(@Nonnull FeatureExpr condition, @Nonnull V<? extends U> a, @Nonnull V<? extends U> b) {
         assert a != null;
         //TODO should not accept null values here. requires clean initialization of variational variables with One(null) instead of null

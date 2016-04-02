@@ -109,7 +109,7 @@ public class One<T> implements V<T> {
     public boolean equals(Object obj) {
         if (obj instanceof One) {
             if (((One) obj).value == null) return value == null;
-            return ((One)obj).value.equals(value) && ((One)obj).configSpace.equivalentTo(configSpace);
+            return ((One) obj).value.equals(value) && ((One) obj).configSpace.equivalentTo(configSpace);
         }
         return super.equals(obj);
     }
