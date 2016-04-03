@@ -8,9 +8,9 @@ import de.fosd.typechef.featureexpr.FeatureExpr;
 public class VOps {
 
     public static V<? extends Integer> IADD(V<? extends Integer> a, V<? extends Integer> b) {
-        return a.flatMap(aa -> {
+        return a.flatMap((c, aa) -> {
             if (aa == null)
-                return V.one(null);
+                return V.one(c, null);
             else
                 return b.map(bb -> {
                     if (bb == null)
@@ -98,9 +98,9 @@ public class VOps {
     }
 
     public static V<? extends Integer> ISUB(V<? extends Integer> a, V<? extends Integer> b) {
-        return a.flatMap(aa -> {
+        return a.flatMap((c, aa) -> {
             if (aa == null)
-                return V.one(null);
+                return V.one(c, null);
             else
                 return b.map(bb -> {
                     if (bb == null)
@@ -112,9 +112,9 @@ public class VOps {
     }
 
     public static V<? extends Integer> IMUL(V<? extends Integer> a, V<? extends Integer> b) {
-        return a.flatMap(aa -> {
+        return a.flatMap((c, aa) -> {
             if (aa == null)
-                return V.one(null);
+                return V.one(c, null);
             else
                 return b.map(bb -> {
                     if (bb == null)
@@ -127,6 +127,10 @@ public class VOps {
 
     public static V<? extends Integer> IDIV(V<? extends Integer> a, V<? extends Integer> b) {
         return a.flatMap(aa -> b.map(bb -> aa / bb));
+    }
+
+    public static void assertEquivalent(FeatureExpr expected, FeatureExpr found) {
+        assert expected.equivalentTo(found) : String.format("expected %s, but found %s", expected, found);
     }
 
 
