@@ -2,8 +2,8 @@ package edu.cmu.cs.vbc
 
 import de.fosd.typechef.featureexpr.FeatureExprFactory
 import edu.cmu.cs.vbc.test.{InstrDBGIPrint, InstrLoadConfig}
-import edu.cmu.cs.vbc.vbytecode._
 import edu.cmu.cs.vbc.vbytecode.instructions._
+import edu.cmu.cs.vbc.vbytecode.{Block, _}
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Opcodes.ACC_PUBLIC
 import org.scalatest.FunSuite
@@ -86,6 +86,45 @@ class VBCMethodInvTest extends FunSuite with DiffMethodTestInfrastructure {
     runMethod(List(
       Block(InstrLoadConfig("A"), InstrIFEQ(2)),
       Block(createException("java/lang/Exception", "foo") :+ InstrATHROW(): _*),
+      Block(InstrICONST(4), InstrDBGIPrint(), InstrRETURNVoid())
+    ))
+  }
+
+  test("conditionally terminate with different exception") {
+    runMethod(List(
+      Block(InstrLoadConfig("A"), InstrIFEQ(2)),
+      Block(createException("java/lang/Exception", "foo") :+ InstrATHROW(): _*),
+      Block(InstrLoadConfig("B"), InstrIFEQ(4)),
+      Block(createException("java/lang/Exception", "bar") :+ InstrATHROW(): _*),
+      Block(InstrICONST(4), InstrDBGIPrint(), InstrRETURNVoid())
+    ))
+  }
+
+  test("terminate with alternative exception") {
+    runMethod(List(
+      Block(InstrLoadConfig("A"), InstrIFEQ(2)),
+      Block(createException("java/lang/Exception", "foo") :+ InstrATHROW(): _*),
+      Block(createException("java/lang/Exception", "bar") :+ InstrATHROW(): _*)
+    ))
+  }
+
+  test("terminate with alternative exception on stack") {
+    runMethod(List(
+      Block(InstrLoadConfig("A"), InstrIFEQ(2)),
+      Block(createException("java/lang/Exception", "foo") :+ InstrGOTO(3): _*),
+      Block(createException("java/lang/Exception", "bar"): _*),
+      Block(InstrATHROW())
+    ))
+  }
+
+  test("terminate with alternative exception in var") {
+    val exVar = new LocalVar("ex", "Ljava/lang/Exception;")
+    runMethod(List(
+      Block(createException("java/lang/Exception", "foo") :+ InstrASTORE(exVar): _*),
+      Block(InstrLoadConfig("A"), InstrIFEQ(3)),
+      Block(createException("java/lang/Exception", "bar") :+ InstrASTORE(exVar): _*),
+      Block(InstrLoadConfig("B"), InstrIFEQ(5)),
+      Block(InstrALOAD(exVar), InstrATHROW()),
       Block(InstrICONST(4), InstrDBGIPrint(), InstrRETURNVoid())
     ))
   }
