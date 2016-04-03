@@ -3,6 +3,7 @@ package edu.cmu.cs.vbc
 import edu.cmu.cs.vbc.test._
 import edu.cmu.cs.vbc.vbytecode._
 import edu.cmu.cs.vbc.vbytecode.instructions._
+import org.objectweb.asm.Opcodes
 
 /**
   * compares the execution of a class (via main method, lifted using a special class loader)
@@ -25,8 +26,8 @@ trait DiffLaunchTestInfrastructure {
         case InstrINVOKEVIRTUAL("java/io/PrintStream", "println", "(Ljava/lang/Object;)V", _) => List(TraceInstr_Print(), instr)
         case InstrINVOKEVIRTUAL(owner, name, desc, _) => List(TraceInstr_S("INVK_VIRT: " + owner + ";" + name + ";" + desc), instr)
         case InstrGETFIELD(owner, name, desc) if (desc == "I" || desc == "Z") => List(instr, TraceInstr_GetField("GETFIELD: " + owner + ";" + name + ";" + desc, desc))
-        case InstrRETURN() => List(TraceInstr_S("RETURN"), instr)
-        case InstrIRETURN() => List(TraceInstr_S("IRETURN"), instr)
+        case InstrRETURNVoid() => List(TraceInstr_S("RETURN"), instr)
+        case InstrRETURNVal(Opcodes.IRETURN) => List(TraceInstr_S("IRETURN"), instr)
         case instr => List(instr)
       }
       ).flatten: _*

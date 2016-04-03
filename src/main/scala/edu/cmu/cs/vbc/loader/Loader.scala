@@ -66,7 +66,7 @@ class Loader {
         if (vIdx < parameterCount)
           varCache += (vIdx -> new Parameter(vIdx, m.localVariables(vIdx).name))
         else
-          varCache += (vIdx -> new LocalVar(m.localVariables(vIdx).name, m.localVariables(vIdx).desc))
+          varCache += (vIdx -> new LocalVar(m.localVariables(vIdx).name, m.localVariables(vIdx).desc, LocalVar.initOneNull))
 
     // typically we initialize all variables and parameters from the table, but that table is technically optional,
     // so we need a fallback option and generate them on the fly with name "$unknown"
@@ -77,7 +77,7 @@ class Loader {
         val newVar = if (idx < parameterCount)
           new Parameter(idx, "$unknown")
         else
-          new LocalVar("$unknown", "V")
+          new LocalVar("$unknown", "V", LocalVar.initOneNull)
         varCache += (idx -> newVar)
         newVar
       }
@@ -304,12 +304,12 @@ class Loader {
       case RET => UNKNOWN(RET)
       case TABLESWITCH => UNKNOWN(TABLESWITCH)
       case LOOKUPSWITCH => UNKNOWN(LOOKUPSWITCH)
-      case IRETURN => InstrIRETURN()
-      case LRETURN => UNKNOWN(LRETURN)
-      case FRETURN => UNKNOWN(FRETURN)
-      case DRETURN => UNKNOWN(DRETURN)
-      case ARETURN => InstrARETURN()
-      case RETURN => InstrRETURN()
+      case IRETURN => InstrRETURNVal(IRETURN)
+      case LRETURN => InstrRETURNVal(LRETURN)
+      case FRETURN => InstrRETURNVal(FRETURN)
+      case DRETURN => InstrRETURNVal(DRETURN)
+      case ARETURN => InstrRETURNVal(ARETURN)
+      case RETURN => InstrRETURNVoid()
       case GETSTATIC => {
         val i = inst.asInstanceOf[FieldInsnNode]
         InstrGETSTATIC(i.owner, i.name, i.desc)

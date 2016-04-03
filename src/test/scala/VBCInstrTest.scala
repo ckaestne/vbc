@@ -16,30 +16,30 @@ class VBCInstrTest extends FunSuite with DiffMethodTestInfrastructure {
       CFG(List(Block(instrs: _*)))))
 
   test("simple method") {
-    simpleMethod(InstrICONST(0), InstrDBGIPrint(), InstrRETURN())
+    simpleMethod(InstrICONST(0), InstrDBGIPrint(), InstrRETURNVoid())
   }
 
   test("load condition") {
-    simpleMethod(InstrLoadConfig("A"), InstrDBGIPrint(), InstrRETURN())
+    simpleMethod(InstrLoadConfig("A"), InstrDBGIPrint(), InstrRETURNVoid())
   }
 
   test("conditional IADD") {
-    simpleMethod(InstrICONST(4), InstrLoadConfig("A"), InstrIADD(), InstrDBGIPrint(), InstrRETURN())
+    simpleMethod(InstrICONST(4), InstrLoadConfig("A"), InstrIADD(), InstrDBGIPrint(), InstrRETURNVoid())
   }
 
 
   test("2 conditional IADD") {
-    simpleMethod(InstrLoadConfig("B"), InstrLoadConfig("A"), InstrIADD(), InstrDBGIPrint(), InstrRETURN())
+    simpleMethod(InstrLoadConfig("B"), InstrLoadConfig("A"), InstrIADD(), InstrDBGIPrint(), InstrRETURNVoid())
   }
 
   test("LOAD, STORE") {
     val l = new LocalVar("v", "I")
-    simpleMethod(InstrLoadConfig("A"), InstrISTORE(l), InstrILOAD(l), InstrDBGIPrint(), InstrRETURN())
+    simpleMethod(InstrLoadConfig("A"), InstrISTORE(l), InstrILOAD(l), InstrDBGIPrint(), InstrRETURNVoid())
   }
 
   test("LOAD, STORE, IINC") {
     val l = new LocalVar("v", "I")
-    simpleMethod(InstrLoadConfig("A"), InstrISTORE(l), InstrIINC(l, 1), InstrILOAD(l), InstrDBGIPrint(), InstrRETURN())
+    simpleMethod(InstrLoadConfig("A"), InstrISTORE(l), InstrIINC(l, 1), InstrILOAD(l), InstrDBGIPrint(), InstrRETURNVoid())
   }
 
 }

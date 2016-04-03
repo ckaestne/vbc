@@ -24,7 +24,7 @@ class StackAnalysisTest extends FunSuite with DiffMethodTestInfrastructure {
       Block(InstrLoadConfig("A"), InstrIFNE(2)),
       Block(InstrICONST(1), InstrDBGIPrint(), InstrGOTO(3)),
       Block(InstrICONST(2), InstrDBGIPrint(), InstrGOTO(3)),
-      Block(InstrICONST(0), InstrDBGIPrint(), InstrRETURN())
+      Block(InstrICONST(0), InstrDBGIPrint(), InstrRETURNVoid())
     )
 
     val cn = new VBCClassNode(V1_8, ACC_PUBLIC, "Test", None, "java/lang/Object", Nil, Nil, Nil) // dummy VBCClassNode
@@ -46,7 +46,7 @@ class StackAnalysisTest extends FunSuite with DiffMethodTestInfrastructure {
       Block(InstrICONST(2), InstrICONST(3), InstrILOAD(local), InstrICONST(0), InstrIF_ICMPGE(6)),
       Block(InstrDBGIPrint(), InstrGOTO(7)),
       Block(InstrPOP(), InstrPOP(), InstrILOAD(local), InstrICONST(1), InstrISUB(), InstrISTORE(local), InstrICONST(-1), InstrDBGIPrint(), InstrGOTO(4)),
-      Block(InstrDBGIPrint(), InstrDBGIPrint(), InstrICONST(0), InstrDBGIPrint(), InstrRETURN())
+      Block(InstrDBGIPrint(), InstrDBGIPrint(), InstrICONST(0), InstrDBGIPrint(), InstrRETURNVoid())
     )
 
     val cn = new VBCClassNode(V1_8, ACC_PUBLIC, "Test", None, "java/lang/Object", Nil, Nil, Nil) // dummy VBCClassNode
@@ -70,7 +70,7 @@ class StackAnalysisTest extends FunSuite with DiffMethodTestInfrastructure {
       Block(InstrLoadConfig("A"), InstrIFNE(2)),
       Block(InstrICONST(1), InstrICONST(2), InstrGOTO(3)),
       Block(InstrICONST(3), InstrLoadConfig("B"), InstrGOTO(3)),
-      Block(InstrIADD(), InstrDBGIPrint(), InstrRETURN())
+      Block(InstrIADD(), InstrDBGIPrint(), InstrRETURNVoid())
     )
 
     val cn = new VBCClassNode(V1_8, ACC_PUBLIC, "Test", None, "java/lang/Object", Nil, Nil, Nil) // dummy VBCClassNode
@@ -87,7 +87,7 @@ class StackAnalysisTest extends FunSuite with DiffMethodTestInfrastructure {
       Block(InstrLoadConfig("A"), InstrIFNE(2)),
       Block(InstrICONST(1), InstrISTORE(local), InstrGOTO(3)),
       Block(InstrICONST(3), InstrISTORE(local), InstrGOTO(3)),
-      Block(InstrILOAD(local), InstrDBGIPrint(), InstrRETURN())
+      Block(InstrILOAD(local), InstrDBGIPrint(), InstrRETURNVoid())
     )
 
     val cn = new VBCClassNode(V1_8, ACC_PUBLIC, "Test", None, "java/lang/Object", Nil, Nil, Nil) // dummy VBCClassNode

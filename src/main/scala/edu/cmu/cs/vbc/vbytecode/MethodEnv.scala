@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode
 
-import org.objectweb.asm.{Label, Type}
+import org.objectweb.asm.{Label, MethodVisitor, Type}
 
 class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
   protected val blocks = method.body.blocks
@@ -18,7 +18,7 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
   protected var parameterCount = Type.getArgumentTypes(method.desc).size + (if (method.isStatic) 0 else 1)
   protected var freshVars: List[LocalVar] = Nil
 
-  def getFreshVars(): List[Variable] = freshVars
+  def getFreshVars(): List[LocalVar] = freshVars
 
   protected var blockLabels: Map[Block, Label] = Map()
 
@@ -30,11 +30,8 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
     l
   }
 
-  def freshLocalVar(name: String, desc: String): LocalVar = freshLocalVar(desc, Some(name))
-
-  def freshLocalVar(desc: String, name: Option[String] = None): LocalVar = {
-    val n = name.getOrElse("v$" + freshVars.size)
-    val l = new LocalVar(n, desc)
+  def freshLocalVar(name: String, desc: String, init: (MethodVisitor, VMethodEnv, LocalVar) => Unit): LocalVar = {
+    val l = new LocalVar(name, desc, init)
     freshVars ::= l
     l
   }

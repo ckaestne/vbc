@@ -157,8 +157,10 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
 
   def computeExpectingVars(block: Block): (Block, List[Variable]) = {
     val beforeFrame = framesBefore(getInsnIdx(block.instr.head))
-    val newVars: List[Variable] = createNewVars(Nil, beforeFrame.getStackSize)
-    (block, newVars)
+    val newVars: Seq[Variable] =
+      for (i <- 0 until beforeFrame.getStackSize)
+        yield freshLocalVar("$unbalancedstack" + i, LiftUtils.vclasstype, LocalVar.initOneNull)
+    (block, newVars.toList)
   }
 
 
@@ -166,22 +168,14 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   // Utilities
   //////////////////////////////////////////////////
 
-  var blockVars: Map[Block, Variable] = Map()
-
-  def createNewVars(l: List[Variable], n: Int): List[Variable] =
-    if (n == 0) l else createNewVars(List[Variable](freshLocalVar("$unbalancedstack" + n, LiftUtils.vclasstype)) ::: l, n - 1)
-
   val ctxParameter: Parameter = new Parameter(-1, "ctx")
 
+  // allocate a variable for each block, except for the first, which can reuse the parameter slot
+  val blockVars: Map[Block, Variable] = (for (block <- method.body.blocks.tail) yield
+    (block -> freshLocalVar("$blockctx" + method.body.blocks.indexOf(block), LiftUtils.fexprclasstype, LocalVar.initFalse))).toMap +
+    (method.body.blocks.head -> ctxParameter)
 
-  def setBlockVar(block: Block, avar: Variable): Unit =
-    blockVars += (block -> avar)
-
-  def getBlockVar(block: Block): Variable = {
-    if (!(blockVars contains block))
-      blockVars += (block -> freshLocalVar("$blockctx" + method.body.blocks.indexOf(block), LiftUtils.fexprclasstype))
-    blockVars(block)
-  }
+  def getBlockVar(block: Block): Variable = blockVars(block)
 
   def getBlockVarVIdx(block: Block): Int = getVarIdx(getBlockVar(block))
 

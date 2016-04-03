@@ -20,6 +20,7 @@ object LiftUtils {
   val lamdaFactoryMethod = "metafactory"
   val lamdaFactoryDesc = "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;"
 
+  val vexceptionclassname = "edu/cmu/cs/varex/VException"
 
   //    protected def shouldLift(classname: String) = liftedPackagePrefixes.exists(classname startsWith _)
 

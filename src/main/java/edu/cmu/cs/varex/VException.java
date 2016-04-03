@@ -3,7 +3,6 @@ package edu.cmu.cs.varex;
 import de.fosd.typechef.featureexpr.FeatureExpr;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
  * see https://github.com/ckaestne/vbc/wiki/Exceptions
@@ -12,36 +11,39 @@ public class VException extends RuntimeException {
 
     /**
      * condition under which this exception is relevant
-     * (should be redundant to `e`'s configuration space)
      */
     @Nonnull
     final FeatureExpr cond;
 
     /**
-     * exceptions thrown
+     * result of the method, both normal results and exceptions (the latter under condition cond).
      * <p>
-     * config spaces of this `V` should be equivalent to `cond`
+     * never null, but may be One(null) for all non-exception results
      */
     @Nonnull
-    final V<? extends Throwable> e;
-
-    /**
-     * result of the method without exception.
-     * <p>
-     * null for methods with `void` return type, always nonnull otherwise
-     */
-    @Nullable
     final V<?> result;
 
 
-    public VException(@Nonnull FeatureExpr cond, @Nonnull V<? extends Throwable> e, @Nullable V<?> result) {
+    public VException(@Nonnull FeatureExpr cond, @Nonnull V<?> result) {
         assert cond != null;
-        assert e != null;
-        assert e.getConfigSpace().equivalentTo(cond);
+        result.select(cond).foreach(e -> {
+            assert e instanceof Throwable;
+        });
 
         this.cond = cond;
-        this.e = e;
         this.result = result;
+    }
+
+    public V<? extends Throwable> getExceptions() {
+        return (V<? extends Throwable>) this.result.select(cond);
+    }
+
+    public V<?> getResults() {
+        return this.result.reduce(cond.not());
+    }
+
+    public FeatureExpr getExceptionCondition() {
+        return cond;
     }
 }
 

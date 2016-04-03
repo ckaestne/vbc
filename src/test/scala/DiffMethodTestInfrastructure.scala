@@ -5,11 +5,11 @@ import java.lang.reflect.InvocationTargetException
 
 import de.fosd.typechef.conditional.{ConditionalLib, Opt}
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
-import edu.cmu.cs.varex.V
+import edu.cmu.cs.varex.{V, VException, VHelper}
 import edu.cmu.cs.vbc.test.TestOutput.TOpt
 import edu.cmu.cs.vbc.test.{Config, InstrLoadConfig, TestOutput}
 import edu.cmu.cs.vbc.vbytecode._
-import edu.cmu.cs.vbc.vbytecode.instructions.{InstrALOAD, InstrINVOKESPECIAL, InstrRETURN}
+import edu.cmu.cs.vbc.vbytecode.instructions.{InstrALOAD, InstrINVOKESPECIAL, InstrRETURNVoid}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.util.TraceClassVisitor
 import org.objectweb.asm.{ClassReader, ClassWriter}
@@ -32,7 +32,7 @@ trait DiffMethodTestInfrastructure {
         CFG(List(
           Block(InstrALOAD(new Parameter(0, "this")),
             InstrINVOKESPECIAL("java/lang/Object", "<init>", "()V", false),
-            InstrRETURN())
+            InstrRETURNVoid())
         )))
       new VBCClassNode(V1_8, ACC_PUBLIC, "Test", None, "java/lang/Object", Nil, Nil,
         List(constr, testmethod) ++ extraMethods)
@@ -164,11 +164,17 @@ trait DiffMethodTestInfrastructure {
   }
 
   def executeV(obj: Any, clazz: Class[_], method: String, ctx: FeatureExpr): Any = {
+    import scala.collection.JavaConversions._
     try {
       clazz.getMethod(method, classOf[FeatureExpr]).invoke(obj, ctx)
     } catch {
       case e: InvocationTargetException =>
-        TestOutput.printVS(V.one("terminated:" + e.getTargetException.getClass.getCanonicalName + ":" + e.getTargetException.getMessage), ctx)
+        if (e.getTargetException.isInstanceOf[VException]) {
+          val ve = e.getTargetException.asInstanceOf[VException]
+          for ((c, e) <- VHelper.explode(ctx and ve.getExceptionCondition, ve.getExceptions))
+            TestOutput.printVS(V.one("terminated:" + e.getClass.getCanonicalName + ":" + e.getMessage), c)
+        } else
+          TestOutput.printVS(V.one("terminated:" + e.getTargetException.getClass.getCanonicalName + ":" + e.getTargetException.getMessage), ctx)
     }
   }
 

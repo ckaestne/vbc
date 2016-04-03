@@ -4,6 +4,7 @@ import de.fosd.typechef.featureexpr.FeatureExprFactory
 import edu.cmu.cs.vbc.test.{InstrDBGIPrint, InstrLoadConfig}
 import edu.cmu.cs.vbc.vbytecode._
 import edu.cmu.cs.vbc.vbytecode.instructions._
+import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Opcodes.ACC_PUBLIC
 import org.scalatest.FunSuite
 
@@ -11,6 +12,9 @@ import org.scalatest.FunSuite
 class VBCMethodInvTest extends FunSuite with DiffMethodTestInfrastructure {
 
   FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
+
+  def InstrIRETURN() = InstrRETURNVal(Opcodes.IRETURN)
+
 
   private def runMethodI(instrs: List[Instruction], otherMethods: List[VBCMethodNode] = Nil) =
     runMethod(List(Block(instrs: _*)), otherMethods)
@@ -29,8 +33,8 @@ class VBCMethodInvTest extends FunSuite with DiffMethodTestInfrastructure {
   val thisvar = new Parameter(0, "this")
   val param1 = new Parameter(1, "i")
   val testclass = "Test"
-  val m_print0 = methodI("print0", "()V", InstrICONST(0), InstrDBGIPrint(), InstrRETURN())
-  val m_printI = methodI("printI", "(I)V", InstrILOAD(new Parameter(1, "i")), InstrDBGIPrint(), InstrRETURN())
+  val m_print0 = methodI("print0", "()V", InstrICONST(0), InstrDBGIPrint(), InstrRETURNVoid())
+  val m_printI = methodI("printI", "(I)V", InstrILOAD(new Parameter(1, "i")), InstrDBGIPrint(), InstrRETURNVoid())
   val m_add1 = methodI("add1", "(I)I", InstrIINC(param1, 1), InstrILOAD(param1), InstrDUP(), InstrDBGIPrint(), InstrIRETURN())
 
   def createException(classname: String, msg: String): List[Instruction] =
@@ -40,34 +44,34 @@ class VBCMethodInvTest extends FunSuite with DiffMethodTestInfrastructure {
 
   test("test without extra method") {
     runMethodI(List(
-      InstrICONST(0), InstrDBGIPrint(), InstrRETURN()
+      InstrICONST(0), InstrDBGIPrint(), InstrRETURNVoid()
     ))
   }
 
   test("simple method call") {
     runMethod(
-      List(Block(InstrALOAD(thisvar), invokeVirt(m_print0), InstrRETURN())),
+      List(Block(InstrALOAD(thisvar), invokeVirt(m_print0), InstrRETURNVoid())),
       List(m_print0)
     )
   }
 
   test("simple method call with param") {
     runMethod(
-      List(Block(InstrALOAD(thisvar), InstrICONST(5), invokeVirt(m_printI), InstrRETURN())),
+      List(Block(InstrALOAD(thisvar), InstrICONST(5), invokeVirt(m_printI), InstrRETURNVoid())),
       List(m_printI)
     )
   }
 
   test("simple method call with variational param") {
     runMethod(
-      List(Block(InstrALOAD(thisvar), InstrLoadConfig("A"), invokeVirt(m_printI), InstrRETURN())),
+      List(Block(InstrALOAD(thisvar), InstrLoadConfig("A"), invokeVirt(m_printI), InstrRETURNVoid())),
       List(m_printI)
     )
   }
 
   test("simple method call with variational result") {
     runMethod(
-      List(Block(InstrALOAD(thisvar), InstrDUP(), InstrLoadConfig("A"), invokeVirt(m_add1), invokeVirt(m_printI), InstrRETURN())),
+      List(Block(InstrALOAD(thisvar), InstrDUP(), InstrLoadConfig("A"), invokeVirt(m_add1), invokeVirt(m_printI), InstrRETURNVoid())),
       List(m_add1, m_printI)
     )
   }
@@ -78,4 +82,11 @@ class VBCMethodInvTest extends FunSuite with DiffMethodTestInfrastructure {
     )
   }
 
+  test("conditionally terminate with exception") {
+    runMethod(List(
+      Block(InstrLoadConfig("A"), InstrIFEQ(2)),
+      Block(createException("java/lang/Exception", "foo") :+ InstrATHROW(): _*),
+      Block(InstrICONST(4), InstrDBGIPrint(), InstrRETURNVoid())
+    ))
+  }
 }

@@ -1,6 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode
 
 import edu.cmu.cs.vbc.utils.LiftUtils
+import edu.cmu.cs.vbc.utils.LiftUtils._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm._
 import org.objectweb.asm.tree._
@@ -39,7 +40,7 @@ case class VBCMethodNode(access: Int,
     mv.visitLabel(labelEnd)
 
     //storing local variable information for debugging
-    for (v <- localVar ++ env.getFreshVars()) v match {
+    for (v <- env.getLocalVariables() ++ env.getFreshVars() ++ this.localVar) v match {
       case p: Parameter =>
         val pidx = if (isStatic) p.idx else p.idx - 1
         if (p.name != "$unknown")
@@ -113,8 +114,36 @@ class Parameter(val idx: Int, val name: String) extends Variable {
 
 /**
   * the name and description are used solely for debugging purposes
+  *
+  * vinitialize is called at the beginning of the method to (optionally) initialize the variable
+  * (e.g., to store a constant there) when producing variational code; there is no initialization
+  * for nonvariational use; this is expected to happen already in the original source code.
   */
-class LocalVar(val name: String, val desc: String) extends Variable
+class LocalVar(val name: String,
+               val desc: String,
+               val vinitialize: (MethodVisitor, VMethodEnv, LocalVar) => Unit = LocalVar.initOneNull) extends Variable {
+  override def toString = name
+}
+
+object LocalVar {
+  def initNull(mv: MethodVisitor, env: VMethodEnv, v: LocalVar) = {
+    mv.visitInsn(ACONST_NULL)
+    mv.visitVarInsn(ASTORE, env.getVarIdx(v))
+  }
+
+  def initOneNull(mv: MethodVisitor, env: VMethodEnv, v: LocalVar) = {
+    mv.visitInsn(ACONST_NULL)
+    callVCreateOne(mv, (m) => loadFExpr(m, env, env.ctxParameter))
+    storeV(mv, env, v)
+  }
+
+  def initFalse(mv: MethodVisitor, env: VMethodEnv, v: LocalVar) = {
+    pushConstantFALSE(mv)
+    storeFExpr(mv, env, v)
+  }
+
+  def noInit(mv: MethodVisitor, env: VMethodEnv, v: LocalVar) = {}
+}
 
 
 case class VBCClassNode(
