@@ -93,7 +93,7 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
   def getPredecessors(thisBlock: Block): Set[Block] =
     for (block: Block <- blocks.toSet;
          succ = getSuccessors(block)
-         if succ._1 == Some(thisBlock) || succ._2 == Some(thisBlock))
+         if succ._1.contains(thisBlock) || succ._2.contains(thisBlock))
       yield block
 
 

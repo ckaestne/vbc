@@ -43,8 +43,10 @@ class MethodAnalyzer(owner: String, mn: MethodNode) extends Analyzer[BasicValue]
     */
   def validate() = blocks.foreach((x: Int) => {
     val i = mn.instructions.get(x)
-    if (i.isInstanceOf[LabelNode]) {
-      label2BlockIdx += (i.asInstanceOf[LabelNode] -> blocks.toVector.indexOf(x))
+    i match {
+      case node: LabelNode =>
+        label2BlockIdx += (node -> blocks.toVector.indexOf(x))
+      case _ =>
     }
   })
 }

@@ -70,15 +70,14 @@ case class Block(instr: Instruction*) {
         (s: Set[Variable]) => {
           if (hasFEOnTop) mv.visitInsn(SWAP)
           s.size match {
-            case 1 => {
+            case 1 =>
               val v = s.toList.head
               loadFExpr(mv, env, env.getBlockVar(this))
               mv.visitInsn(SWAP)
               mv.visitVarInsn(ALOAD, env.getVarIdx(v))
               callVCreateChoice(mv)
               mv.visitVarInsn(ASTORE, env.getVarIdx(v))
-            }
-            case 2 => {
+            case 2 =>
               val list = s.toList
               val v1 = list.head
               val v2 = list.last
@@ -93,7 +92,6 @@ case class Block(instr: Instruction*) {
               mv.visitVarInsn(ALOAD, env.getVarIdx(v2))
               callVCreateChoice(mv)
               mv.visitVarInsn(ASTORE, env.getVarIdx(v2))
-            }
             case v => throw new RuntimeException(s"size of Set[Variable] is $v, but expected 1 or 2")
           }
         }
@@ -102,9 +100,9 @@ case class Block(instr: Instruction*) {
 
 
     val successors = env.getSuccessors(this)
-    if (successors._1 == None) {
+    if (successors._1.isEmpty) {
       //TODO deal with last block
-    } else if (successors._2 == None) {
+    } else if (successors._2.isEmpty) {
       val targetBlock = successors._1.get
       val targetBlockConditionVar = env.getBlockVar(targetBlock)
       //if non-conditional jump

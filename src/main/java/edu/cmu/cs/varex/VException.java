@@ -13,7 +13,7 @@ public class VException extends RuntimeException {
      * condition under which this exception is relevant
      */
     @Nonnull
-    final FeatureExpr cond;
+    private final FeatureExpr cond;
 
     /**
      * result of the method, both normal results and exceptions (the latter under condition cond).
@@ -21,7 +21,7 @@ public class VException extends RuntimeException {
      * never null, but may be One(null) for all non-exception results
      */
     @Nonnull
-    final V<?> result;
+    private final V<?> result;
 
 
     public VException(@Nonnull FeatureExpr cond, @Nonnull V<?> result) {

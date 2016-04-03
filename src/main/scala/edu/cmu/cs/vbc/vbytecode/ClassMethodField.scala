@@ -19,7 +19,7 @@ case class VBCMethodNode(access: Int,
   import LiftUtils._
 
   def toByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
-    val mv = cw.visitMethod(access, name, desc, signature.getOrElse(null), exceptions.toArray)
+    val mv = cw.visitMethod(access, name, desc, signature.orNull, exceptions.toArray)
     mv.visitCode()
     body.toByteCode(mv, new MethodEnv(clazz, this))
     mv.visitMaxs(0, 0)
@@ -28,7 +28,7 @@ case class VBCMethodNode(access: Int,
 
   def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
     val liftedMethodDesc = liftMethodDescription(desc)
-    val mv = cw.visitMethod(access, liftMethodName(name), liftedMethodDesc, liftMethodSignature(desc, signature).getOrElse(null), exceptions.toArray)
+    val mv = cw.visitMethod(access, liftMethodName(name), liftedMethodDesc, liftMethodSignature(desc, signature).orNull, exceptions.toArray)
     mv.visitCode()
     val labelStart = new Label()
     mv.visitLabel(labelStart)
@@ -168,7 +168,7 @@ case class VBCClassNode(
   import LiftUtils._
 
   def toByteCode(cv: ClassVisitor, rewriter: VBCMethodNode => VBCMethodNode = a => a) = {
-    cv.visit(version, access, name, signature.getOrElse(null), superName, interfaces.toArray)
+    cv.visit(version, access, name, signature.orNull, superName, interfaces.toArray)
     commonToByteCode(cv)
     //        innerClasses.foreach(_.toByteCode(cv))
     fields.foreach(_.toByteCode(cv))
@@ -178,7 +178,7 @@ case class VBCClassNode(
 
 
   def toVByteCode(cv: ClassVisitor, rewriter: VBCMethodNode => VBCMethodNode = a => a) = {
-    cv.visit(version, access, name, signature.getOrElse(null), superName, interfaces.toArray)
+    cv.visit(version, access, name, signature.orNull, superName, interfaces.toArray)
     commonToByteCode(cv)
     //        innerClasses.foreach(_.toVByteCode(cv))
     fields.foreach(_.toVByteCode(cv))
@@ -249,8 +249,8 @@ case class VBCClassNode(
     * parts that are not lifted
     */
   private def commonToByteCode(cv: ClassVisitor): Unit = {
-    source.map(s => cv.visitSource(s._1, s._2))
-    outerClass.map(s => cv.visitOuterClass(s._1, s._2, s._3))
+    source.foreach(s => cv.visitSource(s._1, s._2))
+    outerClass.foreach(s => cv.visitOuterClass(s._1, s._2, s._3))
     visibleAnnotations.foreach(a => a.accept(cv.visitAnnotation(a.desc, true)))
     invisibleAnnotations.foreach(a => a.accept(cv.visitAnnotation(a.desc, false)))
     visibleTypeAnnotations.foreach(a => a.accept(cv.visitTypeAnnotation(a.typeRef, a.typePath, a.desc, true)))

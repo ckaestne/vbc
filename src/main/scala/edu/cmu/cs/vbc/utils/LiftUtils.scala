@@ -58,7 +58,7 @@ object LiftUtils {
     val sw = new LiftSignatureWriter()
     sigReader.accept(sw)
     val newSig = sw.getSignature()
-    if (sig != None || newSig != liftMethodDescription(desc))
+    if (sig.isDefined || newSig != liftMethodDescription(desc))
       Some(newSig)
     else None
   }

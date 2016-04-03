@@ -28,7 +28,7 @@ class Loader {
     cl.version,
     cl.access,
     cl.name,
-    if (cl.signature == null) None else Some(cl.signature),
+    Option(cl.signature),
     cl.superName,
     if (cl.interfaces == null) Nil else cl.interfaces.toList,
     if (cl.fields == null) Nil else cl.fields.map(adaptField).toList,
@@ -83,7 +83,7 @@ class Loader {
       }
 
     def createBlock(start: Int, end: Int): Block = {
-      val instrList = for (instrIdx <- start until end;
+      val instrList = for (instrIdx <- start until end
                            if m.instructions.get(instrIdx).getOpcode >= 0 || m.instructions.get(instrIdx).isInstanceOf[LineNumberNode])
         yield adaptBytecodeInstruction(m.instructions.get(instrIdx), methodAnalyzer.label2BlockIdx.apply, lookupVariable)
       new Block(instrList: _*)
@@ -98,7 +98,7 @@ class Loader {
       m.access,
       m.name,
       m.desc,
-      if (m.signature == null) None else Some(m.signature),
+      Option(m.signature),
       if (m.exceptions == null) Nil else m.exceptions.toList,
       new CFG(blocks.toList),
       varCache.values.toList
@@ -139,29 +139,24 @@ class Loader {
       case FCONST_2 => UNKNOWN(FCONST_2)
       case DCONST_0 => UNKNOWN(DCONST_0)
       case DCONST_1 => UNKNOWN(DCONST_1)
-      case BIPUSH => {
+      case BIPUSH =>
         val i = inst.asInstanceOf[IntInsnNode]
         InstrBIPUSH(i.operand)
-      }
-      case SIPUSH => {
+      case SIPUSH =>
         val i = inst.asInstanceOf[IntInsnNode]
         InstrSIPUSH(i.operand)
-      }
-      case LDC => {
+      case LDC =>
         val i = inst.asInstanceOf[LdcInsnNode]
         InstrLDC(i.cst)
-      }
-      case ILOAD => {
+      case ILOAD =>
         val i = inst.asInstanceOf[VarInsnNode]
         InstrILOAD(variables(i.`var`))
-      }
       case LLOAD => UNKNOWN(LLOAD)
       case FLOAD => UNKNOWN(FLOAD)
       case DLOAD => UNKNOWN(DLOAD)
-      case ALOAD => {
+      case ALOAD =>
         val i = inst.asInstanceOf[VarInsnNode]
         InstrALOAD(variables(i.`var`))
-      }
       case IALOAD => UNKNOWN(IALOAD)
       case LALOAD => UNKNOWN(LALOAD)
       case FALOAD => UNKNOWN(FALOAD)
@@ -170,17 +165,15 @@ class Loader {
       case BALOAD => UNKNOWN(BALOAD)
       case CALOAD => UNKNOWN(CALOAD)
       case SALOAD => UNKNOWN(SALOAD)
-      case ISTORE => {
+      case ISTORE =>
         val i = inst.asInstanceOf[VarInsnNode]
         InstrISTORE(variables(i.`var`))
-      }
       case LSTORE => UNKNOWN(LSTORE)
       case FSTORE => UNKNOWN(FSTORE)
       case DSTORE => UNKNOWN(DSTORE)
-      case ASTORE => {
+      case ASTORE =>
         val i = inst.asInstanceOf[VarInsnNode]
         InstrASTORE(variables(i.`var`))
-      }
       case IASTORE => UNKNOWN(IASTORE)
       case LASTORE => UNKNOWN(LASTORE)
       case FASTORE => UNKNOWN(FASTORE)
@@ -234,10 +227,9 @@ class Loader {
       case LOR => UNKNOWN(LOR)
       case IXOR => UNKNOWN(IXOR)
       case LXOR => UNKNOWN(LXOR)
-      case IINC => {
+      case IINC =>
         val i = inst.asInstanceOf[IincInsnNode]
         InstrIINC(variables(i.`var`), i.incr)
-      }
       case I2L => UNKNOWN(I2L)
       case I2F => UNKNOWN(I2F)
       case I2D => UNKNOWN(I2D)
@@ -258,48 +250,39 @@ class Loader {
       case FCMPG => UNKNOWN(FCMPG)
       case DCMPL => UNKNOWN(DCMPL)
       case DCMPG => UNKNOWN(DCMPG)
-      case IFEQ => {
+      case IFEQ =>
         val insIFEQ = inst.asInstanceOf[JumpInsnNode]
         val label = insIFEQ.label
         InstrIFEQ(labelLookup(label))
-      }
-      case IFNE => {
+      case IFNE =>
         val i = inst.asInstanceOf[JumpInsnNode]
         val label = i.label
         InstrIFNE(labelLookup(label))
-      }
       case IFLT => UNKNOWN(IFLT)
-      case IFGE => {
+      case IFGE =>
         val i = inst.asInstanceOf[JumpInsnNode]
         InstrIFGE(labelLookup(i.label))
-      }
-      case IFGT => {
+      case IFGT =>
         val i = inst.asInstanceOf[JumpInsnNode]
         InstrIFGT(labelLookup(i.label))
-      }
       case IFLE => UNKNOWN(IFLE)
-      case IF_ICMPEQ => {
+      case IF_ICMPEQ =>
         val i = inst.asInstanceOf[JumpInsnNode]
         InstrIF_ICMPEQ(labelLookup(i.label))
-      }
-      case IF_ICMPNE => {
+      case IF_ICMPNE =>
         val i = inst.asInstanceOf[JumpInsnNode]
         InstrIF_ICMPNE(labelLookup(i.label))
-      }
-      case IF_ICMPLT => {
+      case IF_ICMPLT =>
         val i = inst.asInstanceOf[JumpInsnNode]
         InstrIF_ICMPLT(labelLookup(i.label))
-      }
-      case IF_ICMPGE => {
+      case IF_ICMPGE =>
         val i = inst.asInstanceOf[JumpInsnNode]
         InstrIF_ICMPGE(labelLookup(i.label))
-      }
       case IF_ICMPGT => UNKNOWN(IF_ICMPGT)
       case IF_ICMPLE => UNKNOWN(IF_ICMPLE)
-      case GOTO => {
+      case GOTO =>
         val i = inst.asInstanceOf[JumpInsnNode]
         InstrGOTO(labelLookup(i.label))
-      }
       case JSR => UNKNOWN(JSR)
       case RET => UNKNOWN(RET)
       case TABLESWITCH => UNKNOWN(TABLESWITCH)
@@ -310,40 +293,32 @@ class Loader {
       case DRETURN => InstrRETURNVal(DRETURN)
       case ARETURN => InstrRETURNVal(ARETURN)
       case RETURN => InstrRETURNVoid()
-      case GETSTATIC => {
+      case GETSTATIC =>
         val i = inst.asInstanceOf[FieldInsnNode]
         InstrGETSTATIC(i.owner, i.name, i.desc)
-      }
-      case PUTSTATIC => {
+      case PUTSTATIC =>
         val i = inst.asInstanceOf[FieldInsnNode]
         InstrPUTSTATIC(i.owner, i.name, i.desc)
-      }
-      case GETFIELD => {
+      case GETFIELD =>
         val i = inst.asInstanceOf[FieldInsnNode]
         InstrGETFIELD(i.owner, i.name, i.desc)
-      }
-      case PUTFIELD => {
+      case PUTFIELD =>
         val i = inst.asInstanceOf[FieldInsnNode]
         InstrPUTFIELD(i.owner, i.name, i.desc)
-      }
-      case INVOKEVIRTUAL => {
+      case INVOKEVIRTUAL =>
         val i = inst.asInstanceOf[MethodInsnNode]
         InstrINVOKEVIRTUAL(i.owner, i.name, i.desc, i.itf)
-      }
-      case INVOKESPECIAL => {
+      case INVOKESPECIAL =>
         val i = inst.asInstanceOf[MethodInsnNode]
         InstrINVOKESPECIAL(i.owner, i.name, i.desc, i.itf)
-      }
-      case INVOKESTATIC => {
+      case INVOKESTATIC =>
         val i = inst.asInstanceOf[MethodInsnNode]
         InstrINVOKESTATIC(i.owner, i.name, i.desc, i.itf)
-      }
       case INVOKEINTERFACE => UNKNOWN(INVOKEINTERFACE)
       case INVOKEDYNAMIC => UNKNOWN(INVOKEDYNAMIC)
-      case NEW => {
+      case NEW =>
         val i = inst.asInstanceOf[TypeInsnNode]
         InstrNEW(i.desc)
-      }
       case NEWARRAY => UNKNOWN(NEWARRAY)
       case ANEWARRAY => UNKNOWN(ANEWARRAY)
       case ARRAYLENGTH => UNKNOWN(ARRAYLENGTH)
@@ -361,9 +336,8 @@ class Loader {
           case ln: LineNumberNode => InstrLINENUMBER(ln.line)
           case _ => InstrNOP()
         }
-      case _ => {
+      case _ =>
         UNKNOWN()
-      }
     }
 
 

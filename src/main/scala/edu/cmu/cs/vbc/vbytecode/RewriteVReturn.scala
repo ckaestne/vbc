@@ -61,20 +61,20 @@ object RewriteVReturn {
     })
 
   private def checkUniqueReturnType(returnInstr: List[ReturnInstruction]): Boolean =
-    returnInstr.map(_ match {
+    returnInstr.map {
       case InstrATHROW() => -1
       case InstrRETURNVoid() => 0
       case InstrRETURNVal(op) => op
-    }).filter(_ >= 0).distinct.size <= 1
+    }.filter(_ >= 0).distinct.size <= 1
 
 
   private def getReturnOpcode(returnInstr: List[ReturnInstruction]): Int = {
     var result = -1
-    for (op <- returnInstr.map(_ match {
+    for (op <- returnInstr.map {
       case InstrATHROW() => Opcodes.ATHROW
       case InstrRETURNVoid() => Opcodes.RETURN
       case InstrRETURNVal(op) => op
-    })) {
+    }) {
       assert(result == -1 || result == op, "inconsistency: different kinds of return instructions found in method")
       result = op
     }
