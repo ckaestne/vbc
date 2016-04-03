@@ -94,7 +94,7 @@ case class Block(instr: Instruction*) {
               callVCreateChoice(mv)
               mv.visitVarInsn(ASTORE, env.getVarIdx(v2))
             }
-            case _ => throw new RuntimeException("size of Set[Variable] is not 1 or 2")
+            case v => throw new RuntimeException(s"size of Set[Variable] is $v, but expected 1 or 2")
           }
         }
       )
