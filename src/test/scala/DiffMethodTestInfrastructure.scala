@@ -1,9 +1,11 @@
 package edu.cmu.cs.vbc
 
 import java.io.PrintWriter
+import java.lang.reflect.InvocationTargetException
 
 import de.fosd.typechef.conditional.{ConditionalLib, Opt}
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
+import edu.cmu.cs.varex.V
 import edu.cmu.cs.vbc.test.TestOutput.TOpt
 import edu.cmu.cs.vbc.test.{Config, InstrLoadConfig, TestOutput}
 import edu.cmu.cs.vbc.vbytecode._
@@ -24,7 +26,7 @@ trait DiffMethodTestInfrastructure {
   }
 
 
-  case class TestClass(m: VBCMethodNode) {
+  case class TestClass(m: VBCMethodNode, extraMethods: Seq[VBCMethodNode] = Nil) {
     private def createClass(testmethod: VBCMethodNode): VBCClassNode = {
       val constr = new VBCMethodNode(ACC_PUBLIC, "<init>", "()V", Some("()V"), Nil,
         CFG(List(
@@ -33,7 +35,7 @@ trait DiffMethodTestInfrastructure {
             InstrRETURN())
         )))
       new VBCClassNode(V1_8, ACC_PUBLIC, "Test", None, "java/lang/Object", Nil, Nil,
-        List(constr, testmethod))
+        List(constr, testmethod) ++ extraMethods)
 
     }
 
@@ -70,9 +72,13 @@ trait DiffMethodTestInfrastructure {
   }
 
 
-  def testMethod(m: VBCMethodNode): Unit = {
+  /**
+    * test method `m`, additional methods may be provided if method invocations
+    * are to be tested.
+    */
+  def testMethod(m: VBCMethodNode, extraMethods: VBCMethodNode*): Unit = {
 
-    val clazz = new TestClass(m)
+    val clazz = new TestClass(m, extraMethods)
 
 
     val configOptions: Set[String] = getConfigOptions(m)
@@ -128,11 +134,20 @@ trait DiffMethodTestInfrastructure {
         fold(FeatureExprFactory.True)(_ and _)
 
       val testObject = testClass.newInstance()
-      testClass.getMethod(method).invoke(testObject)
+      executePlain(testObject, testClass, method)
 
       bruteForceResult = TestOutput.output.map(_.and(config)) ++ bruteForceResult
     }
     bruteForceResult
+  }
+
+  def executePlain(obj: Any, clazz: Class[_], method: String): Any = {
+    try {
+      clazz.getMethod(method).invoke(obj)
+    } catch {
+      case e: InvocationTargetException =>
+        TestOutput.printS("terminated:" + e.getTargetException.getClass.getCanonicalName + ":" + e.getTargetException.getMessage)
+    }
   }
 
   def executeV(testVClass: Class[_], method: String): List[TOpt[String]] = {
@@ -143,9 +158,18 @@ trait DiffMethodTestInfrastructure {
 
     val constructor = testVClass.getConstructor(classOf[FeatureExpr])
     val testVObject = constructor.newInstance(ctx)
-    testVClass.getMethod(method, classOf[FeatureExpr]).invoke(testVObject, ctx)
+    executeV(testVObject, testVClass, method, ctx)
     val vresult = TestOutput.output
     vresult
+  }
+
+  def executeV(obj: Any, clazz: Class[_], method: String, ctx: FeatureExpr): Any = {
+    try {
+      clazz.getMethod(method, classOf[FeatureExpr]).invoke(obj, ctx)
+    } catch {
+      case e: InvocationTargetException =>
+        TestOutput.printVS(V.one("terminated:" + e.getTargetException.getClass.getCanonicalName + ":" + e.getTargetException.getMessage), ctx)
+    }
   }
 
   type Feature = String
@@ -180,7 +204,7 @@ trait DiffMethodTestInfrastructure {
       val constructor = testVClass.getConstructor(classOf[FeatureExpr])
       testObject = constructor.newInstance(_ctx)
     } measure {
-      testVClass.getMethod(method, classOf[FeatureExpr]).invoke(testObject, _ctx)
+      executeV(testObject, testVClass, method, _ctx)
     }
     //        println(s"Total time V: $time")
 
@@ -199,7 +223,7 @@ trait DiffMethodTestInfrastructure {
         Config.configValues = (sel.map((_ -> 1)) ++ desel.map((_ -> 0))).toMap
         testObject = testClass.newInstance()
       } measure {
-        testClass.getMethod(method).invoke(testObject)
+        executePlain(testObject, testClass, method)
       }
 
 

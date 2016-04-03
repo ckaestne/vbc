@@ -61,3 +61,23 @@ case class InstrARETURN() extends ReturnInstruction {
     (newFrame, backtrack)
   }
 }
+
+
+case class InstrATHROW() extends ReturnInstruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitInsn(ATHROW)
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = toByteCode(mv, env, block)
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
+    //    env.setLift(this)
+    val (v, prev, newFrame) = s.pop()
+    val backtrack =
+    //      if (v != V_TYPE()) prev
+    //      else
+      Set[Instruction]()
+    (newFrame, backtrack)
+  }
+}
+

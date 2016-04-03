@@ -51,6 +51,15 @@ object TestOutput {
       output ::= de.fosd.typechef.conditional.Opt(c, v.asInstanceOf[Int].toString)
   }
 
+  def printS(s: String): Unit = {
+    output ::= de.fosd.typechef.conditional.Opt(FeatureExprFactory.True, s)
+  }
+
+  def printVS(s: V[_ <: String], ctx: FeatureExpr): Unit = {
+    for ((c, v) <- VHelper.explode(ctx, s))
+      output ::= de.fosd.typechef.conditional.Opt(c, v.toString)
+  }
+
   def printFE(f: FeatureExpr): Unit = {
     println(f)
   }
