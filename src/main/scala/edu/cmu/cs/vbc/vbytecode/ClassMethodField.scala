@@ -6,8 +6,14 @@ import org.objectweb.asm._
 import org.objectweb.asm.tree._
 
 
-case class VBCMethodNode(access: Int, name: String,
-                         desc: String, signature: Option[String], exceptions: List[String], body: CFG) {
+case class VBCMethodNode(access: Int,
+                         name: String,
+                         desc: String,
+                         signature: Option[String],
+                         exceptions: List[String],
+                         body: CFG,
+                         localVar: List[Variable] = Nil // initial local variables
+                        ) {
 
   import LiftUtils._
 
@@ -20,10 +26,32 @@ case class VBCMethodNode(access: Int, name: String,
   }
 
   def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
-    val mv = cw.visitMethod(access, liftMethodName(name), liftMethodDescription(desc), liftMethodSignature(desc, signature).getOrElse(null), exceptions.toArray)
+    val liftedMethodDesc = liftMethodDescription(desc)
+    val mv = cw.visitMethod(access, liftMethodName(name), liftedMethodDesc, liftMethodSignature(desc, signature).getOrElse(null), exceptions.toArray)
     mv.visitCode()
+    val labelStart = new Label()
+    mv.visitLabel(labelStart)
+
     val env = new VMethodEnv(clazz, this)
     body.toVByteCode(mv, env)
+
+    val labelEnd = new Label()
+    mv.visitLabel(labelEnd)
+
+    //storing local variable information for debugging
+    for (v <- localVar ++ env.getFreshVars()) v match {
+      case p: Parameter =>
+        val pidx = if (isStatic) p.idx else p.idx - 1
+        if (p.name != "$unknown")
+          mv.visitLocalVariable(p.name, if (pidx == -1) "L" + clazz.name + ";" else Type.getArgumentTypes(liftedMethodDesc)(p.idx).getDescriptor, null, labelStart, labelEnd, p.idx)
+      case l: LocalVar =>
+        if (l.name != "$unknown")
+          mv.visitLocalVariable(l.name, l.desc, null, labelStart, labelEnd, env.getVarIdx(l))
+    }
+    //ctx parameter
+    mv.visitLocalVariable("$ctx", fexprclasstype, null, labelStart, labelEnd, env.getVarIdx(env.ctxParameter))
+
+
     mv.visitMaxs(0, 0)
     mv.visitEnd()
   }
@@ -72,7 +100,7 @@ sealed trait Variable {
   *
   * equality by idx
   */
-class Parameter(val idx: Int, name: String) extends Variable {
+class Parameter(val idx: Int, val name: String) extends Variable {
   override def getIdx(): Option[Int] = Some(idx)
 
   override def hashCode = idx

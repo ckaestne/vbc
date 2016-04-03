@@ -57,6 +57,10 @@ class Loader {
     //        varCache += (paramIdx -> new Parameter(paramIdx, m.parameters(paramIdx).name))
     val isStatic = (m.access & Opcodes.ACC_STATIC) > 0
     val parameterCount = Type.getArgumentTypes(m.desc).size + (if (isStatic) 0 else 1)
+
+    // adding "this" explicitly, because it may not be included if it's the only parameter
+    if (!isStatic)
+      varCache += (0 -> new Parameter(0, "this"))
     if (m.localVariables != null)
       for (vIdx <- 0 until m.localVariables.size())
         if (vIdx < parameterCount)
@@ -96,7 +100,8 @@ class Loader {
       m.desc,
       if (m.signature == null) None else Some(m.signature),
       if (m.exceptions == null) Nil else m.exceptions.toList,
-      new CFG(blocks.toList)
+      new CFG(blocks.toList),
+      varCache.values.toList
     )
   }
 
