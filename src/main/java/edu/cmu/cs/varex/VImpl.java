@@ -3,6 +3,7 @@ package edu.cmu.cs.varex;
 import de.fosd.typechef.featureexpr.FeatureExpr;
 import de.fosd.typechef.featureexpr.FeatureExprFactory;
 
+import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.function.*;
 
@@ -15,10 +16,10 @@ class VImpl<T> implements V<T> {
         Map<U, FeatureExpr> result = new HashMap<>(2);
         if (condition.isSatisfiable())
             put(result, a, condition);
-        else return V.one(b);
+        else return V.one(condition.not(), b);
         if (condition.not().isSatisfiable())
             put(result, b, condition.not());
-        else return V.one(a);
+        else return V.one(condition, a);
 
         return createV(result);
     }
@@ -45,13 +46,13 @@ class VImpl<T> implements V<T> {
 
     private boolean checkInvariant() {
         if (values.isEmpty()) return false;// : "empty V";
-        if (values.size()<2) return false;// : "singleton VImpl?";
+        if (values.size() < 2) return false;// : "singleton VImpl?";
         FeatureExpr conditions = FeatureExprFactory.False();
         for (FeatureExpr cond : values.values()) {
             if (!conditions.and(cond).isContradiction()) return false;// : "condition overlaps with previous condition";
             conditions = conditions.or(cond);
         }
-        if (!conditions.isTautology()) return false;// : "conditions together not a tautology";
+        //"conditions together not a tautology" is no longer required, it just expresses a smaller config space
 
         return true;
     }
@@ -63,19 +64,20 @@ class VImpl<T> implements V<T> {
         return values.keySet().iterator().next();
     }
 
-    @Override
-    public T getOne(FeatureExpr ctx) {
-        T result = null;
-        boolean foundResult = false;
-        for (HashMap.Entry<T, FeatureExpr> e : values.entrySet())
-            if (ctx.and(e.getValue()).isSatisfiable()) {
-                assert !foundResult : "getOne("+ctx+") called on Choice with multiple matching values: " + this;
-                result = e.getKey();
-                foundResult=true;
-            }
-
-        return result;
-    }
+//    @Override
+//    public T getOne(FeatureExpr ctx) {
+//        T result = null;
+//        boolean foundResult = false;
+//        for (HashMap.Entry<T, FeatureExpr> e : values.entrySet())
+//            if (ctx.and(e.getValue()).isSatisfiable()) {
+//                assert !foundResult : "getOne(" + ctx + ") called on Choice with multiple matching values: " + this;
+//                result = e.getKey();
+//                foundResult=true;
+//            }
+//        assert foundResult : "getOne(" + ctx + ") called but no result found: " + this;  //this should always hold if the context is satisfiable
+//
+//        return result;
+//    }
 
 
     @Override
@@ -87,46 +89,44 @@ class VImpl<T> implements V<T> {
     }
 
     @Override
-    public <U> V<? extends U> vmap(FeatureExpr ctx, BiFunction<FeatureExpr, ? super T, ? extends U> fun) {
+    public <U> V<? extends U> map(@Nonnull BiFunction<FeatureExpr, ? super T, ? extends U> fun) {
+        assert fun != null;
         Map<U, FeatureExpr> result = new HashMap<>(values.size());
         for (HashMap.Entry<T, FeatureExpr> e : values.entrySet())
-            put(result, fun.apply(ctx.and(e.getValue()), e.getKey()), e.getValue());
+            put(result, fun.apply(e.getValue(), e.getKey()), e.getValue());
         return createV(result);
     }
 
     @Override
     public <U> V<? extends U> flatMap(Function<? super T, V<? extends U>> fun) {
+        assert fun != null;
         Map<U, FeatureExpr> result = new HashMap<>(values.size());
         for (HashMap.Entry<T, FeatureExpr> e : values.entrySet()) {
-            V<? extends U> u = null;
-            if (e.getKey() != null)
-                u = fun.apply(e.getKey());
+            V<? extends U> u = fun.apply(e.getKey());
+            assert u != null;
             addVToMap(result, e.getValue(), u);
         }
         return createV(result);
     }
-
 
     @Override
-    public <U> V<? extends U> vflatMap(BiFunction<FeatureExpr, ? super T, V<? extends U>> fun, FeatureExpr ctx) {
+    public <U> V<? extends U> flatMap(@Nonnull BiFunction<FeatureExpr, ? super T, V<? extends U>> fun) {
+        assert fun != null;
         Map<U, FeatureExpr> result = new HashMap<>(values.size());
         for (HashMap.Entry<T, FeatureExpr> e : values.entrySet()) {
-            V<? extends U> u = null;
-            if (e.getKey() != null)
-                u = fun.apply(ctx.and(e.getValue()), e.getKey());
+            V<? extends U> u = fun.apply(e.getValue(), e.getKey());
+            assert u != null;
             addVToMap(result, e.getValue(), u);
         }
         return createV(result);
     }
 
-    private static <U> void addVToMap(Map<U, FeatureExpr> result, FeatureExpr ctx,  V<? extends U> u) {
-        // this could happen when fields are partially initialized
-        if (u == null) {
-            u = new One<>(null);
-        }
+
+    private static <U> void addVToMap(Map<U, FeatureExpr> result, FeatureExpr ctx, @Nonnull V<? extends U> u) {
+        assert u != null;
         assert (u instanceof One) || (u instanceof VImpl) : "unexpected V value: " + u;
         if (u instanceof One)
-            put(result, ((One<U>) u).value, ctx);
+            put(result, ((One<U>) u).value, ctx.and(((One<U>) u).configSpace));
         else
             for (HashMap.Entry<U, FeatureExpr> ee : ((VImpl<U>) u).values.entrySet()) {
                 FeatureExpr cond = ctx.and(ee.getValue());
@@ -141,34 +141,69 @@ class VImpl<T> implements V<T> {
         map.put(value, condition);
     }
 
-    private static <U> V<? extends U> createV(Map<U, FeatureExpr> map) {
-        assert map.size() > 0 : "empty result";
+    private static <U> V<U> createV(Map<U, FeatureExpr> map) {
+        if (map.size() == 0)
+            return VEmpty.instance();
         if (map.size() == 1) {
-            assert map.values().iterator().next().isTautology() : "incomplete result " + map;
-            return new One(map.keySet().iterator().next());
+            Map.Entry<U, FeatureExpr> entry = map.entrySet().iterator().next();
+            return new One(entry.getValue(), entry.getKey());
         }
         return new VImpl<>(map);
     }
 
     @Override
-    public void foreach(Consumer<T> fun) {
+    public void foreach(@Nonnull Consumer<T> fun) {
+        assert fun != null;
         values.keySet().forEach(fun::accept);
-
     }
 
-
     @Override
-    public void vforeach(FeatureExpr ctx, BiConsumer<FeatureExpr, T> fun) {
+    public void foreach(@Nonnull BiConsumer<FeatureExpr, T> fun) {
+        assert fun != null;
         for (HashMap.Entry<T, FeatureExpr> e : values.entrySet())
-            fun.accept(ctx.and(e.getValue()), e.getKey());
+            fun.accept(e.getValue(), e.getKey());
     }
 
+
     @Override
-    public FeatureExpr when(Predicate<T> condition) {
+    public FeatureExpr when(@Nonnull Predicate<T> condition) {
+        assert condition != null;
         FeatureExpr result = FeatureExprFactory.False();
         for (HashMap.Entry<T, FeatureExpr> e : values.entrySet())
             if (condition.test(e.getKey()))
                 result = result.or(e.getValue());
+        return result;
+    }
+
+    @Override
+    public V<T> select(@Nonnull FeatureExpr configSpace) {
+        assert configSpace != null;
+        assert configSpace.implies(getConfigSpace()).isTautology() :
+                "selecting under broader condition (" + configSpace + ") than the configuration space described by One (" + getConfigSpace() + ")";
+
+        return reduce(configSpace);
+    }
+
+    @Override
+    public V<T> reduce(@Nonnull FeatureExpr reducedConfigSpace) {
+        assert reducedConfigSpace != null;
+
+        Map<T, FeatureExpr> result = new HashMap<>(values.size());
+        Iterator<Map.Entry<T, FeatureExpr>> it = values.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<T, FeatureExpr> entry = it.next();
+            FeatureExpr newCondition = entry.getValue().and(reducedConfigSpace);
+            if (newCondition.isSatisfiable())
+                result.put(entry.getKey(), newCondition);
+        }
+        return createV(result);
+    }
+
+    @Override
+    public FeatureExpr getConfigSpace() {
+        FeatureExpr result = FeatureExprFactory.False();
+        for (FeatureExpr f : values.values())
+            result = result.or(f);
         return result;
     }
 
@@ -199,7 +234,7 @@ class VImpl<T> implements V<T> {
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof VImpl) {
-            return ((VImpl)obj).values.equals(values);
+            return ((VImpl) obj).values.equals(values);
         }
         return super.equals(obj);
     }

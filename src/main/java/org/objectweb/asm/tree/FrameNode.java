@@ -2,19 +2,19 @@
  * ASM: a very small and fast Java bytecode manipulation framework
  * Copyright (c) 2000-2011 INRIA, France Telecom
  * All rights reserved.
- *
+ * <p>
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ * notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
+ * notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution.
  * 3. Neither the name of the copyright holders nor the names of its
- *    contributors may be used to endorse or promote products derived from
- *    this software without specific prior written permission.
- *
+ * contributors may be used to endorse or promote products derived from
+ * this software without specific prior written permission.
+ * <p>
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -29,13 +29,13 @@
  */
 package org.objectweb.asm.tree;
 
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 
 /**
  * A node that represents a stack map frame. These nodes are pseudo instruction
@@ -48,7 +48,7 @@ import org.objectweb.asm.Opcodes;
  * <br>
  * (*) this is mandatory only for classes whose version is greater than or equal
  * to {@link Opcodes#V1_6 V1_6}.
- * 
+ *
  * @author Eric Bruneton
  */
 public class FrameNode extends AbstractInsnNode {
@@ -83,7 +83,7 @@ public class FrameNode extends AbstractInsnNode {
 
     /**
      * Constructs a new {@link FrameNode}.
-     * 
+     *
      * @param type
      *            the type of this frame. Must be {@link Opcodes#F_NEW} for
      *            expanded frames, or {@link Opcodes#F_FULL},
@@ -106,26 +106,26 @@ public class FrameNode extends AbstractInsnNode {
      *            types respectively - see {@link MethodVisitor}).
      */
     public FrameNode(final int type, final int nLocal, final Object[] local,
-            final int nStack, final Object[] stack) {
+                     final int nStack, final Object[] stack) {
         super(-1);
         this.type = type;
         switch (type) {
-        case Opcodes.F_NEW:
-        case Opcodes.F_FULL:
-            this.local = asList(nLocal, local);
-            this.stack = asList(nStack, stack);
-            break;
-        case Opcodes.F_APPEND:
-            this.local = asList(nLocal, local);
-            break;
-        case Opcodes.F_CHOP:
-            this.local = Arrays.asList(new Object[nLocal]);
-            break;
-        case Opcodes.F_SAME:
-            break;
-        case Opcodes.F_SAME1:
-            this.stack = asList(1, stack);
-            break;
+            case Opcodes.F_NEW:
+            case Opcodes.F_FULL:
+                this.local = asList(nLocal, local);
+                this.stack = asList(nStack, stack);
+                break;
+            case Opcodes.F_APPEND:
+                this.local = asList(nLocal, local);
+                break;
+            case Opcodes.F_CHOP:
+                this.local = Arrays.asList(new Object[nLocal]);
+                break;
+            case Opcodes.F_SAME:
+                break;
+            case Opcodes.F_SAME1:
+                this.stack = asList(1, stack);
+                break;
         }
     }
 
@@ -136,30 +136,30 @@ public class FrameNode extends AbstractInsnNode {
 
     /**
      * Makes the given visitor visit this stack map frame.
-     * 
+     *
      * @param mv
      *            a method visitor.
      */
     @Override
     public void accept(final MethodVisitor mv) {
         switch (type) {
-        case Opcodes.F_NEW:
-        case Opcodes.F_FULL:
-            mv.visitFrame(type, local.size(), asArray(local), stack.size(),
-                    asArray(stack));
-            break;
-        case Opcodes.F_APPEND:
-            mv.visitFrame(type, local.size(), asArray(local), 0, null);
-            break;
-        case Opcodes.F_CHOP:
-            mv.visitFrame(type, local.size(), null, 0, null);
-            break;
-        case Opcodes.F_SAME:
-            mv.visitFrame(type, 0, null, 0, null);
-            break;
-        case Opcodes.F_SAME1:
-            mv.visitFrame(type, 0, null, 1, asArray(stack));
-            break;
+            case Opcodes.F_NEW:
+            case Opcodes.F_FULL:
+                mv.visitFrame(type, local.size(), asArray(local), stack.size(),
+                        asArray(stack));
+                break;
+            case Opcodes.F_APPEND:
+                mv.visitFrame(type, local.size(), asArray(local), 0, null);
+                break;
+            case Opcodes.F_CHOP:
+                mv.visitFrame(type, local.size(), null, 0, null);
+                break;
+            case Opcodes.F_SAME:
+                mv.visitFrame(type, 0, null, 0, null);
+                break;
+            case Opcodes.F_SAME1:
+                mv.visitFrame(type, 0, null, 1, asArray(stack));
+                break;
         }
     }
 

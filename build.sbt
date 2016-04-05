@@ -10,6 +10,8 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.6" % "test"
 
 libraryDependencies += "com.storm-enroute" %% "scalameter" % "0.7" % "test"
 
+libraryDependencies += "com.google.code.findbugs" % "jsr305" % "3.0.1"
+
 parallelExecution in Test := false
 
 javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint")

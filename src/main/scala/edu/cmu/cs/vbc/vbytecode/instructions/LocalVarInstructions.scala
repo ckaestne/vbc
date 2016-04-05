@@ -2,6 +2,7 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{REF_TYPE, VBCFrame, V_TYPE}
+import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
@@ -51,7 +52,7 @@ case class InstrISTORE(variable: Variable) extends Instruction {
       if (value != V_TYPE())
         prev
       else
-        Set.empty[Instruction]
+        Set[Instruction]()
     (newFrame, backtrack)
   }
 }
@@ -87,7 +88,7 @@ case class InstrILOAD(variable: Variable) extends Instruction {
       if (s.localVar(variable)._1 != V_TYPE())
         s.localVar(variable)._2
       else
-        Set.empty[Instruction]
+        Set[Instruction]()
     (newFrame, backtrack)
   }
 }
@@ -134,7 +135,7 @@ case class InstrIINC(variable: Variable, increment: Int) extends Instruction {
     // should be lifted
     env.setLift(this)
     val newFrame = s.setLocal(variable, V_TYPE(), Set(this))
-    (newFrame, Set.empty[Instruction])
+    (newFrame, Set())
   }
 }
 
@@ -155,7 +156,7 @@ case class InstrALOAD(variable: Variable) extends Instruction {
     val idx = env.getVarIdx(variable)
     mv.visitVarInsn(ALOAD, idx)
     if (env.shouldLiftInstr(this))
-      callVCreateOne(mv)
+      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
   }
 
   override def getVariables() = {
@@ -180,14 +181,14 @@ case class InstrALOAD(variable: Variable) extends Instruction {
      * save some instructions.
      */
     if (!env.shouldLiftInstr(this) && env.isNonStaticL0(variable))
-      (s.push(REF_TYPE(), Set(this)), Set.empty[Instruction])
+      (s.push(REF_TYPE(), Set(this)), Set())
     else {
       val newFrame = s.push(V_TYPE(), Set(this))
       val backtrack =
         if (newFrame.localVar(variable)._1 != V_TYPE())
           newFrame.localVar(variable)._2
         else
-          Set.empty[Instruction]
+          Set[Instruction]()
       (newFrame, backtrack)
     }
   }
@@ -237,7 +238,7 @@ case class InstrASTORE(variable: Variable) extends Instruction {
       if (value != V_TYPE())
         prev
       else
-        Set.empty[Instruction]
+        Set[Instruction]()
     (newFrame, backtrack)
   }
 }

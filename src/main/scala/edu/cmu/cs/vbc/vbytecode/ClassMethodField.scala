@@ -1,13 +1,21 @@
 package edu.cmu.cs.vbc.vbytecode
 
-import edu.cmu.cs.vbc.vbytecode.util.LiftUtils
+import edu.cmu.cs.vbc.utils.LiftUtils
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm._
 import org.objectweb.asm.tree._
 
 
-case class VBCMethodNode(access: Int, name: String,
-                         desc: String, signature: Option[String], exceptions: List[String], body: CFG) extends LiftUtils {
+case class VBCMethodNode(access: Int,
+                         name: String,
+                         desc: String,
+                         signature: Option[String],
+                         exceptions: List[String],
+                         body: CFG,
+                         localVar: List[Variable] = Nil // initial local variables
+                        ) {
+
+  import LiftUtils._
 
   def toByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
     val mv = cw.visitMethod(access, name, desc, signature.getOrElse(null), exceptions.toArray)
@@ -18,11 +26,33 @@ case class VBCMethodNode(access: Int, name: String,
   }
 
   def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
-    val mv = cw.visitMethod(access, liftMethodName(name), liftMethodDescription(desc), liftMethodSignature(desc, signature).getOrElse(null), exceptions.toArray)
+    val liftedMethodDesc = liftMethodDescription(desc)
+    val mv = cw.visitMethod(access, liftMethodName(name), liftedMethodDesc, liftMethodSignature(desc, signature).getOrElse(null), exceptions.toArray)
     mv.visitCode()
+    val labelStart = new Label()
+    mv.visitLabel(labelStart)
+
     val env = new VMethodEnv(clazz, this)
     body.toVByteCode(mv, env)
-    mv.visitMaxs(5, 5)
+
+    val labelEnd = new Label()
+    mv.visitLabel(labelEnd)
+
+    //storing local variable information for debugging
+    for (v <- localVar ++ env.getFreshVars()) v match {
+      case p: Parameter =>
+        val pidx = if (isStatic) p.idx else p.idx - 1
+        if (p.name != "$unknown")
+          mv.visitLocalVariable(p.name, if (pidx == -1) "L" + clazz.name + ";" else Type.getArgumentTypes(liftedMethodDesc)(p.idx).getDescriptor, null, labelStart, labelEnd, p.idx)
+      case l: LocalVar =>
+        if (l.name != "$unknown")
+          mv.visitLocalVariable(l.name, l.desc, null, labelStart, labelEnd, env.getVarIdx(l))
+    }
+    //ctx parameter
+    mv.visitLocalVariable("$ctx", fexprclasstype, null, labelStart, labelEnd, env.getVarIdx(env.ctxParameter))
+
+
+    mv.visitMaxs(0, 0)
     mv.visitEnd()
   }
 
@@ -65,12 +95,26 @@ sealed trait Variable {
   def getIdx(): Option[Int] = None
 }
 
-case class Parameter(val idx: Int) extends Variable {
+/**
+  * the name is used solely for debugging purposes
+  *
+  * equality by idx
+  */
+class Parameter(val idx: Int, val name: String) extends Variable {
   override def getIdx(): Option[Int] = Some(idx)
 
+  override def hashCode = idx
+
+  override def equals(that: Any) = that match {
+    case that: Parameter => this.idx == that.idx
+    case _ => false
+  }
 }
 
-class LocalVar() extends Variable
+/**
+  * the name and description are used solely for debugging purposes
+  */
+class LocalVar(val name: String, val desc: String) extends Variable
 
 
 case class VBCClassNode(
@@ -90,7 +134,9 @@ case class VBCClassNode(
                          invisibleTypeAnnotations: List[TypeAnnotationNode] = Nil,
                          attrs: List[Attribute] = Nil,
                          innerClasses: List[VBCInnerClassNode] = Nil
-                       ) extends LiftUtils {
+                       ) {
+
+  import LiftUtils._
 
   def toByteCode(cv: ClassVisitor, rewriter: VBCMethodNode => VBCMethodNode = a => a) = {
     cv.visit(version, access, name, signature.getOrElse(null), superName, interfaces.toArray)
@@ -114,7 +160,7 @@ case class VBCClassNode(
     // create <clinit> method
     if (hasStaticConditionalFields) createCLINIT(cv)
     // Write lambda methods
-    lambdaMethods.foreach(_ (cv))
+    lambdaMethods.foreach(_._2(cv))
     cv.visitEnd()
   }
 
@@ -131,10 +177,10 @@ case class VBCClassNode(
       mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "createDefinedExternal", "(Ljava/lang/String;)Lde/fosd/typechef/featureexpr/SingleFeatureExpr;", false)
       mv.visitInsn(ICONST_1)
       mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
-      callVCreateOne(mv)
+      callVCreateOne(mv, (m) => pushConstantTRUE(m))
       mv.visitInsn(ICONST_0)
       mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
-      callVCreateOne(mv)
+      callVCreateOne(mv, (m) => pushConstantTRUE(m))
       callVCreateChoice(mv)
       mv.visitFieldInsn(PUTSTATIC, name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
     }
@@ -160,7 +206,7 @@ case class VBCClassNode(
     //load array param
     mv.visitVarInsn(ALOAD, 0)
     //create a V<String[]>
-    callVCreateOne(mv)
+    callVCreateOne(mv, (m) => pushConstantTRUE(m))
     //set context to True
     pushConstantTRUE(mv)
     mv.visitMethodInsn(INVOKESTATIC, name, "main", liftMethodDescription(mainMethodSig), false)
@@ -184,9 +230,9 @@ case class VBCClassNode(
   }
 
   /**
-    * Generated lambdaMethods
+    * Generated lambdaMethods, indexed by name
     */
-  var lambdaMethods: List[(ClassVisitor) => Unit] = Nil
+  var lambdaMethods: Map[String, (ClassVisitor) => Unit] = Map()
 
 }
 
@@ -202,7 +248,10 @@ case class VBCFieldNode(
                          visibleTypeAnnotations: List[TypeAnnotationNode] = Nil,
                          invisibleTypeAnnotations: List[TypeAnnotationNode] = Nil,
                          attrs: List[Attribute] = Nil
-                       ) extends LiftUtils {
+                       ) {
+
+  import LiftUtils._
+
   def toByteCode(cv: ClassVisitor) = {
     val fv = cv.visitField(access, name, desc, signature, value)
 

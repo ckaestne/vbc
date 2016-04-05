@@ -36,7 +36,7 @@ class StackAnalysisTest extends FunSuite with DiffMethodTestInfrastructure {
   }
 
   test("get successors 2") {
-    val local = new LocalVar()
+    val local = new LocalVar("v", "I")
 
     val mn = createMethodNode(
       Block(InstrLoadConfig("A"), InstrIFNE(2)),
@@ -81,7 +81,7 @@ class StackAnalysisTest extends FunSuite with DiffMethodTestInfrastructure {
 
   test("multiple backtrack for local variables") {
 
-    val local = new LocalVar()
+    val local = new LocalVar("v", "I")
 
     val mn = createMethodNode(
       Block(InstrLoadConfig("A"), InstrIFNE(2)),
