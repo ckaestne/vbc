@@ -218,9 +218,7 @@ public interface V<T> {
 
     static <U> V<? extends U> choice(@Nonnull FeatureExpr condition, @Nonnull V<? extends U> a, @Nonnull V<? extends U> b) {
         assert a != null;
-        //TODO should not accept null values here. requires clean initialization of variational variables with One(null) instead of null
-        if (b == null)
-            b = V.one(null);
+        assert b != null;
         assert condition != null;
         if (condition.isContradiction())
             return b;
