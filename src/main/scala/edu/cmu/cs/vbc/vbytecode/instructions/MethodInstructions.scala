@@ -62,9 +62,11 @@ trait MethodInstruction extends Instruction {
       val nArg = Type.getArgumentTypes(desc).size
       mv.visitVarInsn(ALOAD, nArg + 1) // load obj
       for (i <- 0 until nArg) mv.visitVarInsn(ALOAD, i) // load arguments
-      mv.visitVarInsn(ALOAD, nArg) // load ctx
-      val (invokeStatic, nOwner, nName, nDesc) = liftCall(true, owner, name, desc, false)
-      if (invokeStatic) {
+      val hasVArgument = if (nArg > 0) true else false
+      if (hasVArgument)
+        mv.visitVarInsn(ALOAD, nArg) // load ctx
+      val (invokeModelClass, nOwner, nName, nDesc) = liftCall(hasVArgument, owner, name, desc, false)
+      if (invokeModelClass) {
         mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, true)
       }
       else {
@@ -80,7 +82,13 @@ trait MethodInstruction extends Instruction {
         mv.visitInsn(ACONST_NULL) // this is because flatMap requires some return values
         callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, nArg))
         mv.visitInsn(ARETURN)
-      } else mv.visitInsn(ARETURN)
+      } else {
+        // if there is no V arguments, we would just call the method on the object, and thus we need
+        // to wrap it into a V so that our invariant could hold
+        if (!hasVArgument)
+          callVCreateOne(mv, (m) => pushConstantTRUE(m))
+        mv.visitInsn(ARETURN)
+      }
       mv.visitMaxs(nArg + 2, nArg + 2)
       mv.visitEnd()
     }

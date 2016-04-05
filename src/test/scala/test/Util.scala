@@ -51,6 +51,15 @@ object TestOutput {
       output ::= de.fosd.typechef.conditional.Opt(c, v.asInstanceOf[Int].toString)
   }
 
+  def printStr(s: String): Unit = {
+    output ::= de.fosd.typechef.conditional.Opt(FeatureExprFactory.True, s)
+  }
+
+  def printVStr(vs: V[_ <: String], ctx: FeatureExpr): Unit = {
+    for ((c, v) <- VHelper.explode(ctx, vs))
+      output ::= de.fosd.typechef.conditional.Opt(c, v.asInstanceOf[String])
+  }
+
   def printFE(f: FeatureExpr): Unit = {
     println(f)
   }
@@ -83,6 +92,26 @@ case class InstrDBGIPrint() extends Instruction {
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     loadFExpr(mv, env, env.getBlockVar(block)) //ctx
     mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printVI", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
+    env.setLift(this)
+    val (v, prev, newFrame) = s.pop()
+    val backtrack =
+      if (v != V_TYPE()) prev
+      else Set[Instruction]()
+    (newFrame, backtrack)
+  }
+}
+
+case class InstrDBGStrPrint() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printStr", "(Ljava/lang/String;)V", false)
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    loadFExpr(mv, env, env.getBlockVar(block)) //ctx
+    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printVStr", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
