@@ -13,7 +13,7 @@ case class VBCMethodNode(access: Int,
                          signature: Option[String],
                          exceptions: List[String],
                          body: CFG,
-                         localVar: List[Variable] = Nil // initial local variables
+                         parameters: Seq[Parameter] = Nil // initial local variables
                         ) {
 
   import LiftUtils._
@@ -40,7 +40,7 @@ case class VBCMethodNode(access: Int,
     mv.visitLabel(labelEnd)
 
     //storing local variable information for debugging
-    for (v <- env.getLocalVariables() ++ env.getFreshVars() ++ this.localVar) v match {
+    for (v <- env.getLocalVariables() ++ env.getFreshVars() ++ this.parameters) v match {
       case p: Parameter =>
         val pidx = if (isStatic) p.idx else p.idx - 1
         if (p.name != "$unknown")

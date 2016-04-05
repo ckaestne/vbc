@@ -2,24 +2,31 @@ package edu.cmu.cs.vbc.vbytecode
 
 import edu.cmu.cs.vbc.utils.LiftUtils
 import edu.cmu.cs.vbc.vbytecode.instructions._
-import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
+import org.objectweb.asm.tree.TypeAnnotationNode
+import org.objectweb.asm.{Label, MethodVisitor}
 
 
 /**
   * for design rationale, see https://github.com/ckaestne/vbc/wiki/ControlFlow
   */
 
+object Block {
+  def apply(instrs: Instruction*): Block = Block(instrs, Nil)
+}
 
-case class Block(instr: Instruction*) {
+case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
 
   import LiftUtils._
+
 
   def toByteCode(mv: MethodVisitor, env: MethodEnv) = {
     validate()
 
     mv.visitLabel(env.getBlockLabel(this))
     instr.foreach(_.toByteCode(mv, env, this))
+
+    writeExceptions(mv, env)
   }
 
   def toVByteCode(mv: MethodVisitor, env: VMethodEnv) = {
@@ -165,6 +172,7 @@ case class Block(instr: Instruction*) {
       }
     }
 
+    writeExceptions(mv, env)
   }
 
 
@@ -187,6 +195,29 @@ case class Block(instr: Instruction*) {
   override def equals(that: Any): Boolean = that match {
     case t: Block => t eq this
     case _ => false
+  }
+
+
+  /**
+    * writing exception table for every block separately.
+    * this may produce larger than necessary tables when two consecutive blocks
+    * have the same or overlapping handlers, but it's easier to write and shouldn't
+    * really affect runtime performance in practice
+    */
+  private def writeExceptions(mv: MethodVisitor, env: MethodEnv) = {
+    if (exceptionHandlers.nonEmpty) {
+      val blockStartLabel = env.getBlockLabel(this)
+      val blockEndLabel = new Label()
+      mv.visitLabel(blockEndLabel)
+
+      for (handler <- exceptionHandlers) {
+        mv.visitTryCatchBlock(blockStartLabel, blockEndLabel, env.getBlockLabel(env.getBlock(handler.handlerBlockIdx)), handler.exceptionType)
+        for (an <- handler.visibleTypeAnnotations)
+          an.accept(mv.visitTryCatchAnnotation(an.typeRef, an.typePath, an.desc, true))
+        for (an <- handler.invisibleTypeAnnotations)
+          an.accept(mv.visitTryCatchAnnotation(an.typeRef, an.typePath, an.desc, true))
+      }
+    }
   }
 
 
@@ -235,3 +266,8 @@ case class CFG(blocks: List[Block]) {
     blocks.foreach(_.toVByteCode(mv, env))
   }
 }
+
+case class VBCHandler(exceptionType: String,
+                      handlerBlockIdx: Int,
+                      visibleTypeAnnotations: List[TypeAnnotationNode],
+                      invisibleTypeAnnotations: List[TypeAnnotationNode])

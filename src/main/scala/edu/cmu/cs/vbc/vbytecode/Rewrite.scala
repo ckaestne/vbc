@@ -41,7 +41,7 @@ object Rewrite {
 
       // ALOAD and INVOKESPECIAL will be inserted in CFG
       val newInstrs = nopPrefix ++ (InstrINIT_CONDITIONAL_FIELDS() +: initialInstr.drop(2))
-      val newBlocks = new Block(newInstrs: _*) +: m.body.blocks.drop(1)
+      val newBlocks = new Block(newInstrs, Nil) +: m.body.blocks.drop(1)
       m.copy(body = CFG(newBlocks))
     } else m
 

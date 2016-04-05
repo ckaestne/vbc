@@ -106,6 +106,18 @@ class VBCAnalyzer(env: VMethodEnv) {
           case _ =>
         }
       }
+
+      // if entering a new block, check for exceptions
+      if (env.instructionBlockBoundaries contains insn) {
+        val block = env.blockForInstruction(insn)
+        // empty the stack and push the exception type (always and magically produced
+        // nonvariationally without a specific instruction) on the stack
+        // TODO do we need to insert some dummy statement to lift the exception if necessary?
+        for (exHandler <- block.exceptionHandlers)
+          updateFrameForInstr(env.getBlockStart(exHandler.handlerBlockIdx),
+            frame.emptyStack().push(REF_TYPE(), Set()))
+      }
+
     }
     assert(!beforeInstructionFrames.contains(null), "Missing some frames")
     beforeInstructionFrames

@@ -46,12 +46,13 @@ class Loader {
 
   def adaptMethod(owner: String, m: MethodNode): VBCMethodNode = {
     println("\tMethod: " + m.name)
-    val methodAnalyzer = new MethodAnalyzer(owner, m)
+    val methodAnalyzer = new MethodCFGAnalyzer(owner, m)
     methodAnalyzer.analyze()
     methodAnalyzer.validate()
     val ordered = methodAnalyzer.blocks.toArray :+ m.instructions.size()
 
     var varCache: Map[Int, Variable] = Map()
+    var parameters: Seq[Parameter] = Seq()
     //    if (m.parameters != null)
     //      for (paramIdx <- 0 until m.parameters.size())
     //        varCache += (paramIdx -> new Parameter(paramIdx, m.parameters(paramIdx).name))
@@ -63,9 +64,11 @@ class Loader {
       varCache += (0 -> new Parameter(0, "this"))
     if (m.localVariables != null)
       for (vIdx <- 0 until m.localVariables.size())
-        if (vIdx < parameterCount)
-          varCache += (vIdx -> new Parameter(vIdx, m.localVariables(vIdx).name))
-        else
+        if (vIdx < parameterCount) {
+          val param = new Parameter(vIdx, m.localVariables(vIdx).name)
+          parameters +:= param
+          varCache += (vIdx -> param)
+        } else
           varCache += (vIdx -> new LocalVar(m.localVariables(vIdx).name, m.localVariables(vIdx).desc, LocalVar.initOneNull))
 
     // typically we initialize all variables and parameters from the table, but that table is technically optional,
@@ -86,7 +89,7 @@ class Loader {
       val instrList = for (instrIdx <- start until end
                            if m.instructions.get(instrIdx).getOpcode >= 0 || m.instructions.get(instrIdx).isInstanceOf[LineNumberNode])
         yield adaptBytecodeInstruction(m.instructions.get(instrIdx), methodAnalyzer.label2BlockIdx.apply, lookupVariable)
-      new Block(instrList: _*)
+      new Block(instrList, methodAnalyzer.getBlockException(start))
     }
 
 
@@ -101,7 +104,7 @@ class Loader {
       Option(m.signature),
       if (m.exceptions == null) Nil else m.exceptions.toList,
       new CFG(blocks.toList),
-      varCache.values.toList
+      parameters
     )
   }
 
@@ -322,7 +325,7 @@ class Loader {
       case NEWARRAY => UNKNOWN(NEWARRAY)
       case ANEWARRAY => UNKNOWN(ANEWARRAY)
       case ARRAYLENGTH => UNKNOWN(ARRAYLENGTH)
-      case ATHROW => UNKNOWN(ATHROW)
+      case ATHROW => InstrATHROW()
       case CHECKCAST => UNKNOWN(CHECKCAST)
       case INSTANCEOF => UNKNOWN(INSTANCEOF)
       case MONITORENTER => UNKNOWN(MONITORENTER)

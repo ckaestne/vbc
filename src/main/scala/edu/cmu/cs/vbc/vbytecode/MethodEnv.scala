@@ -113,7 +113,21 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
 
   def maxLocals = parameterCount + localVars.size + freshVars.size
 
+  // get all instructions in sequence
   val instructions = for (b <- blocks; i <- b.instr) yield i
+  // indices of first instructions in each block
+  lazy val instructionBlockBoundaries = blocks.foldLeft(List(0))((l, block) => (l.head + block.instr.size) :: l).reverse
+
+  // lookup the block for an instruction
+  def blockForInstruction(instrIdx: Int): Block = {
+    var idx = instrIdx
+    for (b <- blocks) {
+      idx -= b.instr.size
+      if (idx < 0)
+        return b
+    }
+    return null
+  }
 
   def getBlockStart(blockIdx: Int): Int = {
     var sum = 0

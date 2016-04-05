@@ -116,11 +116,13 @@ object RewriteVReturn {
     val rewrittenBlocks = method.body.blocks.map(block =>
       new Block(block.instr.flatMap(instr =>
         if (instr.isReturnInstr) substituteReturnInstr(instr.asInstanceOf[ReturnInstruction]) else List(instr)
-      ): _*))
+      ), block.exceptionHandlers))
 
 
     assert(hasThrows || hasReturn, "found neither return nor throws statement in method")
-    val newReturnBlock = new Block(VInstrRETURN(returnVar, exceptionCondVar, hasReturn, hasThrows, originalReturnOpcode == Opcodes.RETURN))
+    val newReturnBlock = new Block(
+      List(VInstrRETURN(returnVar, exceptionCondVar, hasReturn, hasThrows, originalReturnOpcode == Opcodes.RETURN)),
+      Nil)
 
 
     method.copy(body =
