@@ -2,7 +2,7 @@ package edu.cmu.cs.vbc.vbytecode
 
 import edu.cmu.cs.vbc.analysis.{VBCAnalyzer, VBCFrame}
 import edu.cmu.cs.vbc.utils.{LiftUtils, Statistics}
-import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
+import edu.cmu.cs.vbc.vbytecode.instructions.{Instruction, JumpInstruction, MethodInstruction}
 
 /**
   * Environment used during generation of the byte code and variational
@@ -118,6 +118,35 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
     else getVarIdxNoCtx(variable) == 0
   }
 
+  /**
+    * determines whether a CFJ edge between two blocks could be executed
+    * in a stricter context than the context in which `fromBlock` was executed.
+    *
+    * This is the case when the last instruction of the `fromBlock` is
+    * a variational jump (eg if condition on V value) or a method call that
+    * could throw a variational exception. In contrast, GOTO or a normal
+    * exception is a nonvariational jump and the `toBlock` will continue
+    * in the same condition as the `fromBlock`
+    */
+  def isVariationalJump(fromBlockIdx: Int, toBlockIdx: Int): Boolean = {
+    //TODO this should be informed by results of the tagV analysis
+    //for now it's simply returning true for all IF statements and method
+    //invocations
+
+    val lastInstr = getBlock(fromBlockIdx).instr.last
+
+    lastInstr match {
+      case jump: JumpInstruction =>
+        // all possible jump targets are variational, exception edges are not
+        val succ = jump.getSuccessor()
+        toBlockIdx == succ._1.getOrElse(fromBlockIdx + 1) || succ._2.exists(_ == toBlockIdx)
+      case methodInv: MethodInstruction =>
+        // fallthrough edge is variational, all existing exception edges are not
+        toBlockIdx == (fromBlockIdx + 1)
+      case _ => false
+    }
+  }
+
   //////////////////////////////////////////////////
   // unbalanced stack
   //////////////////////////////////////////////////
@@ -163,6 +192,17 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
     (block, newVars.toList)
   }
 
+  //////////////////////////////////////////////////
+  // Block management
+  //////////////////////////////////////////////////
+
+  // allocate a variable for each VBlock, except for the first, which can reuse the parameter slot
+  var vblocks: List[Block]
+
+  val blockVars: Map[Block, Variable] = (for (block <- method.body.blocks.tail) yield
+    (block -> freshLocalVar("$blockctx" + method.body.blocks.indexOf(block), LiftUtils.fexprclasstype, LocalVar.initFalse))).toMap +
+    (method.body.blocks.head -> ctxParameter)
+
 
   //////////////////////////////////////////////////
   // Utilities
@@ -170,10 +210,6 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
 
   val ctxParameter: Parameter = new Parameter(-1, "ctx")
 
-  // allocate a variable for each block, except for the first, which can reuse the parameter slot
-  val blockVars: Map[Block, Variable] = (for (block <- method.body.blocks.tail) yield
-    (block -> freshLocalVar("$blockctx" + method.body.blocks.indexOf(block), LiftUtils.fexprclasstype, LocalVar.initFalse))).toMap +
-    (method.body.blocks.head -> ctxParameter)
 
   def getBlockVar(block: Block): Variable = blockVars(block)
 
