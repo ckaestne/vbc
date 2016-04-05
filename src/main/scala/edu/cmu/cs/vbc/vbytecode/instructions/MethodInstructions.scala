@@ -3,6 +3,7 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_REF_TYPE, V_TYPE}
 import edu.cmu.cs.vbc.model.LiftCall._
+import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.utils.LiftingFilter
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
@@ -22,7 +23,7 @@ trait MethodInstruction extends Instruction {
     val invokeName = "apply"
     val flatMapDesc = s"(Ljava/util/function/BiFunction;${FEType})$VType"
     val flatMapOwner = "edu/cmu/cs/varex/V"
-    val flatMapName = "vflatMap"
+    val flatMapName = "sflatMap"
     val lamdaFactoryOwner = "java/lang/invoke/LambdaMetafactory"
     val lamdaFactoryMethod = "metafactory"
     val lamdaFactoryDesc = "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;"
@@ -45,7 +46,7 @@ trait MethodInstruction extends Instruction {
       new Handle(H_INVOKESTATIC, env.clazz.name, getLambdaFunName, getLambdaFunDesc),
       Type.getType("(" + FEType + Type.getObjectType(owner) + ")" + VType)
     )
-    if (env.isMain) pushConstantTRUE(mv) else loadFExpr(mv, env, env.getBlockVar(block))
+    loadCurrentCtx(mv, env, block)
     mv.visitMethodInsn(INVOKEINTERFACE, flatMapOwner, flatMapName, flatMapDesc, true)
     if (isReturnVoid) mv.visitInsn(POP)
 
@@ -73,14 +74,18 @@ trait MethodInstruction extends Instruction {
           mv.visitMethodInsn(INVOKEVIRTUAL, nOwner, nName, nDesc, itf)
       }
       if (isReturnVoid) {
+        // in general, we should use foreach instead of flatMap for function calls with void return
+        // types. But as this will change as soon as we have exceptions, for now, we return just
+        // One(null)
         mv.visitInsn(ACONST_NULL) // this is because flatMap requires some return values
+        callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, nArg))
         mv.visitInsn(ARETURN)
       } else mv.visitInsn(ARETURN)
       mv.visitMaxs(nArg + 2, nArg + 2)
       mv.visitEnd()
     }
 
-    env.clazz.lambdaMethods ::= lambda
+    env.clazz.lambdaMethods += (getLambdaFunName -> lambda)
   }
 
   override def doBacktrack(env: VMethodEnv): Unit = env.setTag(this, env.TAG_NEED_V_RETURN)
@@ -136,7 +141,7 @@ trait MethodInstruction extends Instruction {
       else
         frame = frame.push(VBCType(Type.getReturnType(desc)), Set(this))
     }
-    (frame, Set.empty[Instruction])
+    (frame, Set())
   }
 }
 
@@ -181,8 +186,8 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
       else
         mv.visitMethodInsn(INVOKESPECIAL, nOwner, nName, nDesc, itf)
 
-      if (env.getTag(this, env.TAG_WRAP_DUPLICATE)) callVCreateOne(mv)
-      if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv)
+      if (env.getTag(this, env.TAG_WRAP_DUPLICATE)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+      if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
   }
 
@@ -246,7 +251,7 @@ case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Bo
       else
         mv.visitMethodInsn(INVOKEVIRTUAL, nOwner, nName, nDesc, itf)
 
-      if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv)
+      if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
   }
 
@@ -276,7 +281,7 @@ case class InstrINVOKESTATIC(owner: String, name: String, desc: String, itf: Boo
     val (invokeStatic, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, true)
     mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, itf)
 
-    if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv)
+    if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame =

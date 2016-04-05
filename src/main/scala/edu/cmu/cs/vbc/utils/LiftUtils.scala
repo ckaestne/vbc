@@ -1,13 +1,12 @@
-package edu.cmu.cs.vbc.vbytecode.util
+package edu.cmu.cs.vbc.utils
 
-import edu.cmu.cs.vbc.util.LiftSignatureWriter
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.signature.SignatureReader
 import org.objectweb.asm.{MethodVisitor, Type}
 
 
-trait LiftUtils {
+object LiftUtils {
   //    val liftedPackagePrefixes = Set("edu.cmu.cs.vbc.test", "edu.cmu.cs.vbc.prog")
   val vclassname = "edu/cmu/cs/varex/V"
   val fexprclassname = "de/fosd/typechef/featureexpr/FeatureExpr"
@@ -17,9 +16,14 @@ trait LiftUtils {
   val fexprclasstype = "L" + fexprclassname + ";"
   val ctxParameterOffset = 1
 
+  val lamdaFactoryOwner = "java/lang/invoke/LambdaMetafactory"
+  val lamdaFactoryMethod = "metafactory"
+  val lamdaFactoryDesc = "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;"
+
+
   //    protected def shouldLift(classname: String) = liftedPackagePrefixes.exists(classname startsWith _)
 
-  protected def liftType(t: Type): String =
+  def liftType(t: Type): String =
     if (t == Type.VOID_TYPE) t.getDescriptor
     else
       vclasstype
@@ -27,12 +31,12 @@ trait LiftUtils {
   /**
     * lift each parameter and add a new fexpr parameter at the end for the context
     */
-  protected def liftMethodDescription(desc: String): String = {
+  def liftMethodDescription(desc: String): String = {
     val mtype = Type.getMethodType(desc)
     (mtype.getArgumentTypes.map(liftType) :+ Type.getObjectType(fexprclassname)).mkString("(", "", ")") + liftType(mtype.getReturnType)
   }
 
-  protected def liftMethodName(name: String): String = {
+  def liftMethodName(name: String): String = {
     if (name == "<clinit>")
       "______clinit______"
     else
@@ -43,12 +47,12 @@ trait LiftUtils {
     * lift each parameter but DO NOT add a new fexpr parameter at the end for the context
     * For example, the <init> method of model classes should not contain
     */
-  protected def liftMtdDescNoFE(desc: String): String = {
+  def liftMtdDescNoFE(desc: String): String = {
     val mtype = Type.getMethodType(desc)
     mtype.getArgumentTypes.map(liftType).mkString("(", "", ")") + liftType(mtype.getReturnType)
   }
 
-  protected def liftMethodSignature(desc: String, sig: Option[String]): Option[String] = {
+  def liftMethodSignature(desc: String, sig: Option[String]): Option[String] = {
     val sigReader = new SignatureReader(sig.getOrElse(desc))
     val sw = new LiftSignatureWriter()
     sigReader.accept(sw)
@@ -98,6 +102,9 @@ trait LiftUtils {
   def loadFExpr(mv: MethodVisitor, env: MethodEnv, v: Variable) =
     mv.visitVarInsn(ALOAD, env.getVarIdx(v))
 
+  def loadCurrentCtx(mv: MethodVisitor, env: VMethodEnv, block: Block) =
+    if (env.isMain) pushConstantTRUE(mv) else loadFExpr(mv, env, env.getBlockVar(block))
+
   def storeV(mv: MethodVisitor, env: MethodEnv, v: Variable) =
     mv.visitVarInsn(ASTORE, env.getVarIdx(v))
 
@@ -108,8 +115,11 @@ trait LiftUtils {
     * precondition: plain reference on top of stack
     * postcondition: V reference on top of stack
     */
-  def callVCreateOne(mv: MethodVisitor) =
-    mv.visitMethodInsn(INVOKESTATIC, vclassname, "one", "(Ljava/lang/Object;)Ledu/cmu/cs/varex/V;", true)
+  def callVCreateOne(mv: MethodVisitor, loadCtx: (MethodVisitor) => Unit) = {
+    loadCtx(mv)
+    mv.visitInsn(SWAP)
+    mv.visitMethodInsn(INVOKESTATIC, vclassname, "one", s"(${fexprclasstype}Ljava/lang/Object;)$vclasstype", true)
+  }
 
   /**
     * precondition: feature expression and two V references on top of stack

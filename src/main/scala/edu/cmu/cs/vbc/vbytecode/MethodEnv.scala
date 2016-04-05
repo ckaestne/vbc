@@ -22,7 +22,7 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
 
   protected var blockLabels: Map[Block, Label] = Map()
 
-  val thisParameter: Parameter = new Parameter(0)
+  val thisParameter: Parameter = new Parameter(0, "this")
 
   def freshLabel(name: String = "<unknown>") = {
     val l = new Label(name)
@@ -30,8 +30,11 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
     l
   }
 
-  def freshLocalVar() = {
-    val l = new LocalVar()
+  def freshLocalVar(name: String, desc: String): LocalVar = freshLocalVar(desc, Some(name))
+
+  def freshLocalVar(desc: String, name: Option[String] = None): LocalVar = {
+    val n = name.getOrElse("v$" + freshVars.size)
+    val l = new LocalVar(n, desc)
     freshVars ::= l
     l
   }

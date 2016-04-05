@@ -1,6 +1,7 @@
 package edu.cmu.cs.varex;
 
 import de.fosd.typechef.featureexpr.FeatureExpr;
+import de.fosd.typechef.featureexpr.FeatureExprFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,17 +24,18 @@ import java.util.Map;
 // */
 public class VHelper {
 
-  public static <T> Map<FeatureExpr, T> explode(FeatureExpr ctx, V<T> v) {
-    Map<FeatureExpr, T> result = new HashMap<>();
-    v.vforeach(ctx, (c, a) -> result.put(c, a));
-    return result;
-  }
+    public static <T> Map<FeatureExpr, T> explode(FeatureExpr ctx, V<T> v) {
+        Map<FeatureExpr, T> result = new HashMap<>();
+        v.sforeach(ctx, (c, a) -> result.put(c, a));
+        return result;
+    }
+
+    public static FeatureExpr True() {
+        return FeatureExprFactory.True();
+    }
 
 }
-//
-//  public static FeatureExpr True() {
-//    return FeatureExprFactory.True();
-//  }
+
 //
 //  @Deprecated//use only as placeholder, use True instead if intentionally general context intended
 //    public static FeatureExpr noCtx() {

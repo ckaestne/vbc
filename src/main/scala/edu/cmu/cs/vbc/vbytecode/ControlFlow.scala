@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode
 
+import edu.cmu.cs.vbc.utils.LiftUtils
 import edu.cmu.cs.vbc.vbytecode.instructions._
-import edu.cmu.cs.vbc.vbytecode.util.LiftUtils
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
 
@@ -11,8 +11,9 @@ import org.objectweb.asm.Opcodes._
   */
 
 
-case class Block(instr: Instruction*) extends LiftUtils {
+case class Block(instr: Instruction*) {
 
+  import LiftUtils._
 
   def toByteCode(mv: MethodVisitor, env: MethodEnv) = {
     validate()
@@ -194,8 +195,9 @@ case class Block(instr: Instruction*) extends LiftUtils {
 }
 
 
-case class CFG(blocks: List[Block]) extends LiftUtils {
+case class CFG(blocks: List[Block]) {
 
+  import LiftUtils._
 
   def toByteCode(mv: MethodVisitor, env: MethodEnv) = {
     // For <init> methods, the first two instructions should be ALOAD 0 and INVOKESPECIAL
@@ -210,7 +212,7 @@ case class CFG(blocks: List[Block]) extends LiftUtils {
   def toVByteCode(mv: MethodVisitor, env: VMethodEnv) = {
     // allocate a variable for each block, except for the first, which can reuse the parameter slot
     blocks.headOption.map(env.setBlockVar(_, env.ctxParameter))
-    blocks.tail.foreach(env.setBlockVar(_, env.freshLocalVar()))
+    //    blocks.tail.foreach(env.setBlockVar(_, env.freshLocalVar()))
 
     // For <init> methods, the first two instructions should be ALOAD 0 and INVOKESPECIAL
     if (env.method.isInit) {
@@ -234,11 +236,12 @@ case class CFG(blocks: List[Block]) extends LiftUtils {
 
     //there might be a smarter way, but as we need to load an old value when
     //conditionally storing an updated value, we need to initialize all lifted
-    //fields. here setting them all to null
+    //fields. here setting them all to One(null)
     //the same process occurs (not actually but as a potential case for the
     //analysis when jumping over unsatisfiable blocks)
     for (v <- env.getLocalVariables()) {
       mv.visitInsn(ACONST_NULL)
+      callVCreateOne(mv, (m) => loadFExpr(m, env, env.ctxParameter))
       storeV(mv, env, v)
     }
 

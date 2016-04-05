@@ -58,7 +58,7 @@ class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
   }
 
   test("conditional store") {
-    val localvar = new LocalVar()
+    val localvar = new LocalVar("v", "I")
     method(
       Block(InstrICONST(5), InstrISTORE(localvar), InstrLoadConfig("A"), InstrIFEQ(2)),
       Block(InstrICONST(1), InstrISTORE(localvar), InstrICONST(3), InstrDBGIPrint()),
@@ -69,7 +69,7 @@ class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
 
 
   test("plain loop") {
-    val localvar = new LocalVar()
+    val localvar = new LocalVar("v", "I")
     method(
       Block(InstrICONST(3), InstrISTORE(localvar)),
       Block(InstrILOAD(localvar), InstrDBGIPrint(), InstrIINC(localvar, -1), InstrILOAD(localvar), InstrIFEQ(3)),
@@ -79,7 +79,7 @@ class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
   }
 
   test("cond loop bound") {
-    val localvar = new LocalVar()
+    val localvar = new LocalVar("v", "I")
     method(
       Block(InstrICONST(3), InstrLoadConfig("A"), InstrLoadConfig("B"), InstrIADD(), InstrIADD(), InstrISTORE(localvar)),
       Block(InstrILOAD(localvar), InstrDBGIPrint(), InstrIINC(localvar, -1), InstrILOAD(localvar), InstrIFEQ(3)),
@@ -146,7 +146,7 @@ class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
   }
 
   test("unbalanced - for loop") {
-    val local = new LocalVar()
+    val local = new LocalVar("v", "I")
     method(
       Block(InstrICONST(10), InstrISTORE(local), InstrICONST(1), InstrGOTO(1)),
       Block(InstrICONST(2), InstrICONST(3), InstrILOAD(local), InstrICONST(0), InstrIF_ICMPGE(3)),
@@ -158,7 +158,7 @@ class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
 
 
   test("unbalanced - conditional for loop") {
-    val local = new LocalVar()
+    val local = new LocalVar("v", "I")
     method(
       Block(InstrLoadConfig("A"), InstrIFNE(2)),
       Block(InstrICONST(5), InstrISTORE(local), InstrGOTO(3)),

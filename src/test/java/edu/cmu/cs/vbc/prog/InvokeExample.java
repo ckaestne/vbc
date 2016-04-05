@@ -4,7 +4,7 @@ import edu.cmu.cs.varex.annotation.VConditional;
 
 /**
  * Toy example for method invocation.
- *
+ * <p>
  * Method should be invoked on a {@link edu.cmu.cs.varex.V} object
  *
  * @author chupanw
@@ -22,8 +22,7 @@ public class InvokeExample {
     public InvokeExample() {
         if (A) {
             a = new Integer(1);
-        }
-        else {
+        } else {
             a = new Integer(3);
         }
     }

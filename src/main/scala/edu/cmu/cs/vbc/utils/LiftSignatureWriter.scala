@@ -1,6 +1,5 @@
-package edu.cmu.cs.vbc.util
+package edu.cmu.cs.vbc.utils
 
-import edu.cmu.cs.vbc.vbytecode.util.LiftUtils
 import org.objectweb.asm.signature.{SignatureVisitor, SignatureWriter}
 
 /**
@@ -11,7 +10,10 @@ import org.objectweb.asm.signature.{SignatureVisitor, SignatureWriter}
   * array instead of array of conditional elements. May want to explore
   * different alternatives in the future.
   */
-class LiftSignatureWriter() extends SignatureWriter() with LiftUtils {
+class LiftSignatureWriter() extends SignatureWriter() {
+
+  import LiftUtils._
+
   //arrayStack stolen from TraceSignatureVisitor, see documentation there
   var arrayStack: Int = 0
 

@@ -5,13 +5,13 @@ import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
 import edu.cmu.cs.varex.{V, VHelper}
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, V_TYPE}
+import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
 import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, VMethodEnv}
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
 
 import scala.collection.JavaConversions._
-
 
 object Config {
 
@@ -70,7 +70,7 @@ case class InstrLoadConfig(config: String) extends Instruction {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     env.setLift(this)
-    (s.push(V_TYPE(), Set(this)), Set.empty[Instruction])
+    (s.push(V_TYPE(), Set(this)), Set())
   }
 }
 
@@ -90,7 +90,7 @@ case class InstrDBGIPrint() extends Instruction {
     val (v, prev, newFrame) = s.pop()
     val backtrack =
       if (v != V_TYPE()) prev
-      else Set.empty[Instruction]
+      else Set[Instruction]()
     (newFrame, backtrack)
   }
 }
@@ -106,5 +106,5 @@ case class InstrDBGCtx(name: String) extends Instruction {
     mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Ljava/lang/String;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set.empty[Instruction])
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set())
 }

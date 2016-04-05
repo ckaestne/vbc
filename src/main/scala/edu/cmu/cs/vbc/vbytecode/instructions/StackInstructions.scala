@@ -2,6 +2,7 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{INT_TYPE, VBCFrame, V_TYPE}
+import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
@@ -24,7 +25,7 @@ case class InstrDUP() extends Instruction {
     val (v, prev, frame1) = s.pop()
     val frame2 = frame1.push(v, prev)
     val frame3 = frame2.push(v, prev)
-    (frame3, Set.empty[Instruction])
+    (frame3, Set())
   }
 }
 
@@ -43,7 +44,7 @@ case class InstrPOP() extends Instruction {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val (v, prev, newFrame) = s.pop()
-    (newFrame, Set.empty[Instruction])
+    (newFrame, Set())
   }
 }
 
@@ -62,7 +63,7 @@ case class InstrBIPUSH(value: Int) extends Instruction {
     if (env.shouldLiftInstr(this)) {
       pushConstant(mv, value)
       mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
-      callVCreateOne(mv)
+      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
     else
       toByteCode(mv, env, block)
@@ -74,7 +75,7 @@ case class InstrBIPUSH(value: Int) extends Instruction {
         s.push(V_TYPE(), Set(this))
       else
         s.push(INT_TYPE(), Set(this))
-    (newFrame, Set.empty[Instruction])
+    (newFrame, Set())
   }
 }
 
@@ -93,7 +94,7 @@ case class InstrSIPUSH(value: Int) extends Instruction {
     if (env.shouldLiftInstr(this)) {
       mv.visitIntInsn(SIPUSH, value)
       mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", genSign("I", primitiveToObjectType("I")), false)
-      callVCreateOne(mv)
+      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
     else
       toByteCode(mv, env, block)
@@ -105,6 +106,6 @@ case class InstrSIPUSH(value: Int) extends Instruction {
         s.push(V_TYPE(), Set(this))
       else
         s.push(INT_TYPE(), Set(this))
-    (newFrame, Set.empty[Instruction])
+    (newFrame, Set())
   }
 }

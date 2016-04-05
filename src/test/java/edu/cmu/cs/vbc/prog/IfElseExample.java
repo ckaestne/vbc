@@ -8,22 +8,22 @@ import edu.cmu.cs.varex.annotation.VConditional;
  * @author: chupanw
  */
 public class IfElseExample {
-  @VConditional
-  public boolean a;
+    @VConditional
+    public boolean a;
 
-  public static void main(String[] args) {
-    new IfElseExample().simpleIfElse();
-  }
-
-  public void simpleIfElse() {
-    System.out.println("start.");
-    if (a) {
-      System.out.println("then branch.");
-    } else {
-      System.out.println("else branch.");
+    public static void main(String[] args) {
+        new IfElseExample().simpleIfElse();
     }
-    System.out.println("done.");
-  }
+
+    public void simpleIfElse() {
+        System.out.println("start.");
+        if (a) {
+            System.out.println("then branch.");
+        } else {
+            System.out.println("else branch.");
+        }
+        System.out.println("done.");
+    }
 
 //    /**
 //     * previously only the last block may contain a return instruction

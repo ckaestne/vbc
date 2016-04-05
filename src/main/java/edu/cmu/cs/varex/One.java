@@ -3,21 +3,27 @@ package edu.cmu.cs.varex;
 import de.fosd.typechef.featureexpr.FeatureExpr;
 import de.fosd.typechef.featureexpr.FeatureExprFactory;
 
+import javax.annotation.Nonnull;
 import java.util.function.*;
 
 /**
  * Created by ckaestne on 11/27/2015.
  */
 public class One<T> implements V<T> {
+    final FeatureExpr configSpace;
     final T value;
 
-    public One(T v) {
+    public One(FeatureExpr configSpace, T v) {
+        this.configSpace = configSpace;
         this.value = v;
     }
 
     @Override
     public String toString() {
-        return "Value(" + value + ")";
+        String condition = "";
+        if (!configSpace.isTautology())
+            condition = configSpace.toString() + ":";
+        return "One(" + condition + value + ")";
     }
 
     @Override
@@ -26,43 +32,72 @@ public class One<T> implements V<T> {
     }
 
     @Override
-    public T getOne(FeatureExpr ctx) {
-        return getOne();
+    public <U> V<? extends U> map(@Nonnull Function<? super T, ? extends U> fun) {
+        assert fun != null;
+        return new One(configSpace, fun.apply(value));
     }
 
     @Override
-    public <U> V<? extends U> map(Function<? super T, ? extends U> fun) {
-        return new One(fun.apply(value));
+    public <U> V<? extends U> map(@Nonnull BiFunction<FeatureExpr, ? super T, ? extends U> fun) {
+        assert fun != null;
+        return new One(configSpace, fun.apply(configSpace, value));
     }
 
     @Override
-    public <U> V<? extends U> vmap(FeatureExpr ctx, BiFunction<FeatureExpr, ? super T, ? extends U> fun) {
-        return new One(fun.apply(ctx, value));
+    public <U> V<? extends U> flatMap(@Nonnull Function<? super T, V<? extends U>> fun) {
+        assert fun != null;
+        V<? extends U> result = fun.apply(value);
+        assert result != null;
+        return result.reduce(configSpace);
     }
 
     @Override
-    public <U> V<? extends U> flatMap(Function<? super T, V<? extends U>> fun) {
-        return fun.apply(value);
+    public <U> V<? extends U> flatMap(@Nonnull BiFunction<FeatureExpr, ? super T, V<? extends U>> fun) {
+        assert fun != null;
+        V<? extends U> result = fun.apply(configSpace, value);
+        assert result != null;
+        return result.reduce(configSpace);
     }
 
     @Override
-    public <U> V<? extends U> vflatMap(BiFunction<FeatureExpr, ? super T, V<? extends U>> fun, FeatureExpr ctx) {
-        return fun.apply(ctx, value);
-    }
-
-    @Override
-    public void foreach(Consumer<T> fun) {
+    public void foreach(@Nonnull Consumer<T> fun) {
+        assert fun != null;
         fun.accept(value);
     }
 
     @Override
-    public void vforeach(FeatureExpr ctx, BiConsumer<FeatureExpr, T> fun) {
-        fun.accept(ctx, value);
+    public void foreach(@Nonnull BiConsumer<FeatureExpr, T> fun) {
+        assert fun != null;
+        fun.accept(configSpace, value);
     }
 
     @Override
-    public FeatureExpr when(Predicate<T> condition) {
+    public FeatureExpr when(@Nonnull Predicate<T> condition) {
+        assert condition != null;
         return condition.test(value) ? FeatureExprFactory.True() : FeatureExprFactory.False();
+    }
+
+    @Override
+    public V<T> select(@Nonnull FeatureExpr selectConfigSpace) {
+        assert selectConfigSpace != null;
+        assert selectConfigSpace.implies(configSpace).isTautology() :
+                "selecting under broader condition (" + selectConfigSpace + ") than the configuration space described by One (" + configSpace + ")";
+
+        return reduce(selectConfigSpace);
+    }
+
+    @Override
+    public V<T> reduce(@Nonnull FeatureExpr reducedConfigSpace) {
+        assert reducedConfigSpace != null;
+        FeatureExpr newCondition = configSpace.and(reducedConfigSpace);
+        if (newCondition.isSatisfiable())
+            return new One(newCondition, value);
+        else return VEmpty.instance();
+    }
+
+    @Override
+    public FeatureExpr getConfigSpace() {
+        return configSpace;
     }
 
     @Override
@@ -74,7 +109,7 @@ public class One<T> implements V<T> {
     public boolean equals(Object obj) {
         if (obj instanceof One) {
             if (((One) obj).value == null) return value == null;
-            return ((One)obj).value.equals(value);
+            return ((One) obj).value.equals(value) && ((One) obj).configSpace.equivalentTo(configSpace);
         }
         return super.equals(obj);
     }

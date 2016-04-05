@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode
 
+import edu.cmu.cs.vbc.utils.LiftUtils
 import edu.cmu.cs.vbc.vbytecode.instructions._
 
 
@@ -35,7 +36,7 @@ object Rewrite {
   private def unifyReturnInstr(method: VBCMethodNode, returnInstr: Instruction): VBCMethodNode = {
     //TODO technically, all methods will always return type V, so we should not have
     //to worry really about what kind of store/load/return instruction we generate here
-    val returnVariable = new LocalVar()
+    val returnVariable = new LocalVar("$result", LiftUtils.vclasstype)
 
     var newReturnBlockInstr = List(returnInstr)
     if (!method.returnsVoid)
@@ -64,21 +65,24 @@ object Rewrite {
   private def initializeConditionalFields(m: VBCMethodNode): VBCMethodNode =
     if (m.isInit) {
       val firstBlock = m.body.blocks.head
+      val firstBlockInstructions = firstBlock.instr
 
       /* Assume that the first two instructions in the <init> method are:
            ALOAD 0
            INVOKESPECIAL java/lang/Object.<inti> ()V
       */
-      val firstInstr = firstBlock.instr.head
-      val secondInstr = firstBlock.instr.tail.head
+      val nopPrefix = firstBlockInstructions.takeWhile(_.isInstanceOf[EmptyInstruction])
+      val initialInstr = firstBlockInstructions.drop(nopPrefix.length)
+      val firstInstr = initialInstr.head
+      val secondInstr = initialInstr.tail.head
       assert(firstInstr.isALOAD0, "first instruction in <init> is not ALOAD0")
       assert(secondInstr.isINVOKESPECIAL_OBJECT_INIT,
         "second instruction in <inti> is not INVOKESPECIAL java/lang/Object.<init> ()V")
 
       // ALOAD and INVOKESPECIAL will be inserted in CFG
-      val newInstrs = firstBlock.instr.drop(2).reverse :+ InstrINIT_CONDITIONAL_FIELDS()
-      val newBlocks = m.body.blocks.reverse.dropRight(1) :+ new Block(newInstrs.reverse: _*)
-      m.copy(body = CFG(newBlocks.reverse))
+      val newInstrs = nopPrefix ++ (InstrINIT_CONDITIONAL_FIELDS() +: initialInstr.drop(2))
+      val newBlocks = new Block(newInstrs: _*) +: m.body.blocks.drop(1)
+      m.copy(body = CFG(newBlocks))
     } else m
 
 }
