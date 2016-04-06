@@ -96,7 +96,7 @@ trait MethodInstruction extends Instruction {
     env.clazz.lambdaMethods += (getLambdaFunName -> lambda)
   }
 
-  override def doBacktrack(env: VMethodEnv): Unit = env.setTag(this, env.TAG_NEED_V_RETURN)
+  override def doBacktrack(env: VMethodEnv): Unit = env.setTag(this, env.TAG_NEED_V)
 
   def updateStack(
                    s: VBCFrame,
@@ -140,7 +140,7 @@ trait MethodInstruction extends Instruction {
 
     // return value
     if (Type.getReturnType(desc) != Type.VOID_TYPE) {
-      if (env.getTag(this, env.TAG_NEED_V_RETURN))
+      if (env.getTag(this, env.TAG_NEED_V))
         frame = frame.push(V_TYPE(), Set(this))
       else if (env.shouldLiftInstr(this))
         frame = frame.push(V_TYPE(), Set(this))
@@ -206,7 +206,7 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
         mv.visitMethodInsn(INVOKESPECIAL, nOwner, nName, nDesc, itf)
 
       if (env.getTag(this, env.TAG_WRAP_DUPLICATE)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
-      if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+      if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
   }
 
@@ -269,7 +269,7 @@ case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Bo
       else
         mv.visitMethodInsn(INVOKEVIRTUAL, nOwner, nName, nDesc, itf)
 
-      if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+      if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
   }
 
@@ -300,7 +300,7 @@ case class InstrINVOKESTATIC(owner: String, name: String, desc: String, itf: Boo
 
     mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, itf)
 
-    if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+    if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame =

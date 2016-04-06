@@ -166,7 +166,7 @@ class Loader {
       case LALOAD => UNKNOWN(LALOAD)
       case FALOAD => UNKNOWN(FALOAD)
       case DALOAD => UNKNOWN(DALOAD)
-      case AALOAD => UNKNOWN(AALOAD)
+      case AALOAD => InstrAALOAD()
       case BALOAD => UNKNOWN(BALOAD)
       case CALOAD => UNKNOWN(CALOAD)
       case SALOAD => UNKNOWN(SALOAD)
@@ -185,7 +185,7 @@ class Loader {
       case LASTORE => UNKNOWN(LASTORE)
       case FASTORE => UNKNOWN(FASTORE)
       case DASTORE => UNKNOWN(DASTORE)
-      case AASTORE => UNKNOWN(AASTORE)
+      case AASTORE => InstrAASTORE()
       case BASTORE => UNKNOWN(BASTORE)
       case CASTORE => UNKNOWN(CASTORE)
       case SASTORE => UNKNOWN(SASTORE)
@@ -345,7 +345,10 @@ class Loader {
         InstrNEW(i.desc)
       }
       case NEWARRAY => UNKNOWN(NEWARRAY)
-      case ANEWARRAY => UNKNOWN(ANEWARRAY)
+      case ANEWARRAY => {
+        val i = inst.asInstanceOf[TypeInsnNode]
+        InstrANEWARRAY(i.desc)
+      }
       case ARRAYLENGTH => UNKNOWN(ARRAYLENGTH)
       case ATHROW => UNKNOWN(ATHROW)
       case CHECKCAST => UNKNOWN(CHECKCAST)

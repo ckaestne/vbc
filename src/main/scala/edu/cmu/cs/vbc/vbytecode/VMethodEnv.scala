@@ -49,24 +49,24 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
     */
   val TAG_HAS_VARG = 2
   /**
-    * Method instructions only, whether we need to wrap return value into a V.
+    * Whether we need to wrap value into a V.
     *
     * We could always wrap all the return values into Vs, but that is not efficient and hard to debug from
     * reading bytecode.
     */
-  val TAG_NEED_V_RETURN = 4
+  val TAG_NEED_V = 4
   /**
     * INVOKESPECIAL only. Handle special case like NEW DUP INVOKESPECIAL sequence.
     */
   val TAG_WRAP_DUPLICATE = 8
 
   def setTag(instr: Instruction, tag: Int): Unit = {
-    assert(tag == TAG_LIFT || tag == TAG_HAS_VARG || tag == TAG_NEED_V_RETURN || tag == TAG_WRAP_DUPLICATE)
+    assert(tag == TAG_LIFT || tag == TAG_HAS_VARG || tag == TAG_NEED_V || tag == TAG_WRAP_DUPLICATE)
     instructionTags(getInsnIdx(instr)) |= tag
   }
 
   def getTag(instr: Instruction, tag: Int): Boolean = {
-    assert(tag == TAG_LIFT || tag == TAG_HAS_VARG || tag == TAG_NEED_V_RETURN || tag == TAG_WRAP_DUPLICATE)
+    assert(tag == TAG_LIFT || tag == TAG_HAS_VARG || tag == TAG_NEED_V || tag == TAG_WRAP_DUPLICATE)
     (instructionTags(getInsnIdx(instr)) & tag) != 0
   }
 
