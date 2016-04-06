@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
-import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
+import edu.cmu.cs.vbc.analysis.VBCFrame.{FrameEntry, UpdatedFrame}
 import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_REF_TYPE, V_TYPE}
 import edu.cmu.cs.vbc.model.LiftCall._
 import edu.cmu.cs.vbc.utils.LiftUtils._
@@ -83,7 +83,7 @@ trait MethodInstruction extends Instruction {
         callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, nArg))
         mv.visitInsn(ARETURN)
       } else {
-        // if there is no V arguments, we would just call the method on the object, and thus we need
+        // if we are not calling lifted method, we will get a non-V as return value and thus we need
         // to wrap it into a V so that our invariant could hold
         if (!invokeLifted)
           callVCreateOne(mv, (m) => pushConstantTRUE(m))
@@ -109,14 +109,6 @@ trait MethodInstruction extends Instruction {
     val nArg = Type.getArgumentTypes(desc).length
     val argList: List[(VBCType, Set[Instruction])] = s.stack.take(nArg)
 
-    // arguments
-    val hasVArgs = argList.exists(_._1 == V_TYPE())
-    if (hasVArgs) env.setTag(this, env.TAG_HAS_VARG)
-    if (hasVArgs || shouldLift) {
-      // ensure that all arguments are V
-      for (ele <- argList if ele._1 != V_TYPE()) return (s, ele._2)
-    }
-
     // object reference
     var frame = s
     1 to nArg foreach { _ => frame = frame.pop()._3 }
@@ -138,6 +130,14 @@ trait MethodInstruction extends Instruction {
       }
     }
 
+    // arguments
+    val hasVArgs = argList.exists(_._1 == V_TYPE())
+    if (hasVArgs) env.setTag(this, env.TAG_HAS_VARG)
+    if (hasVArgs || shouldLift || env.shouldLiftInstr(this)) {
+      // ensure that all arguments are V
+      for (ele <- argList if ele._1 != V_TYPE()) return (s, ele._2)
+    }
+
     // return value
     if (Type.getReturnType(desc) != Type.VOID_TYPE) {
       if (env.getTag(this, env.TAG_NEED_V_RETURN))
@@ -149,7 +149,19 @@ trait MethodInstruction extends Instruction {
       else
         frame = frame.push(VBCType(Type.getReturnType(desc)), Set(this))
     }
-    (frame, Set())
+
+    // For exception handling, method invocation implies the end of a block
+    val backtrack = backtraceNonVStackElements(frame)
+    (frame, backtrack)
+  }
+
+  def backtraceNonVStackElements(f: VBCFrame): Set[Instruction] = {
+    (Tuple2[VBCType, Set[Instruction]](V_TYPE(), Set()) /: f.stack) (
+      (a: FrameEntry, b: FrameEntry) => {
+        // a is always V_TYPE()
+        if (a._1 != b._1) (a._1, a._2 ++ b._2)
+        else a
+      })._2
   }
 }
 

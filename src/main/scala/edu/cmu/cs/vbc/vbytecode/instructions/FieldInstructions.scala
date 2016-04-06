@@ -85,7 +85,15 @@ case class InstrGETSTATIC(owner: String, name: String, desc: String) extends Fie
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
-      mv.visitFieldInsn(GETSTATIC, owner, name, "Ledu/cmu/cs/varex/V;")
+      if (LiftingFilter.shouldLiftField(owner, name, desc)) {
+        // fields are lifted, the desc should be V
+        mv.visitFieldInsn(GETSTATIC, owner, name, "Ledu/cmu/cs/varex/V;")
+      }
+      else {
+        // fields are not lifted but we need a V, so we wrap it into a V
+        mv.visitFieldInsn(GETSTATIC, owner, name, desc)
+        callVCreateOne(mv, (m) => loadCurrentCtx(mv, env, block))
+      }
     }
     else {
       mv.visitFieldInsn(GETSTATIC, owner, name, desc)
@@ -94,11 +102,17 @@ case class InstrGETSTATIC(owner: String, name: String, desc: String) extends Fie
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     if (LiftingFilter.shouldLiftField(owner, name, desc)) {
+      // This field should be lifted (e.g. fields that are not from java.lang)
       env.setLift(this)
       (s.push(V_TYPE(), Set(this)), Set())
     }
     else {
-      (s.push(VBCType(Type.getType(desc)), Set(this)), Set())
+      if (env.shouldLiftInstr(this)) {
+        (s.push(V_TYPE(), Set(this)), Set())
+      }
+      else {
+        (s.push(VBCType(Type.getType(desc)), Set(this)), Set())
+      }
     }
   }
 }
