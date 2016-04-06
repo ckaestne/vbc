@@ -2,8 +2,7 @@ package edu.cmu.cs.vbc.vbytecode
 
 import org.objectweb.asm.{Label, MethodVisitor, Type}
 
-class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
-  protected val blocks = method.body.blocks
+class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) extends CFGAnalysis {
   assert(blocks.nonEmpty, "method with empty body not supported")
 
   //find all local variables
@@ -52,9 +51,6 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
   }
 
 
-  def getBlock(blockIdx: Int) = blocks(blockIdx)
-
-  def getLastBlock(): Block = blocks.last
 
   /**
     * returns a label for a block
@@ -65,49 +61,32 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
     blockLabels(block)
   }
 
-  /**
-    * returns the next block in the CFG (not necessarily a successor)
-    */
-  def getNextBlock(block: Block): Option[Block] = {
-    val blockIdx = blocks.indexOf(block)
-    if (blockIdx == blocks.size - 1)
-      None
-    else
-      Some(blocks(blockIdx + 1))
-  }
 
-  /**
-    * returns the next block (unless this is the last block), and in case of a conditional
-    * jump, the conditional next block
-    */
-  def getSuccessors(block: Block): (Option[Block], Option[Block]) = {
-    val nextBlock = getNextBlock(block)
-    val lastInstr = block.instr.last
-    val jumpInstr = lastInstr.getJumpInstr
-    if (jumpInstr.isDefined) {
-      val succ = jumpInstr.get.getSuccessor()
-      (if (succ._1.isDefined) succ._1.map(getBlock) else nextBlock, succ._2.map(getBlock))
-    } else (nextBlock, None)
-  }
-
-  def getPredecessors(thisBlock: Block): Set[Block] =
-    for (block: Block <- blocks.toSet;
-         succ = getSuccessors(block)
-         if succ._1.contains(thisBlock) || succ._2.contains(thisBlock))
-      yield block
+  //  /**
+  //    * returns the next block (unless this is the last block), and in case of a conditional
+  //    * jump, the conditional next block
+  //    */
+  //  def getSuccessors(block: Block): (Option[Block], Option[Block]) = {
+  //    val nextBlock = getNextBlock(block)
+  //    val lastInstr = block.instr.last
+  //    val jumpInstr = lastInstr.getJumpInstr
+  //    if (jumpInstr.isDefined) {
+  //      val succ = jumpInstr.get.getSuccessor()
+  //      (if (succ._1.isDefined) succ._1.map(getBlock) else nextBlock, succ._2.map(getBlock))
+  //    } else (nextBlock, None)
+  //  }
+  //
+  //  def getPredecessors(thisBlock: Block): Set[Block] =
+  //    for (block: Block <- blocks.toSet;
+  //         succ = getSuccessors(block)
+  //         if succ._1.contains(thisBlock) || succ._2.contains(thisBlock))
+  //      yield block
 
 
-  /**
-    * returns whether the first block is before the second block
-    * in the current method
-    */
-  def isBlockBefore(first: Block, second: Block): Boolean =
-    blocks.indexOf(first) < blocks.indexOf(second)
 
 
   def isMain = {
-    //todo oversimplified; also I'd rather create a new main method that just calls the lifted main method,
-    //such that the (lifted) main method is not different from any other (lifted) method
+    //todo oversimplified
     method.name == "main"
   }
 

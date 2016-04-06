@@ -10,10 +10,15 @@ import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.{ClassVisitor, Handle, MethodVisitor, Type}
 
 /**
+  * method instructions are also considered as jump instructions
+  * because of variational exceptions (in lifted code).
+  * a method call can therefore change the context of subsequent
+  * instructions if an exception is thrown conditionally
+  *
   * @author chupanw
   */
 
-trait MethodInstruction extends Instruction {
+trait MethodInstruction extends JumpInstruction {
 
   def invokeDynamic(owner: String, name: String, desc: String, itf: Boolean,
                     mv: MethodVisitor, env: VMethodEnv, block: Block,
@@ -143,6 +148,9 @@ trait MethodInstruction extends Instruction {
     }
     (frame, Set())
   }
+
+  //fall through to next block
+  def getSuccessor() = (None, None)
 }
 
 /**

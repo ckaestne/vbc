@@ -14,7 +14,9 @@ import edu.cmu.cs.vbc.vbytecode.instructions.{Instruction, JumpInstruction, Meth
   * 1. decide whether or not to lift each instruction (see tagV section)
   * 1. handle unbalanced stack (see unbalanced stack section)
   */
-class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(clazz, method) {
+class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(clazz, method) with VBlockAnalysis {
+
+  val ctxParameter: Parameter = new Parameter(-1, "ctx")
 
   //////////////////////////////////////////////////
   // tagV
@@ -23,7 +25,6 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   val blockTags = new Array[Boolean](blocks.length)
 
   // by default all elements are false
-  def getBlockIdx(b: Block) = blocks.indexWhere(_ eq b)
 
   /**
     * For each instruction, mark whether or not we need to lift it
@@ -78,22 +79,18 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   def getOrderedSuccessorsIndexes(b: Block): List[Int] = {
     var idxSet = Set[Int]()
     var visited = Set[Block]()
-    val (uncond, cond) = getSuccessors(b)
+    val succ = getSuccessors(b)
     var queue = List[Block]()
-    if (uncond.isDefined) queue = queue :+ uncond.get
-    if (cond.isDefined) queue = queue :+ cond.get
+    queue = queue ++ succ
     while (queue.nonEmpty) {
       val h = queue.head
       visited += h
       if (!idxSet.contains(getBlockIdx(h))) {
         idxSet += getBlockIdx(h)
-        val (o1, o2) = getSuccessors(h)
-        if (o1.isDefined && !visited.contains(o1.get))
-          queue = queue :+ o1.get
-        if (o2.isDefined && !visited.contains(o2.get))
-          queue = queue :+ o2.get
+        val succ = getSuccessors(h)
+        queue = queue ++ succ
       }
-      queue = queue.drop(1)
+      queue = queue.tail
     }
     idxSet.toList sortWith (_ < _)
   }
@@ -128,12 +125,14 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
     * exception is a nonvariational jump and the `toBlock` will continue
     * in the same condition as the `fromBlock`
     */
-  def isVariationalJump(fromBlockIdx: Int, toBlockIdx: Int): Boolean = {
+  def isVariationalJump(fromBlock: Block, toBlock: Block): Boolean = {
     //TODO this should be informed by results of the tagV analysis
     //for now it's simply returning true for all IF statements and method
     //invocations
 
-    val lastInstr = getBlock(fromBlockIdx).instr.last
+    val lastInstr = fromBlock.instr.last
+    val fromBlockIdx = getBlockIdx(fromBlock)
+    val toBlockIdx = getBlockIdx(toBlock)
 
     lastInstr match {
       case jump: JumpInstruction =>
@@ -196,24 +195,25 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   // Block management
   //////////////////////////////////////////////////
 
+  val blockAnalysis = new VBlockAnalysis(method, isVariationalJump)
+
   // allocate a variable for each VBlock, except for the first, which can reuse the parameter slot
-  var vblocks: List[Block]
+  val vblockVars: Map[Block, Variable] =
+    (for (((block, _), vblockidx) <- (vblocks zip vblocks.indices).tail) yield
+      (block -> freshLocalVar("$blockctx" + vblockidx, LiftUtils.fexprclasstype, LocalVar.initFalse))).toMap +
+      (vblocks.head._1 -> ctxParameter)
 
-  val blockVars: Map[Block, Variable] = (for (block <- method.body.blocks.tail) yield
-    (block -> freshLocalVar("$blockctx" + method.body.blocks.indexOf(block), LiftUtils.fexprclasstype, LocalVar.initFalse))).toMap +
-    (method.body.blocks.head -> ctxParameter)
+  def getVBlockVar(block: Block): Variable = {
+    assert(vblocks.exists(_._1 == block))
+    vblockVars(block)
+  }
 
+  //  def getVBlockVarVIdx(block: Block): Int = getVarIdx(getBlockVar(block))
 
   //////////////////////////////////////////////////
   // Utilities
   //////////////////////////////////////////////////
 
-  val ctxParameter: Parameter = new Parameter(-1, "ctx")
-
-
-  def getBlockVar(block: Block): Variable = blockVars(block)
-
-  def getBlockVarVIdx(block: Block): Int = getVarIdx(getBlockVar(block))
 
   def getLocalVariables() = localVars
 
