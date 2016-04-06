@@ -63,9 +63,9 @@ trait MethodInstruction extends Instruction {
       mv.visitVarInsn(ALOAD, nArg + 1) // load obj
       for (i <- 0 until nArg) mv.visitVarInsn(ALOAD, i) // load arguments
       val hasVArgument = if (nArg > 0) true else false
-      if (hasVArgument)
+      val (invokeModelClass, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgument, owner, name, desc, false)
+      if (invokeLifted)
         mv.visitVarInsn(ALOAD, nArg) // load ctx
-      val (invokeModelClass, nOwner, nName, nDesc) = liftCall(hasVArgument, owner, name, desc, false)
       if (invokeModelClass) {
         mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, true)
       }
@@ -85,7 +85,7 @@ trait MethodInstruction extends Instruction {
       } else {
         // if there is no V arguments, we would just call the method on the object, and thus we need
         // to wrap it into a V so that our invariant could hold
-        if (!hasVArgument)
+        if (!invokeLifted)
           callVCreateOne(mv, (m) => pushConstantTRUE(m))
         mv.visitInsn(ARETURN)
       }
@@ -183,12 +183,11 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
     }
     else {
       val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
-      val shouldLiftMethod = LiftingFilter.shouldLiftMethod(owner, name, desc)
-      if (hasVArgs || shouldLiftMethod) {
-        if (env.isMain) pushConstantTRUE(mv) else loadFExpr(mv, env, env.getBlockVar(block))
+      val (invokeStatic, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false)
+      if (invokeLifted) {
+        loadCurrentCtx(mv, env, block)
       }
 
-      val (invokeStatic, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false)
       if (invokeStatic)
         mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, true)
       else
@@ -247,13 +246,12 @@ case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Bo
       invokeDynamic(owner, name, desc, itf, mv, env, block, false)
     }
     else {
-      val shouldLiftMethod = LiftingFilter.shouldLiftMethod(owner, name, desc)
       val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
-      if (hasVArgs || shouldLiftMethod) {
-        if (env.isMain) pushConstantTRUE(mv) else loadFExpr(mv, env, env.getBlockVar(block))
+      val (invokeStatic, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false)
+      if (invokeLifted) {
+        loadCurrentCtx(mv, env, block)
       }
 
-      val (invokeStatic, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false)
       if (invokeStatic)
         mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, true)
       else
@@ -282,11 +280,12 @@ case class InstrINVOKESTATIC(owner: String, name: String, desc: String, itf: Boo
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    val shouldLiftMethod = LiftingFilter.shouldLiftMethod(owner, name, desc)
     val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
-    if (hasVArgs || shouldLiftMethod) loadFExpr(mv, env, env.getBlockVar(block))
+    val (invokeStatic, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, true)
+    if (invokeLifted) {
+      loadCurrentCtx(mv, env, block)
+    }
 
-    val (invokeStatic, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, true)
     mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, itf)
 
     if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
