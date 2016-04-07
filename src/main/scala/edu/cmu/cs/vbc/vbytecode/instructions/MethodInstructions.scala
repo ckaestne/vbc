@@ -85,8 +85,17 @@ trait MethodInstruction extends Instruction {
       } else {
         // if we are not calling lifted method, we will get a non-V as return value and thus we need
         // to wrap it into a V so that our invariant could hold
-        if (!invokeLifted)
+        if (!invokeLifted) {
+          // since we are calling java lang methods, return value might be primitive type (e.g. Integer.intValue())
+          val tSort = Type.getReturnType(desc).getSort
+          if (tSort != Type.OBJECT) {
+            tSort match {
+              case Type.INT => mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
+              case _ => throw new UnsupportedOperationException("Unsupported primitive type: " + tSort)
+            }
+          }
           callVCreateOne(mv, (m) => pushConstantTRUE(m))
+        }
         mv.visitInsn(ARETURN)
       }
       mv.visitMaxs(nArg + 2, nArg + 2)

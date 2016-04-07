@@ -62,11 +62,13 @@ class Loader {
     if (!isStatic)
       varCache += (0 -> new Parameter(0, "this"))
     if (m.localVariables != null)
-      for (vIdx <- 0 until m.localVariables.size())
+      for (i <- 0 until m.localVariables.size()) {
+        val vIdx = m.localVariables(i).index
         if (vIdx < parameterCount)
-          varCache += (vIdx -> new Parameter(vIdx, m.localVariables(vIdx).name))
+          varCache += (vIdx -> new Parameter(vIdx, m.localVariables(i).name))
         else
-          varCache += (vIdx -> new LocalVar(m.localVariables(vIdx).name, m.localVariables(vIdx).desc))
+          varCache += (vIdx -> new LocalVar(m.localVariables(i).name, m.localVariables(i).desc))
+      }
 
     // typically we initialize all variables and parameters from the table, but that table is technically optional,
     // so we need a fallback option and generate them on the fly with name "$unknown"

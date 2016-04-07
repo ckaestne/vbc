@@ -58,6 +58,14 @@ public interface V<T> {
         return this.select(ctx).map(fun);
     }
 
+    default <U> V<? extends U> smap(@Nonnull BiFunction<FeatureExpr, ? super T, ? extends U> fun, @Nonnull FeatureExpr ctx) {
+        return smap(ctx, fun);
+    }
+
+    default <U> V<? extends U> smap(@Nonnull Function<? super T, ? extends U> fun, @Nonnull FeatureExpr ctx) {
+        return smap(ctx, fun);
+    }
+
     /**
      * partially map: apply function fun to all values inside a restricted configuration space and apply function altFun
      * to all values outside the restricted configuration space. Overloaded for the common case where
