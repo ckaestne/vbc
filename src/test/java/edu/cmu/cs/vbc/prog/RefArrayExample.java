@@ -61,7 +61,7 @@ public class RefArrayExample {
             count = 10;
         else
             count = 20;
-        Integer integers[] = new Integer[count];
+        Integer[] integers = new Integer[count];
 
         int value;
         if (A)
@@ -81,7 +81,7 @@ public class RefArrayExample {
             arrayLength = 10;   // if !A, arrayLength should be null
         else
             arrayLength = 20;
-        Integer integers[] = new Integer[arrayLength];
+        Integer[] integers = new Integer[arrayLength];
         integers[0] = 5;
         printArray0(integers);
     }
@@ -90,7 +90,7 @@ public class RefArrayExample {
         int index = 0;
         if (A)
             index = 1;
-        Integer integers[] = new Integer[10];
+        Integer[] integers = new Integer[10];
         integers[0] = 6;
         integers[1] = 7;
         System.out.println(integers[index]);

@@ -164,7 +164,7 @@ class Loader {
         val i = inst.asInstanceOf[VarInsnNode]
         InstrALOAD(variables(i.`var`))
       }
-      case IALOAD => UNKNOWN(IALOAD)
+      case IALOAD => InstrIALOAD()
       case LALOAD => UNKNOWN(LALOAD)
       case FALOAD => UNKNOWN(FALOAD)
       case DALOAD => UNKNOWN(DALOAD)
@@ -183,7 +183,7 @@ class Loader {
         val i = inst.asInstanceOf[VarInsnNode]
         InstrASTORE(variables(i.`var`))
       }
-      case IASTORE => UNKNOWN(IASTORE)
+      case IASTORE => InstrIASTORE()
       case LASTORE => UNKNOWN(LASTORE)
       case FASTORE => UNKNOWN(FASTORE)
       case DASTORE => UNKNOWN(DASTORE)
@@ -346,7 +346,10 @@ class Loader {
         val i = inst.asInstanceOf[TypeInsnNode]
         InstrNEW(i.desc)
       }
-      case NEWARRAY => UNKNOWN(NEWARRAY)
+      case NEWARRAY => {
+        val i = inst.asInstanceOf[IntInsnNode]
+        InstrNEWARRAY(i.operand)
+      }
       case ANEWARRAY => {
         val i = inst.asInstanceOf[TypeInsnNode]
         InstrANEWARRAY(i.desc)
