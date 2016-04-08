@@ -29,38 +29,33 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
     writeExceptions(mv, env)
   }
 
+
   def toVByteCode(mv: MethodVisitor, env: VMethodEnv) = {
     vvalidate(env)
     mv.visitLabel(env.getBlockLabel(this))
 
-    val thisBlockConditionVar = env.getBlockVar(this)
-    val nextBlock = env.getNextBlock(this)
 
-    //load block condition (local variable for each block)
-    //jump to next block if condition is contradictory
-    if (nextBlock.isDefined) {
-      loadFExpr(mv, env, thisBlockConditionVar)
-      //            mv.visitInsn(DUP)
-      //            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
-      callFExprIsContradiction(mv)
-      //            mv.visitInsn(DUP)
-      //            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printI", "(I)V", false)
-      mv.visitJumpInsn(IFNE, env.getBlockLabel(nextBlock.get))
-    }
-
-    //load local variables if this block is expecting some values on stack
-    val expectingVars = env.getExpectingVars(this)
-    if (expectingVars.nonEmpty) {
-      expectingVars.foreach(
-        (v: Variable) => {
-          mv.visitVarInsn(ALOAD, env.getVarIdx(v))
-        }
-      )
+    if (env.isVBlockHead(this)) {
+      vblockSkipIfCtxContradition(mv, env)
+      loadUnbalancedStackVariables(mv, env)
     }
 
     //generate block code
     instr.foreach(_.toVByteCode(mv, env, this))
 
+    //if this block ends with a jump to a different VBlock (always all jumps are to the same or to
+    //different VBlocks, never mixed)
+    if (env.isVBlockEnd(this)) {
+      storeUnbalancedStackVariables(mv, env)
+      variationalJump(mv, env)
+    } else {
+      nonvariationalJump(mv, env)
+    }
+
+    writeExceptions(mv, env)
+  }
+
+  private def storeUnbalancedStackVariables(mv: MethodVisitor, env: VMethodEnv): Unit = {
     //store local variables if this block is leaving some values on stack
     val leftVars = env.getLeftVars(this)
     if (leftVars.nonEmpty) {
@@ -79,7 +74,7 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
           s.size match {
             case 1 =>
               val v = s.toList.head
-              loadFExpr(mv, env, env.getBlockVar(this))
+              loadFExpr(mv, env, env.getVBlockVar(this))
               mv.visitInsn(SWAP)
               mv.visitVarInsn(ALOAD, env.getVarIdx(v))
               callVCreateChoice(mv)
@@ -89,12 +84,12 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
               val v1 = list.head
               val v2 = list.last
               mv.visitInsn(DUP)
-              loadFExpr(mv, env, env.getBlockVar(this))
+              loadFExpr(mv, env, env.getVBlockVar(this))
               mv.visitInsn(SWAP)
               mv.visitVarInsn(ALOAD, env.getVarIdx(v1))
               callVCreateChoice(mv)
               mv.visitVarInsn(ASTORE, env.getVarIdx(v1))
-              loadFExpr(mv, env, env.getBlockVar(this))
+              loadFExpr(mv, env, env.getVBlockVar(this))
               mv.visitInsn(SWAP)
               mv.visitVarInsn(ALOAD, env.getVarIdx(v2))
               callVCreateChoice(mv)
@@ -104,75 +99,115 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
         }
       )
     }
+  }
+
+  private def loadUnbalancedStackVariables(mv: MethodVisitor, env: VMethodEnv): Unit = {
+    //load local variables if this block is expecting some values on stack
+    val expectingVars = env.getExpectingVars(this)
+    if (expectingVars.nonEmpty) {
+      expectingVars.foreach(
+        (v: Variable) => {
+          mv.visitVarInsn(ALOAD, env.getVarIdx(v))
+        }
+      )
+    }
+  }
+
+  /**
+    * each VBlock as a unique entry point. At this entry point, we check whether
+    * we should jump over this VBlock to the next.
+    */
+  private def vblockSkipIfCtxContradition(mv: MethodVisitor, env: VMethodEnv): Unit = {
+    assert(env.isVBlockHead(this))
+    val nextVBlock = env.getNextVBlock(this)
+    val thisVBlockConditionVar = env.getVBlockVar(this)
+
+    //load block condition (local variable for each block)
+    //jump to next block if condition is contradictory
+    if (nextVBlock.isDefined) {
+      loadFExpr(mv, env, thisVBlockConditionVar)
+      //            mv.visitInsn(DUP)
+      //            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
+      callFExprIsContradiction(mv)
+      //            mv.visitInsn(DUP)
+      //            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printI", "(I)V", false)
+      mv.visitJumpInsn(IFNE, env.getBlockLabel(nextVBlock.get))
+    }
 
 
-    val successors = env.getSuccessors(this)
-    if (successors._1.isEmpty) {
-      //TODO deal with last block
-    } else if (successors._2.isEmpty) {
-      val targetBlock = successors._1.get
-      val targetBlockConditionVar = env.getBlockVar(targetBlock)
+  }
+
+
+  private def nonvariationalJump(mv: MethodVisitor, env: VMethodEnv): Unit = {
+    //nothing to do. already handled as part of the normal instruction
+  }
+
+  private def variationalJump(mv: MethodVisitor, env: VMethodEnv): Unit = {
+    val jumpTargets = env.getJumpTargets(this)
+    assert(jumpTargets._1.forall(env.isVBlockHead) && jumpTargets._2.forall(env.isVBlockHead),
+      "all successors in a variational jump should be the heads of VBlocks")
+    val thisVBlockConditionVar = env.getVBlockVar(this)
+
+    if (jumpTargets._1.isEmpty) {
+      // last block, nothing to do
+    } else if (jumpTargets._2.isEmpty) {
+      val targetBlock = jumpTargets._1.get
+      val targetBlockConditionVar = env.getVBlockVar(targetBlock)
       //if non-conditional jump
       //- update next block's condition (disjunction with prior value)
-      loadFExpr(mv, env, thisBlockConditionVar)
+      loadFExpr(mv, env, thisVBlockConditionVar)
       loadFExpr(mv, env, targetBlockConditionVar)
       callFExprOr(mv)
       storeFExpr(mv, env, targetBlockConditionVar)
 
       //- set this block's condition to FALSE
       pushConstantFALSE(mv)
-      storeFExpr(mv, env, thisBlockConditionVar)
+      storeFExpr(mv, env, thisVBlockConditionVar)
 
       //- if backward jump, jump there (target condition is satisfiable, because this block's condition is and it's propagated)
-      if (env.isBlockBefore(targetBlock, this)) {
+      if (env.isVBlockBefore(targetBlock, this)) {
         mv.visitJumpInsn(GOTO, env.getBlockLabel(targetBlock))
       }
 
     } else {
       //if conditional jump (then the last instruction left us a featureexpr on the stack)
-      val thenBlock = successors._2.get
-      val thenBlockConditionVar = env.getBlockVar(thenBlock)
-      val elseBlock = successors._1.get
-      val elseBlockConditionVar = env.getBlockVar(elseBlock)
+      val thenBlock = jumpTargets._2.get
+      val thenBlockConditionVar = env.getVBlockVar(thenBlock)
+      val elseBlock = jumpTargets._1.get
+      val elseBlockConditionVar = env.getVBlockVar(elseBlock)
       mv.visitInsn(DUP)
       // -- stack: 2x Fexpr representing if condition
 
       //- update else-block's condition (ie. next block)
       callFExprNot(mv)
-      loadFExpr(mv, env, thisBlockConditionVar)
+      loadFExpr(mv, env, thisVBlockConditionVar)
       callFExprAnd(mv)
       loadFExpr(mv, env, elseBlockConditionVar)
       callFExprOr(mv)
       storeFExpr(mv, env, elseBlockConditionVar)
 
 
+      val needToJumpBack = env.isVBlockBefore(thenBlock, this)
       //- update then-block's condition to "then-successor.condition or (thisblock.condition and A)"
-      loadFExpr(mv, env, thisBlockConditionVar)
+      loadFExpr(mv, env, thisVBlockConditionVar)
       callFExprAnd(mv)
       loadFExpr(mv, env, thenBlockConditionVar)
       callFExprOr(mv)
-      if (env.isBlockBefore(thenBlock, this))
+      if (needToJumpBack)
         mv.visitInsn(DUP)
       storeFExpr(mv, env, thenBlockConditionVar)
 
       //- set this block's condition to FALSE
       pushConstantFALSE(mv)
-      storeFExpr(mv, env, thisBlockConditionVar)
-
-      //            for (block<-method.body.blocks) {
-      //                mv.visitVarInsn(ALOAD, block.blockConditionVar)
-      //                mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
-      //            }
+      storeFExpr(mv, env, thisVBlockConditionVar)
 
       //- if then-block is behind and its condition is satisfiable, jump there
-      if (env.isBlockBefore(thenBlock, this)) {
+      if (needToJumpBack) {
         //value remembered with DUP up there to avoid loading it again
         callFExprIsSatisfiable(mv)
         mv.visitJumpInsn(IFNE, env.getBlockLabel(thenBlock))
       }
     }
-
-    writeExceptions(mv, env)
   }
 
 

@@ -132,7 +132,7 @@ case class TraceInstr_S(s: String) extends Instruction {
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    loadFExpr(mv, env, env.getBlockVar(block))
+    loadFExpr(mv, env, env.getVBlockVar(block))
     mv.visitLdcInsn(s)
     mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestTraceOutput", "vtrace_s", "(Lde/fosd/typechef/featureexpr/FeatureExpr;Ljava/lang/String;)V", false)
   }
@@ -151,7 +151,7 @@ case class TraceInstr_Print() extends Instruction {
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     mv.visitInsn(DUP)
-    loadFExpr(mv, env, env.getBlockVar(block))
+    loadFExpr(mv, env, env.getVBlockVar(block))
     mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestTraceOutput", "vtrace_string", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
   }
 
@@ -178,7 +178,7 @@ case class TraceInstr_GetField(s: String, desc: String) extends Instruction {
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     mv.visitInsn(DUP)
     if (env.shouldLiftInstr(this)) {
-      loadFExpr(mv, env, env.getBlockVar(block))
+      loadFExpr(mv, env, env.getVBlockVar(block))
       mv.visitLdcInsn(s)
       mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestTraceOutput", "vtrace_int", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;Ljava/lang/String;)V", false)
     }

@@ -2,7 +2,7 @@ package edu.cmu.cs.vbc.vbytecode
 
 import edu.cmu.cs.vbc.analysis.{VBCAnalyzer, VBCFrame}
 import edu.cmu.cs.vbc.utils.{LiftUtils, Statistics}
-import edu.cmu.cs.vbc.vbytecode.instructions.{Instruction, JumpInstruction, MethodInstruction}
+import edu.cmu.cs.vbc.vbytecode.instructions.{Instruction, JumpInstruction}
 
 /**
   * Environment used during generation of the byte code and variational
@@ -139,9 +139,6 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
         // all possible jump targets are variational, exception edges are not
         val succ = jump.getSuccessor()
         toBlockIdx == succ._1.getOrElse(fromBlockIdx + 1) || succ._2.exists(_ == toBlockIdx)
-      case methodInv: MethodInstruction =>
-        // fallthrough edge is variational, all existing exception edges are not
-        toBlockIdx == (fromBlockIdx + 1)
       case _ => false
     }
   }
@@ -157,7 +154,7 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
 
   def getLeftVars(block: Block): List[Set[Variable]] = {
     val afterFrame = framesAfter(getInsnIdx(block.instr.last))
-    val (succ1, succ2) = getSuccessors(block)
+    val (succ1, succ2) = getJumpTargets(block)
     getVarSetList(Nil, succ1, succ2, afterFrame.getStackSize)
   }
 
@@ -195,8 +192,6 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   // Block management
   //////////////////////////////////////////////////
 
-  val blockAnalysis = new VBlockAnalysis(method, isVariationalJump)
-
   // allocate a variable for each VBlock, except for the first, which can reuse the parameter slot
   val vblockVars: Map[Block, Variable] =
     (for (((block, _), vblockidx) <- (vblocks zip vblocks.indices).tail) yield
@@ -204,8 +199,9 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
       (vblocks.head._1 -> ctxParameter)
 
   def getVBlockVar(block: Block): Variable = {
-    assert(vblocks.exists(_._1 == block))
-    vblockVars(block)
+    val vblock = vblocks.filter(_._2 contains block)
+    assert(vblock.size == 1, "expected the block to be in exactly one VBlock")
+    vblockVars(vblock.head._1)
   }
 
   //  def getVBlockVarVIdx(block: Block): Int = getVarIdx(getBlockVar(block))

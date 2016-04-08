@@ -21,7 +21,7 @@ case class InstrISTORE(variable: Variable) extends Instruction {
       //TODO is it worth optimizing this in case ctx is TRUE (or the initial method's ctx)?
 
       //new value is already on top of stack
-      loadFExpr(mv, env, env.getBlockVar(block))
+      loadFExpr(mv, env, env.getVBlockVar(block))
       mv.visitInsn(SWAP)
       loadV(mv, env, variable)
       //now ctx, newvalue, oldvalue on stack
@@ -111,7 +111,7 @@ case class InstrIINC(variable: Variable, increment: Int) extends Instruction {
       mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "IINC", "(Ledu/cmu/cs/varex/V;I)Ledu/cmu/cs/varex/V;", false)
 
       //create a choice with the original value
-      loadFExpr(mv, env, env.getBlockVar(block))
+      loadFExpr(mv, env, env.getVBlockVar(block))
       mv.visitInsn(SWAP)
       loadV(mv, env, variable)
       callVCreateChoice(mv)
@@ -209,7 +209,7 @@ case class InstrASTORE(variable: Variable) extends Instruction {
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
       /* new value is already on top of stack */
-      loadFExpr(mv, env, env.getBlockVar(block))
+      loadFExpr(mv, env, env.getVBlockVar(block))
       mv.visitInsn(SWAP)
       loadV(mv, env, variable)
       /* now ctx, newvalue, oldvalue on stack */

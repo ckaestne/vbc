@@ -22,6 +22,22 @@ trait JumpInstruction extends Instruction {
 
   override def getJumpInstr: Option[JumpInstruction] = Some(this)
 
+
+  /**
+    * for jump instructions, there are two possibilities:
+    *
+    * - if this is the last block in a VBlock (== env.shouldLiftInstr(this))
+    * and getSuccessor._2 is not None, this instruction leaves a
+    * FeatureExpr on the stack that indicates the decision between
+    * the two successor nodes. This FeatureExpr is consumed by the logic
+    * of Block.toVByteCode
+    *
+    * - if this is an nonvariational jump within a VBlock (== !env.shouldLiftInstr(this)),
+    * we simply perform the jump here
+    */
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block)
+
+
   //  def updateStack1(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
   //    val (v1, prev1, newFrame) = s.pop()
   //    env.setLift(this)

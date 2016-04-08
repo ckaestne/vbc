@@ -20,7 +20,7 @@ trait CFGAnalysis {
 
   private val (succ, pred) = {
     var succ: Map[Block, Set[Block]] = Map()
-    var pred: Map[Block, Set[Block]] = Map()
+    var pred: Map[Block, Set[Block]] = blocks.map((_, Set[Block]())).toMap
     for (block <- blocks) {
       val lastInstr = block.instr.last
       val blockIdx = getBlockIdx(block)
@@ -56,6 +56,21 @@ trait CFGAnalysis {
   def getPredecessors(block: Block): Set[Block] = pred(block)
 
   /**
+    * returns the next block (unless this is the last block), and in case of a conditional
+    * jump, the conditional next block
+    */
+  def getJumpTargets(block: Block): (Option[Block], Option[Block]) = {
+    val nextBlock = getNextBlock(block)
+    val lastInstr = block.instr.last
+    val jumpInstr = lastInstr.getJumpInstr
+    if (jumpInstr.isDefined) {
+      val succ = jumpInstr.get.getSuccessor()
+      (if (succ._1.isDefined) succ._1.map(getBlock) else nextBlock, succ._2.map(getBlock))
+    } else (nextBlock, None)
+  }
+
+
+  /**
     * returns the next block in the CFG (not necessarily a successor)
     */
   def getNextBlock(block: Block): Option[Block] = {
@@ -66,12 +81,6 @@ trait CFGAnalysis {
       Some(blocks(blockIdx + 1))
   }
 
-  /**
-    * returns whether the first block is before the second block
-    * in the current method
-    */
-  def isBlockBefore(first: Block, second: Block): Boolean =
-    blocks.indexOf(first) < blocks.indexOf(second)
 
   def getLastBlock(): Block = blocks.last
 }
@@ -82,7 +91,7 @@ trait CFGAnalysis {
 trait VBlockAnalysis extends CFGAnalysis {
 
 
-  def isVariationalEdge(fromBlock: Block, toBlock: Block): Boolean
+  def isVariationalJump(fromBlock: Block, toBlock: Block): Boolean
 
   /**
     * VBlocks are a group of blocks that share a common context, identified
@@ -107,7 +116,7 @@ trait VBlockAnalysis extends CFGAnalysis {
       val (block, q) = queue.dequeue
 
       val pred = getPredecessors(block)
-      val variationalEdgeFromPred = pred.exists(isVariationalEdge(_, block))
+      val variationalEdgeFromPred = pred.exists(isVariationalJump(_, block))
       if (!variationalEdgeFromPred) {
         val predVBlockIdxs = pred.map(vblockId)
         val thisVBlockIdx = vblockId(block)
@@ -125,6 +134,43 @@ trait VBlockAnalysis extends CFGAnalysis {
 
 
   def getVBlockId(block: Block): Int = ???
+
+  def getNextVBlock(vblock: Block): Option[Block] = {
+    assert(vblocks.exists(_._1 == vblock), s"parameter $vblock is not a vblock")
+    val b = vblocks.dropWhile(_._1 != vblock)
+    if (b.isEmpty)
+      None
+    else b.tail.headOption.map(_._1)
+  }
+
+  /**
+    * is the given block the start of a VBlock?
+    */
+  def isVBlockHead(block: Block): Boolean = vblocks.exists(_._1 == block)
+
+  /**
+    * are the successors of the given block in a different VBlock?
+    */
+  def isVBlockEnd(block: Block): Boolean = {
+    assert(vblocks.filter(_._2 contains block).size == 1, s"block $block not mapped to unique VBlock")
+    val currentVBlock = vblocks.find(_._2 contains block).get
+
+    val succ = getSuccessors(block)
+
+    assert(succ.forall(currentVBlock._2 contains _) || succ.forall(s => !(currentVBlock._2 contains s)), "either all or none of the successors should be in the current VBlock")
+
+    !succ.forall(currentVBlock._2 contains _)
+  }
+
+  /**
+    * returns whether the first block is before the second block
+    * in the current method
+    */
+  def isVBlockBefore(firstv: Block, secondv: Block): Boolean = {
+    assert(isVBlockHead(firstv), "expected VBlocks")
+    assert(isVBlockHead(secondv), "expected VBlocks")
+    vblocks.indexWhere(_._1 == firstv) < vblocks.indexWhere(_._1 == secondv)
+  }
 
 
 }

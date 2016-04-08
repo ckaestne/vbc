@@ -185,7 +185,7 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
       val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
       val shouldLiftMethod = LiftingFilter.shouldLiftMethod(owner, name, desc)
       if (hasVArgs || shouldLiftMethod) {
-        if (env.isMain) pushConstantTRUE(mv) else loadFExpr(mv, env, env.getBlockVar(block))
+        if (env.isMain) pushConstantTRUE(mv) else loadFExpr(mv, env, env.getVBlockVar(block))
       }
 
       val (invokeStatic, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false)
@@ -250,7 +250,7 @@ case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Bo
       val shouldLiftMethod = LiftingFilter.shouldLiftMethod(owner, name, desc)
       val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
       if (hasVArgs || shouldLiftMethod) {
-        if (env.isMain) pushConstantTRUE(mv) else loadFExpr(mv, env, env.getBlockVar(block))
+        if (env.isMain) pushConstantTRUE(mv) else loadFExpr(mv, env, env.getVBlockVar(block))
       }
 
       val (invokeStatic, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false)
@@ -284,7 +284,7 @@ case class InstrINVOKESTATIC(owner: String, name: String, desc: String, itf: Boo
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     val shouldLiftMethod = LiftingFilter.shouldLiftMethod(owner, name, desc)
     val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
-    if (hasVArgs || shouldLiftMethod) loadFExpr(mv, env, env.getBlockVar(block))
+    if (hasVArgs || shouldLiftMethod) loadFExpr(mv, env, env.getVBlockVar(block))
 
     val (invokeStatic, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, true)
     mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, itf)
