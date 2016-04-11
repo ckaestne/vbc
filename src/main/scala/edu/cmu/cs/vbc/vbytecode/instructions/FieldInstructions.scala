@@ -3,7 +3,7 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_TYPE}
 import edu.cmu.cs.vbc.utils.LiftUtils._
-import edu.cmu.cs.vbc.utils.LiftingFilter
+import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftingFilter}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm._
@@ -12,64 +12,7 @@ import org.objectweb.asm._
   * @author chupanw
   */
 
-trait FieldInstruction extends Instruction {
-  def getFieldFromV(mv: MethodVisitor, env: VMethodEnv, block: Block, owner: String, name: String, desc: String): Unit = {
-
-    val VType = "Ledu/cmu/cs/varex/V;"
-    val invokeName = "apply"
-    val flatMapDesc = s"(Ljava/util/function/Function;$fexprclasstype)$VType"
-    val flatMapOwner = "edu/cmu/cs/varex/V"
-    val flatMapName = "sflatMap"
-
-    val n = env.clazz.lambdaMethods.size
-    def getLambdaFunName = "lambda$" + env.method.name.replace('<', '$').replace('>', '$') + "$" + n
-    def getLambdaFunDesc = "(" + Type.getObjectType(owner) + ")" + VType
-    def getInvokeType = {
-      "()Ljava/util/function/Function;"
-    }
-
-    //TODO: deal with thisParameter
-    mv.visitInvokeDynamicInsn(
-      invokeName, // Method to invoke
-      getInvokeType, // Descriptor for call site
-      new Handle(H_INVOKESTATIC, lamdaFactoryOwner, lamdaFactoryMethod, lamdaFactoryDesc), // Default LambdaFactory
-      // Arguments:
-      Type.getType("(Ljava/lang/Object;)" + "Ljava/lang/Object;"),
-      new Handle(H_INVOKESTATIC, env.clazz.name, getLambdaFunName, getLambdaFunDesc),
-      Type.getType("(" + Type.getObjectType(owner) + ")" + VType)
-    )
-    loadCurrentCtx(mv, env, block)
-    mv.visitMethodInsn(INVOKEINTERFACE, flatMapOwner, flatMapName, flatMapDesc, true)
-
-    val lambda = (cv: ClassVisitor) => {
-      val mv: MethodVisitor = cv.visitMethod(
-        ACC_PRIVATE | ACC_STATIC | ACC_SYNTHETIC,
-        getLambdaFunName,
-        getLambdaFunDesc,
-        getLambdaFunDesc,
-        Array[String]() // TODO: handle exception list
-      )
-      mv.visitCode()
-      mv.visitVarInsn(ALOAD, 0) // load obj
-      mv.visitFieldInsn(GETFIELD, owner, name, "Ledu/cmu/cs/varex/V;")
-      //by default, fields should never be "null", but this can happen when they are not initialized yet
-      //to preserve our invariant that no V value shall ever be null, this will explicitly check for null
-      //and wrap the null in a One if necessary.
-      val label = new Label()
-      mv.visitInsn(DUP)
-      mv.visitJumpInsn(IFNONNULL, label)
-      callVCreateOne(mv, (m) => pushConstantTRUE(m))
-      mv.visitLabel(label)
-      mv.visitInsn(ARETURN)
-      mv.visitMaxs(5, 5)
-      mv.visitEnd()
-    }
-
-    env.clazz.lambdaMethods += (getLambdaFunName -> lambda)
-  }
-
-
-}
+trait FieldInstruction extends Instruction
 
 /**
   * GETSTATIC
@@ -186,6 +129,22 @@ case class InstrGETFIELD(owner: String, name: String, desc: String) extends Fiel
   override def doBacktrack(env: VMethodEnv): Unit = {
     // if backtracked, do nothing
     // lifting or not will be set in updateStack()
+  }
+
+  def getFieldFromV(mv: MethodVisitor, env: VMethodEnv, block: Block, owner: String, name: String, desc: String): Unit = {
+    val ownerType = Type.getObjectType(owner)
+    InvokeDynamicUtils.invoke("sflatMap", mv, env, block, "getfield", s"$ownerType()$vclasstype") {
+      (visitor: MethodVisitor) => {
+        val label = new Label()
+        visitor.visitVarInsn(ALOAD, 1) //obj ref
+        visitor.visitFieldInsn(GETFIELD, owner, name, vclasstype)
+        visitor.visitInsn(DUP)
+        visitor.visitJumpInsn(IFNONNULL, label)
+        callVCreateOne(visitor, (m) => pushConstantTRUE(m))
+        visitor.visitLabel(label)
+        visitor.visitInsn(ARETURN)
+      }
+    }
   }
 }
 

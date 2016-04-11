@@ -160,7 +160,16 @@ case class VBCClassNode(
     // create <clinit> method
     if (hasStaticConditionalFields) createCLINIT(cv)
     // Write lambda methods
-    lambdaMethods.foreach(_._2(cv))
+    // Lambda methods might be generated while generating other lambda methods (e.g. nested invokedynamic see InvokeDynamicUtils),
+    // so we need this while to ensure that all lambda methods are generated
+    var toWrite: Set[String] = lambdaMethods.keySet -- writtenLambdaMethods
+    while (toWrite.nonEmpty) {
+      toWrite.foreach((name: String) => {
+        writtenLambdaMethods += name
+        lambdaMethods(name)(cv)
+      })
+      toWrite = lambdaMethods.keySet -- writtenLambdaMethods
+    }
     cv.visitEnd()
   }
 
@@ -233,6 +242,10 @@ case class VBCClassNode(
     * Generated lambdaMethods, indexed by name
     */
   var lambdaMethods: Map[String, (ClassVisitor) => Unit] = Map()
+  /**
+    * Bookkeeping lambda methods that are already written to ClassWriter
+    */
+  var writtenLambdaMethods: Set[String] = Set()
 
 }
 

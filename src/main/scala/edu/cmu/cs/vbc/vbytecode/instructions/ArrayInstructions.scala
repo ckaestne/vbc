@@ -1,11 +1,12 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
-import edu.cmu.cs.vbc.analysis.{INT_TYPE, REF_TYPE, VBCFrame, V_TYPE}
-import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, VMethodEnv}
-import org.objectweb.asm._
-import org.objectweb.asm.Opcodes._
+import edu.cmu.cs.vbc.analysis.{REF_TYPE, VBCFrame, V_TYPE}
+import edu.cmu.cs.vbc.utils.InvokeDynamicUtils
 import edu.cmu.cs.vbc.utils.LiftUtils._
+import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, VMethodEnv}
+import org.objectweb.asm.Opcodes._
+import org.objectweb.asm._
 
 /**
   * Our first attempt is to implement array as array of V. If array length is different, then arrayref itself
@@ -13,217 +14,38 @@ import edu.cmu.cs.vbc.utils.LiftUtils._
   */
 trait ArrayInstructions extends Instruction {
   def createVArray(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-
-    val mapDesc = s"(Ljava/util/function/Function;$fexprclasstype)$vclasstype"
-    val mapOwner = "edu/cmu/cs/varex/V"
-    val mapName = "smap"
-
-    def getLambdaFunName = "lambda$anewarray$"
-    def getLambdaFunDesc = s"(Ljava/lang/Integer;)[$vclasstype"
-    def getInvokeType = {
-      "()Ljava/util/function/Function;"
-    }
-
-    mv.visitInvokeDynamicInsn(
-      "apply", // Method to invoke
-      getInvokeType, // Descriptor for call site
-      new Handle(H_INVOKESTATIC, lamdaFactoryOwner, lamdaFactoryMethod, lamdaFactoryDesc), // Default LambdaFactory
-      // Arguments:
-      Type.getType("(Ljava/lang/Object;)Ljava/lang/Object;"),
-      new Handle(H_INVOKESTATIC, env.clazz.name, getLambdaFunName, getLambdaFunDesc),
-      Type.getType(s"(Ljava/lang/Integer;)[$vclasstype")
-    )
-    loadCurrentCtx(mv, env, block)
-    mv.visitMethodInsn(INVOKEINTERFACE, mapOwner, mapName, mapDesc, true)
-
-    if (!(env.clazz.lambdaMethods contains getLambdaFunName)) {
-      val lambda = (cv: ClassVisitor) => {
-        val mv: MethodVisitor = cv.visitMethod(
-          ACC_PRIVATE | ACC_STATIC | ACC_SYNTHETIC,
-          getLambdaFunName,
-          getLambdaFunDesc,
-          getLambdaFunDesc, // TODO: signature here ignores the type inside V
-          Array[String]() // TODO: handle exception list
-        )
-        mv.visitCode()
-        mv.visitVarInsn(ALOAD, 0)
-        // It is possible that as this point we have a null on stack because of uninitialized field,
-        // which is abnormal behavior in the source code. If that's the case, we expect a NullPointerException.
-
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false)  // JVM specification requires an int
-        mv.visitTypeInsn(ANEWARRAY, "edu/cmu/cs/varex/V")
-        mv.visitInsn(ARETURN)
-        mv.visitMaxs(5, 5)
-        mv.visitEnd()
+    InvokeDynamicUtils.invoke("smap", mv, env, block, "anewarray", s"Ljava/lang/Integer;()[$vclasstype") {
+      (visitor: MethodVisitor) => {
+        visitor.visitVarInsn(ALOAD, 1)
+        visitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false) // JVM specification requires an int
+        visitor.visitTypeInsn(ANEWARRAY, "edu/cmu/cs/varex/V")
+        visitor.visitInsn(ARETURN)
       }
-      env.clazz.lambdaMethods += (getLambdaFunName -> lambda)
     }
   }
 
   def storeOperation(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-
-    val mtdDesc = s"(Ljava/util/function/BiConsumer;$fexprclasstype)V"
-    val mtdOwner = "edu/cmu/cs/varex/V"
-    val mtdName = "sforeach"
-
-    def getLambdaFunName = "lambda$aastore_ref$"
-    def getLambdaFunDesc = s"($vclasstype$vclasstype$fexprclasstype[$vclasstype)V"
-    def getInnerLambdaFunName = "lambda$aastore_idx$"
-    def getInnerLambdaFunDesc = s"([$vclasstype${vclasstype}Ljava/lang/Integer;)V"
-
-    mv.visitInvokeDynamicInsn(
-      "accept", // Method to invoke
-      s"($vclasstype$vclasstype)Ljava/util/function/BiConsumer;", // Descriptor for call site
-      new Handle(H_INVOKESTATIC, lamdaFactoryOwner, lamdaFactoryMethod, lamdaFactoryDesc), // Default LambdaFactory
-      // Arguments:
-      Type.getType("(Ljava/lang/Object;Ljava/lang/Object;)V"),
-      new Handle(H_INVOKESTATIC, env.clazz.name, getLambdaFunName, getLambdaFunDesc),
-      Type.getType(s"($fexprclasstype[$vclasstype)V")
-    )
-    loadCurrentCtx(mv, env, block)
-    mv.visitMethodInsn(INVOKEINTERFACE, mtdOwner, mtdName, mtdDesc, true)
-
-    if (!(env.clazz.lambdaMethods contains getLambdaFunName)) {
-      val lambda = (cv: ClassVisitor) => {
-        val mv: MethodVisitor = cv.visitMethod(
-          ACC_PRIVATE | ACC_STATIC | ACC_SYNTHETIC,
-          getLambdaFunName,
-          getLambdaFunDesc,
-          getLambdaFunDesc, // TODO: signature here ignores the type inside V
-          Array[String]() // TODO: handle exception list
-        )
-        mv.visitCode()
-        mv.visitVarInsn(ALOAD, 0)   // index
-
-        mv.visitVarInsn(ALOAD, 3)   // array reference
-        mv.visitVarInsn(ALOAD, 1)   // value
-        mv.visitInvokeDynamicInsn(
-          "accept",
-          s"([$vclasstype$vclasstype)Ljava/util/function/Consumer;", // Descriptor for call site
-          new Handle(H_INVOKESTATIC, lamdaFactoryOwner, lamdaFactoryMethod, lamdaFactoryDesc),
-          // Arguments:
-          Type.getType("(Ljava/lang/Object;)V"),
-          new Handle(H_INVOKESTATIC, env.clazz.name, getInnerLambdaFunName, getInnerLambdaFunDesc),
-          Type.getType("(Ljava/lang/Integer;)V")
-        )
-        mv.visitVarInsn(ALOAD, 2) // load ctx
-        mv.visitMethodInsn(INVOKEINTERFACE,
-          "edu/cmu/cs/varex/V",
-          "sforeach",
-          s"(Ljava/util/function/Consumer;$fexprclasstype)V",
-          true
-        )
-        mv.visitInsn(RETURN)
-        mv.visitMaxs(5, 5)
-        mv.visitEnd()
-      }
-
-      env.clazz.lambdaMethods += (getLambdaFunName -> lambda)
-
-      if (!(env.clazz.lambdaMethods contains getInnerLambdaFunName)) {
-        val innerLambda = (cv: ClassVisitor) => {
-          val mv: MethodVisitor = cv.visitMethod(
-            ACC_PRIVATE | ACC_STATIC | ACC_SYNTHETIC,
-            getInnerLambdaFunName,
-            getInnerLambdaFunDesc,
-            getInnerLambdaFunDesc,
-            Array[String]()
-          )
-          mv.visitCode()
-          mv.visitVarInsn(ALOAD, 0)   // array ref
-          mv.visitVarInsn(ALOAD, 2)   // index
-          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false)
-          mv.visitVarInsn(ALOAD, 1)   // value
-          mv.visitInsn(AASTORE)
-          mv.visitInsn(RETURN)
-          mv.visitMaxs(5, 5)
-          mv.visitEnd()
-        }
-        env.clazz.lambdaMethods += (getInnerLambdaFunName -> innerLambda)
+    InvokeDynamicUtils.invoke("sforeach", mv, env, block, "aastore", s"[$vclasstype(Ljava/lang/Integer;$vclasstype)V", nExplodeArgs = 1) {
+      (visitor: MethodVisitor) => {
+        visitor.visitVarInsn(ALOAD, 1) //array ref
+        visitor.visitVarInsn(ALOAD, 3) //index
+        visitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false)
+        visitor.visitVarInsn(ALOAD, 0) //new value
+        visitor.visitInsn(AASTORE)
+        visitor.visitInsn(RETURN)
       }
     }
   }
 
   def loadOperation(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-
-    def getLambdaFunName = "lambda$aaload_ref$"
-    def getLambdaFunDesc = s"($vclasstype$fexprclasstype[$vclasstype)$vclasstype"
-    def getInnerLambdaFunName = "lambda$aaload_idx$"
-    def getInnerLambdaFunDesc = s"([${vclasstype}Ljava/lang/Integer;)$vclasstype"
-
-    mv.visitInvokeDynamicInsn(
-      "apply", // Method to invoke
-      s"($vclasstype)Ljava/util/function/BiFunction;", // Descriptor for call site
-      new Handle(H_INVOKESTATIC, lamdaFactoryOwner, lamdaFactoryMethod, lamdaFactoryDesc), // Default LambdaFactory
-      // Arguments:
-      Type.getType("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
-      new Handle(H_INVOKESTATIC, env.clazz.name, getLambdaFunName, getLambdaFunDesc),
-      Type.getType(s"($fexprclasstype[$vclasstype)$vclasstype")
-    )
-    loadCurrentCtx(mv, env, block)
-    mv.visitMethodInsn(INVOKEINTERFACE,
-      "edu/cmu/cs/varex/V",
-      "sflatMap",
-      s"(Ljava/util/function/BiFunction;$fexprclasstype)$vclasstype",
-      true
-    )
-
-    if (!(env.clazz.lambdaMethods contains getLambdaFunName)) {
-      val lambda = (cv: ClassVisitor) => {
-        val mv: MethodVisitor = cv.visitMethod(
-          ACC_PRIVATE | ACC_STATIC | ACC_SYNTHETIC,
-          getLambdaFunName,
-          getLambdaFunDesc,
-          getLambdaFunDesc, // TODO: signature here ignores the type inside V
-          Array[String]() // TODO: handle exception list
-        )
-        mv.visitCode()
-        mv.visitVarInsn(ALOAD, 0)   // index
-
-        mv.visitVarInsn(ALOAD, 2)   // array ref
-        mv.visitInvokeDynamicInsn(
-          "apply",
-          s"([$vclasstype)Ljava/util/function/Function;",
-          new Handle(H_INVOKESTATIC, lamdaFactoryOwner, lamdaFactoryMethod, lamdaFactoryDesc),
-          // Arguments:
-          Type.getType("(Ljava/lang/Object;)Ljava/lang/Object;"),
-          new Handle(H_INVOKESTATIC, env.clazz.name, getInnerLambdaFunName, getInnerLambdaFunDesc),
-          Type.getType(s"(Ljava/lang/Integer;)$vclasstype")
-        )
-        mv.visitVarInsn(ALOAD, 1) // load ctx
-        mv.visitMethodInsn(INVOKEINTERFACE,
-          "edu/cmu/cs/varex/V",
-          "sflatMap",
-          s"(Ljava/util/function/Function;$fexprclasstype)$vclasstype",
-          true
-        )
-        mv.visitInsn(ARETURN)
-        mv.visitMaxs(5, 5)
-        mv.visitEnd()
+    InvokeDynamicUtils.invoke("sflatMap", mv, env, block, "aaload", s"[$vclasstype(Ljava/lang/Integer;)$vclasstype", nExplodeArgs = 1) {
+      (visitor: MethodVisitor) => {
+        visitor.visitVarInsn(ALOAD, 0) // array ref
+        visitor.visitVarInsn(ALOAD, 2) // index
+        visitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false)
+        visitor.visitInsn(AALOAD)
+        visitor.visitInsn(ARETURN)
       }
-      env.clazz.lambdaMethods += (getLambdaFunName -> lambda)
-
-      if (!(env.clazz.lambdaMethods contains getInnerLambdaFunName)) {
-        val lambda = (cv: ClassVisitor) => {
-          val mv: MethodVisitor = cv.visitMethod(
-            ACC_PRIVATE | ACC_STATIC | ACC_SYNTHETIC,
-            getInnerLambdaFunName,
-            getInnerLambdaFunDesc,
-            getInnerLambdaFunDesc,
-            Array[String]()
-          )
-          mv.visitCode()
-          mv.visitVarInsn(ALOAD, 0) // array ref
-          mv.visitVarInsn(ALOAD, 1) // index
-          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false)
-          mv.visitInsn(AALOAD)
-          mv.visitInsn(ARETURN)
-          mv.visitMaxs(5, 5)
-          mv.visitEnd()
-        }
-        env.clazz.lambdaMethods += (getInnerLambdaFunName -> lambda)
-      }
-
     }
   }
 }
@@ -232,12 +54,9 @@ trait ArrayInstructions extends Instruction {
   * NEWARRAY is for primitive type. Since we are boxing all primitive types, all NEWARRAY should
   * be replaced by ANEWARRAY
   *
-  * @todo
-  *       We could keep primitive array, but loading and storing value from/to primitive array must be
+  * @todo We could keep primitive array, but loading and storing value from/to primitive array must be
   *       handled carefully because values outside array are all boxed.
-  *
-  * @todo
-  *       By default, primitive array gets initialized after NEWARRAY, but now we are replacing it with ANEWARRAY,
+  * @todo By default, primitive array gets initialized after NEWARRAY, but now we are replacing it with ANEWARRAY,
   *       so we might need to initialize also
   */
 case class InstrNEWARRAY(atype: Int) extends ArrayInstructions {
