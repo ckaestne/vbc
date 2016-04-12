@@ -1,7 +1,8 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
-import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_REF_TYPE}
+import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_REF_TYPE, V_TYPE}
+import edu.cmu.cs.vbc.utils.InvokeDynamicUtils
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.{MethodVisitor, Type}
@@ -43,14 +44,46 @@ case class InstrNEW(t: String) extends Instruction {
   }
 }
 
+/**
+  * Check whether object is of given type
+  *
+  * If objref is null, stack unchanged (strange)
+  * If objref is not null,
+  *   unchanged if checkcast succeeds
+  *   ClassCastException if checkcast fails
+  *
+  * Operand stack: ..., objref -> ..., objref
+  */
 case class InstrCHECKCAST(desc: String) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitTypeInsn(CHECKCAST, desc)
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    // TODO: since we don't support exception now, stack is unchanged
+    if (s.stack.head._1 == V_TYPE()) {
+      env.setLift(this)
+    }
+    (s, Set())
+  }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  /**
+    * Lifting means doing invokedynamic on a V object
+    */
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      InvokeDynamicUtils.invoke("smap", mv, env, block, "checkcast", "Ljava/lang/Object;()Ljava/lang/Object;") {
+        (visitor: MethodVisitor) => {
+          visitor.visitVarInsn(ALOAD, 1)  // ref
+          visitor.visitTypeInsn(CHECKCAST, desc)
+          visitor.visitInsn(ARETURN)
+        }
+      }
+    }
+    else {
+      toByteCode(mv, env, block)
+    }
+  }
 }
 
 
