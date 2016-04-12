@@ -5,6 +5,7 @@ import edu.cmu.cs.vbc.test.{InstrDBGCtx, InstrDBGIPrint, InstrDBGStrPrint, Instr
 import edu.cmu.cs.vbc.vbytecode._
 import edu.cmu.cs.vbc.vbytecode.instructions._
 import org.objectweb.asm.Opcodes.ACC_PUBLIC
+import org.objectweb.asm.tree.LocalVariableAnnotationNode
 import org.scalatest.FunSuite
 
 
@@ -183,6 +184,20 @@ class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
       Block(InstrNEW("java/lang/Integer"), InstrDUP(), InstrICONST(3), InstrINVOKESPECIAL("java/lang/Integer", "<init>", "(I)V", false)),
       Block(InstrINVOKEVIRTUAL("java/lang/Integer", "toString", "()Ljava/lang/String;", false)),
       Block(InstrDBGStrPrint()),
+      Block(InstrRETURN())
+    )
+  }
+
+  test("IFNONNULL") {
+    val variable = new LocalVar("v", "R")
+    method(
+      Block(InstrICONST(1), InstrINVOKESTATIC("java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", itf = false), InstrASTORE(variable)),
+      Block(InstrLoadConfig("A"), InstrIFGE(3)),
+      Block(InstrACONST_NULL(), InstrGOTO(4)),
+      Block(InstrALOAD(variable), InstrGOTO(4)),
+      Block(InstrIFNONNULL(6)),
+      Block(InstrLDC("null"), InstrDBGStrPrint(), InstrGOTO(7)),
+      Block(InstrLDC("nonnull"), InstrDBGStrPrint(), InstrGOTO(7)),
       Block(InstrRETURN())
     )
   }

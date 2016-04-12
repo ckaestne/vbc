@@ -77,6 +77,10 @@ public class VOps {
         });
     }
 
+    public static FeatureExpr whenNONNULL(V<? extends Object> a) {
+        return a.when(v -> v != null);
+    }
+
     public static FeatureExpr whenIEQ(V<? extends Integer> a, V<? extends Integer> b) {
         V<? extends Integer> sub = ISUB(a, b);
         return whenEQ(sub);

@@ -290,9 +290,16 @@ case class InstrIFNONNULL(targetBlockIdx: Int) extends JumpInstruction {
     mv.visitJumpInsn(IFNONNULL, env.getBlockLabel(env.getBlock(targetBlockIdx)))
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStack1(s, env)
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenNONNULL", genSign(vclasstype, fexprclasstype), false)
+    }
+    else {
+      mv.visitJumpInsn(IFNONNULL, env.getBlockLabel(env.getBlock(targetBlockIdx)))
+    }
+  }
 }
 
 

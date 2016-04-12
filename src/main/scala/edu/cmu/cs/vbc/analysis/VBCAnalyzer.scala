@@ -107,7 +107,7 @@ class VBCAnalyzer(env: VMethodEnv) {
         }
       }
     }
-    assert(!beforeInstructionFrames.contains(null), "Missing some frames")
+    assert(!beforeInstructionFrames.contains(null), "Missing some frames in method: " + env.method.name)
     beforeInstructionFrames
   }
 

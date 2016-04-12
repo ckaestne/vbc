@@ -18,7 +18,7 @@ public class Main {
     {
     }
 
-    public static void main( String[] args ) {
+    public static void main( String[] args ) throws IOException {
         splStart___();
         mainBody___(args);
         splEnd___();
@@ -28,14 +28,11 @@ public class Main {
     {
     }
 
-    public static void mainBody___(String[] args)
-    {
+    public static void mainBody___(String[] args) throws IOException {
         // Step 1: create graph object
         Graph g = new  Graph();
 
         // Step 2: sets up the benchmark file to read
-        try
-        {
             splPrint___("[" + args[0] + "]");
             g.runBenchmark( args[0] );
 
@@ -99,8 +96,6 @@ public class Main {
 
             // End profiling
             Graph.endProfile();
-        }
-        catch(IOException e){}
     }
 
 
