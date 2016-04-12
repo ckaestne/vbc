@@ -199,7 +199,7 @@ class Loader {
       case POP => InstrPOP()
       case POP2 => UNKNOWN(POP2)
       case DUP => InstrDUP()
-      case DUP_X1 => UNKNOWN(DUP_X1)
+      case DUP_X1 => InstrDUP_X1()
       case DUP_X2 => UNKNOWN(DUP_X2)
       case DUP2 => UNKNOWN(DUP2)
       case DUP2_X1 => UNKNOWN(DUP2_X1)

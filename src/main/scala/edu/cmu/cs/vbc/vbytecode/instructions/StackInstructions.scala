@@ -109,3 +109,13 @@ case class InstrSIPUSH(value: Int) extends Instruction {
     (newFrame, Set())
   }
 }
+
+case class InstrDUP_X1() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitInsn(DUP_X1)
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+}
