@@ -73,14 +73,17 @@ object Rewrite {
       */
       val nopPrefix = firstBlockInstructions.takeWhile(_.isInstanceOf[EmptyInstruction])
       val initialInstr = firstBlockInstructions.drop(nopPrefix.length)
-      val firstInstr = initialInstr.head
-      val secondInstr = initialInstr.tail.head
-      assert(firstInstr.isALOAD0, "first instruction in <init> is not ALOAD0")
-      assert(secondInstr.isINVOKESPECIAL_OBJECT_INIT,
-        "second instruction in <inti> is not INVOKESPECIAL java/lang/Object.<init> ()V")
+
+      val pairs = initialInstr.init zip initialInstr.tail // each pair is two consecutive instructions
+      val pair = pairs.find((tuple) => tuple._1.isALOAD0 && tuple._2.isINVOKESPECIAL_OBJECT_INIT)
+      assert(pair.isDefined, "no ALOAD0 and INVOKESPECIAL sequence in <init> method")
+      val count = pairs.count(_ == pair.get)
+      assert(count == 1, "more than one ALOAD0 and INVOKESPECIAL sequence in <init> method")
+
+      val restInstrs = initialInstr.filter((i) => i != pair.get._1 && i != pair.get._2)
 
       // ALOAD and INVOKESPECIAL will be inserted in CFG
-      val newInstrs = nopPrefix ++ (InstrINIT_CONDITIONAL_FIELDS() +: initialInstr.drop(2))
+      val newInstrs = nopPrefix ++ (InstrINIT_CONDITIONAL_FIELDS() +: restInstrs)
       val newBlocks = new Block(newInstrs: _*) +: m.body.blocks.drop(1)
       m.copy(body = CFG(newBlocks))
     } else m
