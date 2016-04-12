@@ -91,3 +91,13 @@ case class InstrIDIV() extends BinOpInstruction {
       mv.visitInsn(IDIV)
   }
 }
+
+case class InstrINEG() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitInsn(INEG)
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+}

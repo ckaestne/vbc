@@ -297,4 +297,9 @@ case class VBCFieldNode(
   }
 }
 
-case class VBCInnerClassNode()
+case class VBCInnerClassNode(
+                            name: String,
+                            outerName: String,
+                            innerName: String,
+                            access: Int
+                            )

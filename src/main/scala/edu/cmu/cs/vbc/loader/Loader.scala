@@ -120,7 +120,12 @@ class Loader {
     if (field.attrs == null) Nil else field.attrs.toList
   )
 
-  def adaptInnerClass(m: InnerClassNode): VBCInnerClassNode = ???
+  def adaptInnerClass(m: InnerClassNode): VBCInnerClassNode = new VBCInnerClassNode(
+    m.name,
+    m.outerName,
+    m.innerName,
+    m.access
+  )
 
 
   def adaptBytecodeInstruction(inst: AbstractInsnNode, labelLookup: LabelNode => Int, variables: Int => Variable): Instruction =
@@ -189,7 +194,7 @@ class Loader {
       case DASTORE => UNKNOWN(DASTORE)
       case AASTORE => InstrAASTORE()
       case BASTORE => UNKNOWN(BASTORE)
-      case CASTORE => UNKNOWN(CASTORE)
+      case CASTORE => InstrCASTORE()
       case SASTORE => UNKNOWN(SASTORE)
       case POP => InstrPOP()
       case POP2 => UNKNOWN(POP2)
@@ -220,7 +225,7 @@ class Loader {
       case LREM => UNKNOWN(LREM)
       case FREM => UNKNOWN(FREM)
       case DREM => UNKNOWN(DREM)
-      case INEG => UNKNOWN(INEG)
+      case INEG => InstrINEG()
       case LNEG => UNKNOWN(LNEG)
       case FNEG => UNKNOWN(FNEG)
       case DNEG => UNKNOWN(DNEG)
@@ -253,7 +258,7 @@ class Loader {
       case D2L => UNKNOWN(D2L)
       case D2F => UNKNOWN(D2F)
       case I2B => UNKNOWN(I2B)
-      case I2C => UNKNOWN(I2C)
+      case I2C => InstrI2C()
       case I2S => UNKNOWN(I2S)
       case LCMP => UNKNOWN(LCMP)
       case FCMPL => UNKNOWN(FCMPL)
@@ -270,7 +275,10 @@ class Loader {
         val label = i.label
         InstrIFNE(labelLookup(label))
       }
-      case IFLT => UNKNOWN(IFLT)
+      case IFLT => {
+        val i = inst.asInstanceOf[JumpInsnNode]
+        InstrIFLT(labelLookup(i.label))
+      }
       case IFGE => {
         val i = inst.asInstanceOf[JumpInsnNode]
         InstrIFGE(labelLookup(i.label))
@@ -297,7 +305,10 @@ class Loader {
         InstrIF_ICMPGE(labelLookup(i.label))
       }
       case IF_ICMPGT => UNKNOWN(IF_ICMPGT)
-      case IF_ICMPLE => UNKNOWN(IF_ICMPLE)
+      case IF_ICMPLE => {
+        val i = inst.asInstanceOf[JumpInsnNode]
+        InstrIF_ICMPLE(labelLookup(i.label))
+      }
       case GOTO => {
         val i = inst.asInstanceOf[JumpInsnNode]
         InstrGOTO(labelLookup(i.label))
@@ -340,7 +351,10 @@ class Loader {
         val i = inst.asInstanceOf[MethodInsnNode]
         InstrINVOKESTATIC(i.owner, i.name, i.desc, i.itf)
       }
-      case INVOKEINTERFACE => UNKNOWN(INVOKEINTERFACE)
+      case INVOKEINTERFACE => {
+        val i = inst.asInstanceOf[MethodInsnNode]
+        InstrINVOKEINTERFACE(i.owner, i.name, i.desc, i.itf)
+      }
       case INVOKEDYNAMIC => UNKNOWN(INVOKEDYNAMIC)
       case NEW => {
         val i = inst.asInstanceOf[TypeInsnNode]
@@ -356,13 +370,19 @@ class Loader {
       }
       case ARRAYLENGTH => UNKNOWN(ARRAYLENGTH)
       case ATHROW => UNKNOWN(ATHROW)
-      case CHECKCAST => UNKNOWN(CHECKCAST)
+      case CHECKCAST => {
+        val i = inst.asInstanceOf[TypeInsnNode]
+        InstrCHECKCAST(i.desc)
+      }
       case INSTANCEOF => UNKNOWN(INSTANCEOF)
       case MONITORENTER => UNKNOWN(MONITORENTER)
       case MONITOREXIT => UNKNOWN(MONITOREXIT)
       case MULTIANEWARRAY => UNKNOWN(MULTIANEWARRAY)
       case IFNULL => UNKNOWN(IFNULL)
-      case IFNONNULL => UNKNOWN(IFNONNULL)
+      case IFNONNULL => {
+        val i = inst.asInstanceOf[JumpInsnNode]
+        InstrIFNONNULL(labelLookup(i.label))
+      }
       case -1 =>
         // special nodes in ASM such as LineNumberNode and LabelNode
         inst match {

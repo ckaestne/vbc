@@ -315,3 +315,13 @@ case class InstrINVOKESTATIC(owner: String, name: String, desc: String, itf: Boo
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame =
     updateStack(s, env, owner, name, desc)
 }
+
+case class InstrINVOKEINTERFACE(owner: String, name: String, desc: String, itf: Boolean) extends MethodInstruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitMethodInsn(INVOKEINTERFACE, owner, name, desc, itf)
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+}

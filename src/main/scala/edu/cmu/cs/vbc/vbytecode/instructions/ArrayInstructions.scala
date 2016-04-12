@@ -272,3 +272,13 @@ case class InstrIASTORE() extends ArrayInstructions {
     // do nothing, lifting or not depends on array ref type
   }
 }
+
+case class InstrCASTORE() extends ArrayInstructions {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitInsn(CASTORE)
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+}

@@ -4,7 +4,8 @@ import org.objectweb.asm.{Label, Type}
 
 class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
   protected val blocks = method.body.blocks
-  assert(blocks.nonEmpty, "method with empty body not supported")
+  // this assertion test failed for interface method. Discovered when trying to run GPL
+//  assert(blocks.nonEmpty, "method with empty body not supported")
 
   //find all local variables
   protected val localVars: List[LocalVar] =

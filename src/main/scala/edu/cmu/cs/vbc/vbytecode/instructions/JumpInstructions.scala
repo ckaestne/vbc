@@ -275,3 +275,61 @@ case class InstrIFGT(targetBlockIdx: Int) extends JumpInstruction {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = updateStack1(s, env)
 }
+
+case class InstrIFNONNULL(targetBlockIdx: Int) extends JumpInstruction {
+  /**
+    * gets the successor of a jump. the first value is the
+    * target of an unconditional jump, but it can be None
+    * when it just falls through to the next block
+    * the second value is the target of a conditional jump,
+    * if any
+    */
+  override def getSuccessor(): (Option[Int], Option[Int]) = (None, Some(targetBlockIdx))
+
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitJumpInsn(IFNONNULL, env.getBlockLabel(env.getBlock(targetBlockIdx)))
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+}
+
+
+case class InstrIFLT(targetBlockIdx: Int) extends JumpInstruction {
+  /**
+    * gets the successor of a jump. the first value is the
+    * target of an unconditional jump, but it can be None
+    * when it just falls through to the next block
+    * the second value is the target of a conditional jump,
+    * if any
+    */
+  override def getSuccessor(): (Option[Int], Option[Int]) = ???
+
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitJumpInsn(IFLT, env.getBlockLabel(env.getBlock(targetBlockIdx)))
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+}
+
+case class InstrIF_ICMPLE(targetBlockIdx: Int) extends JumpInstruction {
+  /**
+    * gets the successor of a jump. the first value is the
+    * target of an unconditional jump, but it can be None
+    * when it just falls through to the next block
+    * the second value is the target of a conditional jump,
+    * if any
+    */
+  override def getSuccessor(): (Option[Int], Option[Int]) = ???
+
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitJumpInsn(IF_ICMPLE, env.getBlockLabel(env.getBlock(targetBlockIdx)))
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+}
