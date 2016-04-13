@@ -2,7 +2,7 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{INT_TYPE, VBCFrame, V_TYPE}
-import edu.cmu.cs.vbc.utils.LiftUtils
+import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftUtils}
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
@@ -92,12 +92,45 @@ case class InstrIDIV() extends BinOpInstruction {
   }
 }
 
+/**
+  * Negate int.
+  *
+  * Operand stack: ..., value -> ..., result
+  */
 case class InstrINEG() extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(INEG)
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    val (v, prev, frame) = s.pop()
+    if (v == V_TYPE())
+      env.setLift(this)
+    val newFrame =
+      if (env.shouldLiftInstr(this))
+        frame.push(V_TYPE(), Set(this))
+      else {
+        frame.push(INT_TYPE(), Set(this))
+      }
+    if (env.shouldLiftInstr(this) && v != V_TYPE())
+        return (s, prev)
+    (newFrame, Set())
+  }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  /**
+    * Lifting means performing operations on a V object
+    */
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      InvokeDynamicUtils.invoke("smap", mv, env, block, "INEG", "Ljava/lang/Integer;()Ljava/lang/Integer;") {
+        (visitor: MethodVisitor) => {
+          visitor.visitVarInsn(ALOAD, 1)
+          visitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false)
+          visitor.visitInsn(INEG)
+          visitor.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
+          visitor.visitInsn(ARETURN)
+        }
+      }
+    }
+  }
 }

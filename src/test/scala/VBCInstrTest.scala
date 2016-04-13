@@ -53,4 +53,8 @@ class VBCInstrTest extends FunSuite with DiffMethodTestInfrastructure {
     )
   }
 
+  test("INEG") {
+    simpleMethod(InstrICONST(1), InstrINEG(), InstrDBGIPrint(), InstrRETURN())
+  }
+
 }
