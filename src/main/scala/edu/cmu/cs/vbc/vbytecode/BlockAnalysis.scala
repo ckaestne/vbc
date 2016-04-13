@@ -34,7 +34,9 @@ trait CFGAnalysis {
           succ._2.foreach(next += getBlock(_))
         case r: ReturnInstruction => // nothing
         case _ =>
-          assert(false, s"expected jump instruction as last instruction of a block, but found $lastInstr")
+          // fall through
+          next += getBlock(blockIdx + 1)
+        //          assert(false, s"expected jump instruction as last instruction of a block, but found $lastInstr")
       }
       for (handler <- block.exceptionHandlers)
         next += getBlock(handler.handlerBlockIdx)
