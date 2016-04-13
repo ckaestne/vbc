@@ -22,15 +22,19 @@ object Rewrite {
     )
 
 
+  /* Assume that the first two instructions in the <init> method are:
+       ALOAD 0
+       INVOKESPECIAL java/lang/Object.<init> ()V
+
+     Inject a new instruction to initialize fields in the beginning of the subsequent new block
+
+     TODO: should initialize static fields earlier?
+  */
   private def initializeConditionalFields(m: VBCMethodNode): VBCMethodNode =
     if (m.isInit) {
       val firstBlock = m.body.blocks.head
       val firstBlockInstructions = firstBlock.instr
 
-      /* Assume that the first two instructions in the <init> method are:
-           ALOAD 0
-           INVOKESPECIAL java/lang/Object.<inti> ()V
-      */
       val nopPrefix = firstBlockInstructions.takeWhile(_.isInstanceOf[EmptyInstruction])
       val initialInstr = firstBlockInstructions.drop(nopPrefix.length)
       val firstInstr = initialInstr.head
@@ -38,10 +42,11 @@ object Rewrite {
       assert(firstInstr.isALOAD0, "first instruction in <init> is not ALOAD0")
       assert(secondInstr.isINVOKESPECIAL_OBJECT_INIT,
         "second instruction in <inti> is not INVOKESPECIAL java/lang/Object.<init> ()V")
+      assert(initialInstr.size == 2, "did not expect additional statements after ALOAD0 and INVOKESPECIAL")
 
-      // ALOAD and INVOKESPECIAL will be inserted in CFG
-      val newInstrs = nopPrefix ++ (InstrINIT_CONDITIONAL_FIELDS() +: initialInstr.drop(2))
-      val newBlocks = new Block(newInstrs, Nil) +: m.body.blocks.drop(1)
+      val secondBlock = m.body.blocks.tail.head
+      assert(secondBlock != null, "expected second block in <init> at least with RETURN instruction")
+      val newBlocks = firstBlock :: secondBlock.copy(instr = InstrINIT_CONDITIONAL_FIELDS() +: secondBlock.instr) +: m.body.blocks.drop(2)
       m.copy(body = CFG(newBlocks))
     } else m
 

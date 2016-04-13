@@ -35,7 +35,7 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
     mv.visitLabel(env.getBlockLabel(this))
 
 
-    if (env.isVBlockHead(this)) {
+    if (env.isVBlockHead(this) && !isUniqueFirstBlock(env)) {
       vblockSkipIfCtxContradition(mv, env)
       loadUnbalancedStackVariables(mv, env)
     }
@@ -54,6 +54,15 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
 
     writeExceptions(mv, env)
   }
+
+
+  /**
+    * do not need the possibility to jump over the first block if it
+    * is not a jump target within the method, as it can only be executed
+    * at the method beginning, where we assume satisfiable contexts
+    */
+  private def isUniqueFirstBlock(env: VMethodEnv) = env.vblocks.head._1 == this && env.getPredecessors(this).isEmpty
+
 
   private def storeUnbalancedStackVariables(mv: MethodVisitor, env: VMethodEnv): Unit = {
     //store local variables if this block is leaving some values on stack
@@ -262,26 +271,11 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
 case class CFG(blocks: List[Block]) {
 
   def toByteCode(mv: MethodVisitor, env: MethodEnv) = {
-    // For <init> methods, the first two instructions should be ALOAD 0 and INVOKESPECIAL
-    if (env.method.isInit) {
-      mv.visitVarInsn(ALOAD, 0)
-      mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false)
-    }
     blocks.foreach(_.toByteCode(mv, env))
   }
 
 
   def toVByteCode(mv: MethodVisitor, env: VMethodEnv) = {
-
-    // For <init> methods, the first two instructions should be ALOAD 0 and INVOKESPECIAL
-    if (env.method.isInit) {
-      mv.visitVarInsn(ALOAD, 0)
-      mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false)
-    }
-
-
-
-
     var initializeVars: List[LocalVar] = Nil
 
     //initialize all fresh variables (e.g., used for result, unbalanced stacks, exceptionCond, blockCondition)

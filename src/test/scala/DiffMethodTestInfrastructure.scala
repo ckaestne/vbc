@@ -31,8 +31,8 @@ trait DiffMethodTestInfrastructure {
       val constr = new VBCMethodNode(ACC_PUBLIC, "<init>", "()V", Some("()V"), Nil,
         CFG(List(
           Block(List(InstrALOAD(new Parameter(0, "this")),
-            InstrINVOKESPECIAL("java/lang/Object", "<init>", "()V", false),
-            InstrRETURNVoid()), Nil)
+            InstrINVOKESPECIAL("java/lang/Object", "<init>", "()V", false)), Nil),
+          Block(List(InstrRETURNVoid()), Nil)
         )))
       new VBCClassNode(V1_8, ACC_PUBLIC, "Test", None, "java/lang/Object", Nil, Nil,
         List(constr, testmethod) ++ extraMethods)
