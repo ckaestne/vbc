@@ -186,7 +186,7 @@ package instructions {
   /**
     * special variational instruction for the final return or exception in the method
     */
-  case class VInstrRETURN(returnVar: LocalVar, exceptionCondVar: LocalVar, hasReturn: Boolean, hasThrows: Boolean, isVoidReturn: Boolean) extends Instruction {
+  case class VInstrRETURN(returnVar: LocalVar, exceptionCondVar: LocalVar, hasReturn: Boolean, hasThrows: Boolean, isVoidReturn: Boolean) extends ReturnInstruction {
     assert(hasReturn || hasThrows)
 
     override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =

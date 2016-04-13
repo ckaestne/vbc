@@ -6,7 +6,7 @@ import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
 
-sealed trait ReturnInstruction extends Instruction {
+trait ReturnInstruction extends Instruction {
   override def isReturnInstr: Boolean = true
 }
 
