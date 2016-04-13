@@ -77,6 +77,15 @@ public class VOps {
         });
     }
 
+    public static FeatureExpr whenLE(V<? extends Integer> a) {
+        return a.when(v -> {
+            if (v == null)
+                return false;
+            else
+                return v <= 0;
+        });
+    }
+
     public static FeatureExpr whenNONNULL(V<? extends Object> a) {
         return a.when(v -> v != null);
     }
@@ -94,6 +103,11 @@ public class VOps {
     public static FeatureExpr whenILT(V<? extends Integer> a, V<? extends Integer> b) {
         V<? extends Integer> sub = ISUB(a, b);
         return whenLT(sub);
+    }
+
+    public static FeatureExpr whenILE(V<? extends Integer> a, V<? extends Integer> b) {
+        V<? extends Integer> sub = ISUB(a, b);
+        return whenLE(sub);
     }
 
     public static FeatureExpr whenINE(V<? extends Integer> a, V<? extends Integer> b) {

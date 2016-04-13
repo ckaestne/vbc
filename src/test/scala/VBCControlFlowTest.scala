@@ -210,4 +210,13 @@ class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
       Block(InstrICONST(3), InstrIADD(), InstrDBGIPrint(), InstrRETURN())
     )
   }
+
+  test("IF_ICMPLE") {
+    method(
+      Block(InstrLoadConfig("A"), InstrICONST(0), InstrIF_ICMPLE(2)),
+      Block(InstrICONST(1), InstrGOTO(3)),
+      Block(InstrICONST(2), InstrGOTO(3)),
+      Block(InstrICONST(3), InstrIADD(), InstrDBGIPrint(), InstrRETURN())
+    )
+  }
 }

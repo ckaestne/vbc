@@ -335,13 +335,18 @@ case class InstrIF_ICMPLE(targetBlockIdx: Int) extends JumpInstruction {
     * the second value is the target of a conditional jump,
     * if any
     */
-  override def getSuccessor(): (Option[Int], Option[Int]) = ???
+  override def getSuccessor(): (Option[Int], Option[Int]) = (None, Some(targetBlockIdx))
 
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitJumpInsn(IF_ICMPLE, env.getBlockLabel(env.getBlock(targetBlockIdx)))
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStack2(s, env)
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this))
+      mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenILE", genSign(vclasstype, vclasstype, fexprclasstype), false)
+    else
+      mv.visitJumpInsn(IF_ICMPLE, env.getBlockLabel(env.getBlock(targetBlockIdx)))
+  }
 }
