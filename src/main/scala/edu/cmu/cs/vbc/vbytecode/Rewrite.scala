@@ -17,10 +17,16 @@ object Rewrite {
   def rewrite(m: VBCMethodNode): VBCMethodNode =
     initializeConditionalFields(m)
 
-  def rewriteV(m: VBCMethodNode): VBCMethodNode =
-    initializeConditionalFields(
-      ensureUniqueReturnInstr(m)
-    )
+  def rewriteV(m: VBCMethodNode): VBCMethodNode = {
+    if (m.body.blocks.nonEmpty) {
+      initializeConditionalFields(
+        ensureUniqueReturnInstr(m)
+      )
+    }
+    else {
+      m
+    }
+  }
 
 
   private def ensureUniqueReturnInstr(m: VBCMethodNode): VBCMethodNode = {

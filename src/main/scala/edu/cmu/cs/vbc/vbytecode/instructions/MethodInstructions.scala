@@ -70,10 +70,11 @@ trait MethodInstruction extends Instruction {
         mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, true)
       }
       else {
-        if (isSpecial)
-          mv.visitMethodInsn(INVOKESPECIAL, nOwner, nName, nDesc, itf)
-        else
-          mv.visitMethodInsn(INVOKEVIRTUAL, nOwner, nName, nDesc, itf)
+        this match {
+          case _: InstrINVOKESPECIAL => mv.visitMethodInsn(INVOKESPECIAL, nOwner, nName, nDesc, itf)
+          case _: InstrINVOKEINTERFACE => mv.visitMethodInsn(INVOKEINTERFACE, nOwner, nName, nDesc, itf)
+          case _ => mv.visitMethodInsn(INVOKEVIRTUAL, nOwner, nName, nDesc, itf)
+        }
       }
       if (isReturnVoid) {
         // in general, we should use foreach instead of flatMap for function calls with void return
@@ -321,7 +322,28 @@ case class InstrINVOKEINTERFACE(owner: String, name: String, desc: String, itf: 
     mv.visitMethodInsn(INVOKEINTERFACE, owner, name, desc, itf)
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = updateStack(s, env, owner, name, desc)
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  /**
+    * Should be the same as INVOKEVIRTUAL
+    */
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      invokeDynamic(owner, name, desc, itf, mv, env, block, false)
+    }
+    else {
+      val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
+      val (invokeStatic, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false)
+      if (invokeLifted) {
+        loadCurrentCtx(mv, env, block)
+      }
+
+      if (invokeStatic)
+        mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, true)
+      else
+        mv.visitMethodInsn(INVOKEVIRTUAL, nOwner, nName, nDesc, itf)
+
+      if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+    }
+  }
 }

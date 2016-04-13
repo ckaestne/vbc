@@ -32,24 +32,26 @@ case class VBCMethodNode(access: Int,
     val labelStart = new Label()
     mv.visitLabel(labelStart)
 
-    val env = new VMethodEnv(clazz, this)
-    body.toVByteCode(mv, env)
+    if (body.blocks.nonEmpty) {
+      val env = new VMethodEnv(clazz, this)
+      body.toVByteCode(mv, env)
 
-    val labelEnd = new Label()
-    mv.visitLabel(labelEnd)
+      val labelEnd = new Label()
+      mv.visitLabel(labelEnd)
 
-    //storing local variable information for debugging
-    for (v <- localVar ++ env.getFreshVars()) v match {
-      case p: Parameter =>
-        val pidx = if (isStatic) p.idx else p.idx - 1
-        if (p.name != "$unknown")
-          mv.visitLocalVariable(p.name, if (pidx == -1) "L" + clazz.name + ";" else Type.getArgumentTypes(liftedMethodDesc)(p.idx).getDescriptor, null, labelStart, labelEnd, p.idx)
-      case l: LocalVar =>
-        if (l.name != "$unknown")
-          mv.visitLocalVariable(l.name, l.desc, null, labelStart, labelEnd, env.getVarIdx(l))
+      //storing local variable information for debugging
+      for (v <- localVar ++ env.getFreshVars()) v match {
+        case p: Parameter =>
+          val pidx = if (isStatic) p.idx else p.idx - 1
+          if (p.name != "$unknown")
+            mv.visitLocalVariable(p.name, if (pidx == -1) "L" + clazz.name + ";" else Type.getArgumentTypes(liftedMethodDesc)(p.idx).getDescriptor, null, labelStart, labelEnd, p.idx)
+        case l: LocalVar =>
+          if (l.name != "$unknown")
+            mv.visitLocalVariable(l.name, l.desc, null, labelStart, labelEnd, env.getVarIdx(l))
+      }
+      //ctx parameter
+      mv.visitLocalVariable("$ctx", fexprclasstype, null, labelStart, labelEnd, env.getVarIdx(env.ctxParameter))
     }
-    //ctx parameter
-    mv.visitLocalVariable("$ctx", fexprclasstype, null, labelStart, labelEnd, env.getVarIdx(env.ctxParameter))
 
 
     mv.visitMaxs(0, 0)
