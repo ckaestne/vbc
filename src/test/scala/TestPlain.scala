@@ -36,8 +36,8 @@ class TestPlain extends FunSuite {
     val constr = new VBCMethodNode(ACC_PUBLIC, "<init>", "()V", Some("()V"), Nil,
       CFG(List(
         Block(InstrALOAD(new Parameter(0, "this")),
-          InstrINVOKESPECIAL("java/lang/Object", "<init>", "()V", false),
-          InstrRETURNVoid())
+          InstrINVOKESPECIAL("java/lang/Object", "<init>", "()V", false)),
+        Block(InstrRETURNVoid())
       )))
     val testMethod = new VBCMethodNode(ACC_PUBLIC, "test", "()V", None, Nil, CFG(Nil)) {
       override def toByteCode(cw: ClassVisitor, clazz: VBCClassNode) {
