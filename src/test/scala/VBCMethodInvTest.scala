@@ -19,9 +19,30 @@ class VBCMethodInvTest extends FunSuite with DiffMethodTestInfrastructure {
   private def runMethodI(instrs: List[Instruction], otherMethods: List[VBCMethodNode] = Nil) =
     runMethod(List(Block(instrs: _*)), otherMethods)
 
+  private def splitBlockOnMethod(block: Block): List[Block] = {
+    var results = List[Block]()
+    var instrs = List[Instruction]()
+    for (i <- block.instr) {
+      instrs = instrs :+ i
+      if (i.isJumpInstr) {
+        results = results :+ Block(instrs, block.exceptionHandlers)
+        instrs = List()
+      }
+    }
+    if (instrs.nonEmpty)
+      results = results :+ Block(instrs, block.exceptionHandlers)
+    results
+  }
+
+  private def splitBlocksOnMethods(blocks: List[Block]): List[Block] =
+    (for (block <- blocks)
+      yield if (block.instr.dropRight(1).exists(_.isJumpInstr))
+        splitBlockOnMethod(block)
+      else List(block)).flatten
+
   private def runMethod(blocks: List[Block], otherMethods: List[VBCMethodNode] = Nil) =
     testMethod(new VBCMethodNode(ACC_PUBLIC, "test", "()V", Some("()V"), Nil,
-      CFG(blocks)), otherMethods: _*)
+      CFG(splitBlocksOnMethods(blocks))), otherMethods: _*)
 
   private def method(name: String, desc: String, body: Block*) =
     new VBCMethodNode(0, name, desc, None, Nil, CFG(body.toList))
