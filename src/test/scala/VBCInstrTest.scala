@@ -13,7 +13,7 @@ class VBCInstrTest extends FunSuite with DiffMethodTestInfrastructure {
 
   private def simpleMethod(instrs: Instruction*) =
     testMethod(new VBCMethodNode(ACC_PUBLIC, "test", "()V", Some("()V"), Nil,
-      CFG(List(Block(instrs: _*)))))
+      CFG(splitBlocksOnMethods(List(Block(instrs: _*))))))
 
   test("simple method") {
     simpleMethod(InstrICONST(0), InstrDBGIPrint(), InstrRETURNVoid())

@@ -14,7 +14,7 @@ class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
 
   private def method(blocks: Block*) =
     testMethod(new VBCMethodNode(ACC_PUBLIC, "test", "()V", Some("()V"), Nil,
-      CFG(blocks.toList)))
+      CFG(splitBlocksOnMethods(blocks.toList))))
 
   test("basic if-then") {
     method(

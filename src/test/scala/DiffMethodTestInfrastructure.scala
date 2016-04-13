@@ -8,8 +8,8 @@ import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
 import edu.cmu.cs.varex.{V, VException, VHelper}
 import edu.cmu.cs.vbc.test.TestOutput.TOpt
 import edu.cmu.cs.vbc.test.{Config, InstrLoadConfig, TestOutput}
-import edu.cmu.cs.vbc.vbytecode._
-import edu.cmu.cs.vbc.vbytecode.instructions.{InstrALOAD, InstrINVOKESPECIAL, InstrRETURNVoid}
+import edu.cmu.cs.vbc.vbytecode.instructions.{InstrALOAD, InstrINVOKESPECIAL, InstrRETURNVoid, Instruction}
+import edu.cmu.cs.vbc.vbytecode.{Block, _}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.util.TraceClassVisitor
 import org.objectweb.asm.{ClassReader, ClassWriter}
@@ -48,6 +48,28 @@ trait DiffMethodTestInfrastructure {
     }
 
   }
+
+
+  private def splitBlockOnMethod(block: Block): List[Block] = {
+    var results = List[Block]()
+    var instrs = List[Instruction]()
+    for (i <- block.instr) {
+      instrs = instrs :+ i
+      if (i.isJumpInstr) {
+        results = results :+ Block(instrs, block.exceptionHandlers)
+        instrs = List()
+      }
+    }
+    if (instrs.nonEmpty)
+      results = results :+ Block(instrs, block.exceptionHandlers)
+    results
+  }
+
+  protected def splitBlocksOnMethods(blocks: List[Block]): List[Block] =
+    (for (block <- blocks)
+      yield if (block.instr.dropRight(1).exists(_.isJumpInstr))
+        splitBlockOnMethod(block)
+      else List(block)).flatten
 
 
   def loadTestClass(clazz: TestClass): Class[_] = {
