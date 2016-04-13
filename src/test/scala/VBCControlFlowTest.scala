@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc
 
 import de.fosd.typechef.featureexpr.FeatureExprFactory
-import edu.cmu.cs.vbc.test.{InstrDBGCtx, InstrDBGIPrint, InstrLoadConfig}
+import edu.cmu.cs.vbc.test.{InstrDBGCtx, InstrDBGIPrint, InstrDBGStrPrint, InstrLoadConfig}
 import edu.cmu.cs.vbc.vbytecode._
 import edu.cmu.cs.vbc.vbytecode.instructions._
 import org.objectweb.asm.Opcodes.ACC_PUBLIC
@@ -182,9 +182,8 @@ class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
     method(
       Block(InstrNEW("java/lang/Integer"), InstrDUP(), InstrICONST(3), InstrINVOKESPECIAL("java/lang/Integer", "<init>", "(I)V", false)),
       Block(InstrINVOKEVIRTUAL("java/lang/Integer", "toString", "()Ljava/lang/String;", false)),
-      Block(InstrDBGIPrint()),
+      Block(InstrDBGStrPrint()),
       Block(InstrRETURNVoid())
     )
   }
-
 }

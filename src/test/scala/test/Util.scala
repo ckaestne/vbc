@@ -104,6 +104,26 @@ case class InstrDBGIPrint() extends Instruction {
   }
 }
 
+case class InstrDBGStrPrint() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printS", "(Ljava/lang/String;)V", false)
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    loadFExpr(mv, env, env.getVBlockVar(block)) //ctx
+    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printVS", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
+    env.setLift(this)
+    val (v, prev, newFrame) = s.pop()
+    val backtrack =
+      if (v != V_TYPE()) prev
+      else Set[Instruction]()
+    (newFrame, backtrack)
+  }
+}
+
 case class InstrDBGCtx(name: String) extends Instruction {
 
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
