@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
-import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
+import edu.cmu.cs.vbc.analysis.VBCFrame.{FrameEntry, UpdatedFrame}
 import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_REF_TYPE, V_TYPE}
 import edu.cmu.cs.vbc.model.LiftCall._
 import edu.cmu.cs.vbc.utils.LiftUtils._
@@ -62,9 +62,11 @@ trait MethodInstruction extends Instruction {
       val nArg = Type.getArgumentTypes(desc).size
       mv.visitVarInsn(ALOAD, nArg + 1) // load obj
       for (i <- 0 until nArg) mv.visitVarInsn(ALOAD, i) // load arguments
-      mv.visitVarInsn(ALOAD, nArg) // load ctx
-      val (invokeStatic, nOwner, nName, nDesc) = liftCall(true, owner, name, desc, false)
-      if (invokeStatic) {
+      val hasVArgument = if (nArg > 0) true else false
+      val (invokeModelClass, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgument, owner, name, desc, false)
+      if (invokeLifted)
+        mv.visitVarInsn(ALOAD, nArg) // load ctx
+      if (invokeModelClass) {
         mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, true)
       }
       else {
@@ -80,7 +82,13 @@ trait MethodInstruction extends Instruction {
         mv.visitInsn(ACONST_NULL) // this is because flatMap requires some return values
         callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, nArg))
         mv.visitInsn(ARETURN)
-      } else mv.visitInsn(ARETURN)
+      } else {
+        // if we are not calling lifted method, we will get a non-V as return value and thus we need
+        // to wrap it into a V so that our invariant could hold
+        if (!invokeLifted)
+          callVCreateOne(mv, (m) => pushConstantTRUE(m))
+        mv.visitInsn(ARETURN)
+      }
       mv.visitMaxs(nArg + 2, nArg + 2)
       mv.visitEnd()
     }
@@ -100,14 +108,6 @@ trait MethodInstruction extends Instruction {
     val shouldLift = LiftingFilter.shouldLiftMethod(owner, name, desc)
     val nArg = Type.getArgumentTypes(desc).length
     val argList: List[(VBCType, Set[Instruction])] = s.stack.take(nArg)
-
-    // arguments
-    val hasVArgs = argList.exists(_._1 == V_TYPE())
-    if (hasVArgs) env.setTag(this, env.TAG_HAS_VARG)
-    if (hasVArgs || shouldLift) {
-      // ensure that all arguments are V
-      for (ele <- argList if ele._1 != V_TYPE()) return (s, ele._2)
-    }
 
     // object reference
     var frame = s
@@ -130,6 +130,14 @@ trait MethodInstruction extends Instruction {
       }
     }
 
+    // arguments
+    val hasVArgs = argList.exists(_._1 == V_TYPE())
+    if (hasVArgs) env.setTag(this, env.TAG_HAS_VARG)
+    if (hasVArgs || shouldLift || env.shouldLiftInstr(this)) {
+      // ensure that all arguments are V
+      for (ele <- argList if ele._1 != V_TYPE()) return (s, ele._2)
+    }
+
     // return value
     if (Type.getReturnType(desc) != Type.VOID_TYPE) {
       if (env.getTag(this, env.TAG_NEED_V_RETURN))
@@ -141,7 +149,19 @@ trait MethodInstruction extends Instruction {
       else
         frame = frame.push(VBCType(Type.getReturnType(desc)), Set(this))
     }
-    (frame, Set())
+
+    // For exception handling, method invocation implies the end of a block
+    val backtrack = backtraceNonVStackElements(frame)
+    (frame, backtrack)
+  }
+
+  def backtraceNonVStackElements(f: VBCFrame): Set[Instruction] = {
+    (Tuple2[VBCType, Set[Instruction]](V_TYPE(), Set()) /: f.stack) (
+      (a: FrameEntry, b: FrameEntry) => {
+        // a is always V_TYPE()
+        if (a._1 != b._1) (a._1, a._2 ++ b._2)
+        else a
+      })._2
   }
 }
 
@@ -175,12 +195,11 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
     }
     else {
       val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
-      val shouldLiftMethod = LiftingFilter.shouldLiftMethod(owner, name, desc)
-      if (hasVArgs || shouldLiftMethod) {
-        if (env.isMain) pushConstantTRUE(mv) else loadFExpr(mv, env, env.getBlockVar(block))
+      val (invokeStatic, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false)
+      if (invokeLifted) {
+        loadCurrentCtx(mv, env, block)
       }
 
-      val (invokeStatic, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false)
       if (invokeStatic)
         mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, true)
       else
@@ -239,13 +258,12 @@ case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Bo
       invokeDynamic(owner, name, desc, itf, mv, env, block, false)
     }
     else {
-      val shouldLiftMethod = LiftingFilter.shouldLiftMethod(owner, name, desc)
       val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
-      if (hasVArgs || shouldLiftMethod) {
-        if (env.isMain) pushConstantTRUE(mv) else loadFExpr(mv, env, env.getBlockVar(block))
+      val (invokeStatic, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false)
+      if (invokeLifted) {
+        loadCurrentCtx(mv, env, block)
       }
 
-      val (invokeStatic, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false)
       if (invokeStatic)
         mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, true)
       else
@@ -274,11 +292,12 @@ case class InstrINVOKESTATIC(owner: String, name: String, desc: String, itf: Boo
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    val shouldLiftMethod = LiftingFilter.shouldLiftMethod(owner, name, desc)
     val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
-    if (hasVArgs || shouldLiftMethod) loadFExpr(mv, env, env.getBlockVar(block))
+    val (invokeStatic, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, true)
+    if (invokeLifted) {
+      loadCurrentCtx(mv, env, block)
+    }
 
-    val (invokeStatic, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, true)
     mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, itf)
 
     if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))

@@ -20,35 +20,40 @@ import org.objectweb.asm.Type
 object LiftCall {
 
   /**
-    * Classes that could accept V arguments
-    */
-  val acceptVArguments: Set[String] = Set(
-    "java/lang/StringBuilder"
-  )
-
-  /**
     * Takes the method signature and returns the lifted method signature
     *
     * @param hasVArguments We assume that either all arguments are Vs, or all arguments are not Vs.
     * @param owner
     * @param name
     * @param desc
-    * @return lifted owner, name, and desc
+    * @return (
+    *         Boolean -> whether or not we are using model classes,
+    *         Boolean -> whether or not we are invoking a lifted method (first boolean return value implies this one),
+    *         String -> lifted owner name,
+    *         String -> lifted method name,
+    *         String -> lifted method description
+    *         )
     */
-  def liftCall(hasVArguments: Boolean, owner: String, name: String, desc: String, isStatic: Boolean): (Boolean, String, String, String) = {
+  def liftCall(hasVArguments: Boolean, owner: String, name: String, desc: String, isStatic: Boolean): (Boolean, Boolean, String, String, String) = {
     val shouldLiftMethod = LiftingFilter.shouldLiftMethod(owner, name, desc)
-    if (shouldLiftMethod) return (false, owner, name, liftDesc(owner, desc, isStatic, false))
-    if (hasVArguments) {
+    if (shouldLiftMethod) {
+      /*
+       * false -> not invoking model classes (because this method should be lifted anyway)
+       * true -> invoking a lifted method (which means we need to load ctx parameter to stack and no need to wrap return value into V)
+       */
+      return (false, true, owner, name, liftDesc(owner, desc, isStatic, false))
+    }
+    else if (hasVArguments) {
       /*
        * Now all arguments are Vs. There should be a model class for this
        */
-      (true, getModelOwner(owner), name, liftDesc(owner, desc, isStatic, true))
+      (true, true, getModelOwner(owner), name, liftDesc(owner, desc, isStatic, true))
     }
     else {
       /*
        * No V arguments at all, we are happy
        */
-      (false, owner, name, desc)
+      (false, false, owner, name, desc)
     }
   }
 
@@ -63,11 +68,11 @@ object LiftCall {
     "edu/cmu/cs/vbc/model/" + owner.substring(5)
   }
 
-  private def liftDesc(owner: String, desc: String, isStatic: Boolean, needHelps: Boolean): String = {
+  private def liftDesc(owner: String, desc: String, isStatic: Boolean, needsModelClass: Boolean): String = {
     val liftType = (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else "Ledu/cmu/cs/varex/V;"
     val mtype = Type.getMethodType(desc)
     "(" +
-      (if (needHelps && !isStatic) Type.getObjectType(owner).getDescriptor else "") +
+      (if (needsModelClass && !isStatic) Type.getObjectType(owner).getDescriptor else "") +
       (mtype.getArgumentTypes.map(liftType) :+ "Lde/fosd/typechef/featureexpr/FeatureExpr;").mkString("", "", ")") +
       liftType(mtype.getReturnType)
   }
