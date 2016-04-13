@@ -161,8 +161,9 @@ trait MethodInstruction extends Instruction {
     }
 
     // For exception handling, method invocation implies the end of a block
-    val backtrack = backtraceNonVStackElements(frame)
-    (frame, backtrack)
+//    val backtrack = backtraceNonVStackElements(frame)
+//    (frame, backtrack)
+    (frame, Set())
   }
 
   def backtraceNonVStackElements(f: VBCFrame): Set[Instruction] = {

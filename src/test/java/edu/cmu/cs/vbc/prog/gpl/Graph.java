@@ -837,18 +837,11 @@ public class Graph {
 
     public void runBenchmark( String FileName ) throws IOException
     {
-        try {
-            File f = new File(getClass().getResource("/"+FileName).getFile());
-            System.out.println("FILE? " + f.exists());
-            System.out.println(f.getAbsolutePath());
-            inFile = new FileReader(f);
-            Main.splPrint___("creating inFile");
-        }
-        catch ( IOException e )
-        {
-            Main.splPrint___( "Your file " + FileName +
-                    " cannot be read" );
-        }
+        File f = new File(getClass().getResource("/"+FileName).getFile());
+        System.out.println("FILE? " + f.exists());
+        System.out.println(f.getAbsolutePath());
+        inFile = new FileReader(f);
+        Main.splPrint___("creating inFile");
     }
 	/*@(Benchmark)*/
 

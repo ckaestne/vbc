@@ -5,7 +5,6 @@ import edu.cmu.cs.vbc.test.{InstrDBGCtx, InstrDBGIPrint, InstrDBGStrPrint, Instr
 import edu.cmu.cs.vbc.vbytecode._
 import edu.cmu.cs.vbc.vbytecode.instructions._
 import org.objectweb.asm.Opcodes.ACC_PUBLIC
-import org.objectweb.asm.tree.LocalVariableAnnotationNode
 import org.scalatest.FunSuite
 
 
@@ -179,12 +178,20 @@ class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
     )
   }
 
-  test("unbalanced non-V value") {
+  ignore("unbalanced non-V value") {
     method(
       Block(InstrNEW("java/lang/Integer"), InstrDUP(), InstrICONST(3), InstrINVOKESPECIAL("java/lang/Integer", "<init>", "(I)V", false)),
       Block(InstrINVOKEVIRTUAL("java/lang/Integer", "toString", "()Ljava/lang/String;", false)),
       Block(InstrDBGStrPrint()),
       Block(InstrRETURN())
+    )
+  }
+
+  test("unbalanced non-V value with GOTOs") {
+    method(
+      Block(InstrNEW("java/lang/Integer"), InstrDUP(), InstrICONST(3), InstrINVOKESPECIAL("java/lang/Integer", "<init>", "(I)V", false), InstrGOTO(1)),
+      Block(InstrINVOKEVIRTUAL("java/lang/Integer", "toString", "()Ljava/lang/String;", false), InstrGOTO(2)),
+      Block(InstrDBGStrPrint(), InstrRETURN())
     )
   }
 
@@ -217,6 +224,15 @@ class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
       Block(InstrICONST(1), InstrGOTO(3)),
       Block(InstrICONST(2), InstrGOTO(3)),
       Block(InstrICONST(3), InstrIADD(), InstrDBGIPrint(), InstrRETURN())
+    )
+  }
+
+  ignore("NEW reference left on stack") {
+    method(
+      Block(InstrLoadConfig("A"), InstrIFEQ(2)),
+      Block(InstrNEW("java/lang/Integer"), InstrDUP(), InstrINVOKESPECIAL("java/lang/Integer", "<init>", "()V", itf = false), InstrGOTO(3)),
+      Block(InstrNEW("java/lang/Integer")),
+      Block(InstrPOP(), InstrRETURN())
     )
   }
 }
