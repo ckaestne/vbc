@@ -59,4 +59,8 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
   test("int array") {
     testMain(classOf[edu.cmu.cs.vbc.prog.IntArrayExample])
   }
+
+  test("char array") {
+    testMain(classOf[edu.cmu.cs.vbc.prog.CharArrayExample])
+  }
 }

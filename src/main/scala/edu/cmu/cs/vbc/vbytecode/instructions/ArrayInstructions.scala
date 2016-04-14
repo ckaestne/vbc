@@ -273,12 +273,79 @@ case class InstrIASTORE() extends ArrayInstructions {
   }
 }
 
+/**
+  * Store into char array
+  *
+  * Operand stack: ..., arrayref, index, value -> ...
+  */
 case class InstrCASTORE() extends ArrayInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(CASTORE)
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
+    val (vType, vPrev, frame1) = s.pop()
+    val (idxType, idxPrev, frame2) = frame1.pop()
+    val (refType, refPrev, frame3) = frame2.pop()
+    // we assume that all elements in an array are of type V
+    if (vType != V_TYPE()) return (frame3, vPrev)
+    if (idxType != V_TYPE()) return (frame3, idxPrev)
+    if (refType == V_TYPE()) {
+      env.setLift(this)
+    }
+    (frame3, Set())
+  }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  /**
+    * Lifting means performing operations on a V object
+    */
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      storeOperation(mv, env, block)
+    }
+    else {
+      mv.visitInsn(AASTORE)
+    }
+  }
+
+  override def doBacktrack(env: VMethodEnv): Unit = {
+    // do nothing, lifting or not depends on array ref type
+  }
+}
+
+/**
+  * Load char from array
+  *
+  * Operand stack: ..., arrayref, index -> ..., value
+  *
+  * @todo Treating char array as V array lose the ability to print the char, sys.out could not
+  *       tell whether this is a char or simply an integer
+  */
+case class InstrCALOAD() extends ArrayInstructions {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitInsn(CALOAD)
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
+    val (idxType, idxPrev, frame1) = s.pop()
+    val (refType, refPrev, frame2) = frame1.pop()
+    if (idxType != V_TYPE()) return (frame2, idxPrev)
+    if (refType == V_TYPE()) {
+      env.setLift(this)
+    }
+    (frame2.push(V_TYPE(), Set(this)), Set())
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadOperation(mv, env, block)
+    }
+    else {
+      mv.visitInsn(AALOAD)
+    }
+  }
+
+  override def doBacktrack(env: VMethodEnv): Unit = {
+    // do nothing, lifting or not depends on ref type
+  }
 }
