@@ -235,4 +235,24 @@ class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
       Block(InstrPOP(), InstrRETURN())
     )
   }
+
+  test("I2C without information loss") {
+    method(
+      Block(InstrICONST(1), InstrLoadConfig("A"), InstrI2C(), InstrIF_ICMPEQ(2)),
+      Block(InstrICONST(1), InstrGOTO(3)),
+      Block(InstrICONST(2)),
+      Block(InstrDBGIPrint(), InstrRETURN())
+    )
+  }
+
+  test("I2C with information loss") {
+    val twoToSeventeen: java.lang.Integer = 131072
+    method(
+      // 131072 = 2^17, since char in JVM is 16-bit, stack value becomes 0 after I2C
+      Block(InstrLDC(twoToSeventeen), InstrI2C(), InstrLoadConfig("A"), InstrIF_ICMPEQ(2)),
+      Block(InstrICONST(1), InstrGOTO(3)),
+      Block(InstrICONST(2)),
+      Block(InstrDBGIPrint(), InstrRETURN())
+    )
+  }
 }

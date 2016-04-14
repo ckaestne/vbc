@@ -7,14 +7,14 @@ import org.objectweb.asm.Type
   *
   * Lattice:
   *
-  * V_TYPE
-  * /     \
-  * /      V_REF_TYPE
-  * /        \
-  * INT_TYPE     REF_TYPE
-  * \        /
-  * \       /
-  * UNINITIALIZED_TYPE
+  *              V_TYPE
+  *
+  *                    V_REF_TYPE
+  *
+  * INT_TYPE    CHAR_TYPE    REF_TYPE
+  *
+  *
+  *         UNINITIALIZED_TYPE
   *
   * @todo some other basic types (float, long, double)
   * @author chupanw
@@ -23,6 +23,10 @@ sealed abstract class VBCType
 
 case class INT_TYPE() extends VBCType {
   override def toString: String = "I"
+}
+
+case class CHAR_TYPE() extends VBCType {
+  override def toString: String = "C"
 }
 
 case class V_TYPE() extends VBCType {

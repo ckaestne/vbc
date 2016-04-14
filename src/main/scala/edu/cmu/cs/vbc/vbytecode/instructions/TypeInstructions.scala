@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
-import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_REF_TYPE, V_TYPE}
+import edu.cmu.cs.vbc.analysis._
 import edu.cmu.cs.vbc.utils.InvokeDynamicUtils
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
@@ -87,12 +87,51 @@ case class InstrCHECKCAST(desc: String) extends Instruction {
 }
 
 
+/**
+  * Convert int to char
+  *
+  * The value on top of the operand stack must be of type int. It is popped from the operand stack,
+  * truncated to char, then zero-extended to an int result.
+  *
+  * Operand stack: ..., value -> ..., result
+  */
 case class InstrI2C() extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(I2C)
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
+    val (value, prev, frame) = s.pop()
+    if (value == V_TYPE())
+      env.setLift(this)
+    val newFrame =
+      if (env.shouldLiftInstr(this)) {
+        // lifting tag could be set when backtracked from other instructions
+        frame.push(V_TYPE(), Set(this))
+      }
+      else {
+        frame.push(CHAR_TYPE(), Set(this))
+      }
+    val backtrack =
+      if (env.shouldLiftInstr(this) && value != V_TYPE())
+        prev
+      else
+        Set[Instruction]()
+    (newFrame, backtrack)
+  }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  /**
+    * Lifting means operating on a V object
+    */
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    import edu.cmu.cs.vbc.utils.LiftUtils._
+
+    if (env.shouldLiftInstr(this)) {
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "i2c", s"($vclasstype$fexprclasstype)$vclasstype", false)
+    }
+    else {
+      mv.visitInsn(I2C)
+    }
+  }
 }

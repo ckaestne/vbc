@@ -147,5 +147,13 @@ public class VOps {
         return a.flatMap(aa -> b.map(bb -> aa / bb));
     }
 
+    public static V<? extends Integer> i2c(V<? extends Integer> a, FeatureExpr ctx) {
+        return a.smap((v -> {
+            int i = v;
+            char c = (char)i;
+            return (int) c;
+        }), ctx);
+    }
+
 
 }
