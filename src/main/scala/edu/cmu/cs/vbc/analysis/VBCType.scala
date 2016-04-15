@@ -7,14 +7,15 @@ import org.objectweb.asm.Type
   *
   * Lattice:
   *
-  *              V_TYPE
+  *                    V_TYPE
   *
-  *                    V_REF_TYPE
+  *                          V_REF_TYPE
   *
   * INT_TYPE    CHAR_TYPE    REF_TYPE
   *
+  *                          UNINITIALIZED_TYPE
   *
-  *         UNINITIALIZED_TYPE
+  *
   *
   * @todo some other basic types (float, long, double)
   * @author chupanw
@@ -46,7 +47,7 @@ case class V_REF_TYPE(id: Int) extends VBCType {
   override def toString: String = "N"
 }
 
-case class UNINITIALIZED_TYPE() extends VBCType {
+case class UNINITIALIZED_TYPE(id: Int) extends VBCType {
   override def toString: String = "?"
 }
 
@@ -58,7 +59,7 @@ object VBCType {
     * @return
     */
   def apply(t: Type): VBCType = t match {
-    case null => UNINITIALIZED_TYPE()
+    case null => UNINITIALIZED_TYPE(nextID)
     case _ => {
       t.getSort match {
         case Type.BOOLEAN | Type.CHAR | Type.BYTE | Type.SHORT | Type.INT => INT_TYPE()

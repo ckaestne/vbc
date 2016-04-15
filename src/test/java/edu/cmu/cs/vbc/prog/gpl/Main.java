@@ -32,9 +32,13 @@ public class Main {
         // Step 1: create graph object
         Graph g = new  Graph();
 
+        //TODO: cheating
+        String args0 = "random4-gpl-benchmark.txt";
+        String args1 = "v0";
+
         // Step 2: sets up the benchmark file to read
-            splPrint___("[" + args[0] + "]");
-            g.runBenchmark( args[0] );
+            splPrint___("[" + args0 + "]");
+            g.runBenchmark( args0 );
 
             // Step 3: reads number of vertices, number of edges
             // and weights
@@ -85,8 +89,8 @@ public class Main {
 
             // Executes the selected features
             Graph.startProfile();
-            splPrint___("arg1: {" + args[1] + "}");
-            Vertex rootVertex = g.findsVertex( args[1].trim() );
+            splPrint___("arg1: {" + args1 + "}");
+            Vertex rootVertex = g.findsVertex( args1.trim() );
             g.run(rootVertex);
             Graph.stopProfile();
             splPrint___( "******************************************" );

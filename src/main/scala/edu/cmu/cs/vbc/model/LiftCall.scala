@@ -34,26 +34,25 @@ object LiftCall {
     *         String -> lifted method description
     *         )
     */
-  def liftCall(hasVArguments: Boolean, owner: String, name: String, desc: String, isStatic: Boolean): (Boolean, Boolean, String, String, String) = {
+  def liftCall(hasVArguments: Boolean, owner: String, name: String, desc: String, isStatic: Boolean): (Boolean, String, String, String) = {
     val shouldLiftMethod = LiftingFilter.shouldLiftMethod(owner, name, desc)
     if (shouldLiftMethod) {
       /*
-       * false -> not invoking model classes (because this method should be lifted anyway)
-       * true -> invoking a lifted method (which means we need to load ctx parameter to stack and no need to wrap return value into V)
+       * true -> means that we need to load ctx parameter to stack and no need to wrap return value into V
        */
-      return (false, true, owner, name, liftDesc(owner, desc, isStatic, false))
+      (true, owner, name, liftDesc(owner, desc, isStatic))
     }
     else if (hasVArguments) {
       /*
        * Now all arguments are Vs. There should be a model class for this
        */
-      (true, true, getModelOwner(owner), name, liftDesc(owner, desc, isStatic, true))
+      (true, getModelOwner(owner), name, liftDesc(owner, desc, isStatic))
     }
     else {
       /*
        * No V arguments at all, we are happy
        */
-      (false, false, owner, name, desc)
+      (false, getModelOwner(owner), name, desc)
     }
   }
 
@@ -65,14 +64,15 @@ object LiftCall {
     */
   def getModelOwner(owner: String) = {
     assert(owner.startsWith("java/"))
-    "edu/cmu/cs/vbc/model/" + owner.substring(5)
+    val lastSlash = owner.lastIndexOf('/')
+    val vClsName = "/V" + owner.substring(lastSlash + 1)
+    "edu/cmu/cs/vbc/model/" + owner.substring(5, lastSlash) + vClsName
   }
 
-  private def liftDesc(owner: String, desc: String, isStatic: Boolean, needsModelClass: Boolean): String = {
+  private def liftDesc(owner: String, desc: String, isStatic: Boolean): String = {
     val liftType = (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else "Ledu/cmu/cs/varex/V;"
     val mtype = Type.getMethodType(desc)
     "(" +
-      (if (needsModelClass && !isStatic) Type.getObjectType(owner).getDescriptor else "") +
       (mtype.getArgumentTypes.map(liftType) :+ "Lde/fosd/typechef/featureexpr/FeatureExpr;").mkString("", "", ")") +
       liftType(mtype.getReturnType)
   }

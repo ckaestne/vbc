@@ -6,11 +6,13 @@ import edu.cmu.cs.varex.V;
 /**
  * @author chupanw
  */
-public class StringBuilder {
+public class VStringBuilder {
 
     public static V append(java.lang.StringBuilder obj, V v, FeatureExpr ctx) {
-        java.lang.StringBuilder ret = obj.append(v.select(ctx));
-        return V.one(ret);
+        return v.smap(ctx, (x -> {
+            java.lang.StringBuilder cloned = new java.lang.StringBuilder(obj.toString());
+            return cloned.append(x);
+        }));
     }
 
     public static V toString(java.lang.StringBuilder obj, FeatureExpr ctx) {

@@ -22,7 +22,13 @@ public class VOps {
     }
 
     public static V<? extends Integer> IINC(V<? extends Integer> a, int increment) {
-        return a.map(aa -> aa + increment);
+        return a.map(aa -> {
+            if (aa == null)
+                return null;
+            else {
+                return aa + increment;
+            }
+        });
     }
 
     /**
