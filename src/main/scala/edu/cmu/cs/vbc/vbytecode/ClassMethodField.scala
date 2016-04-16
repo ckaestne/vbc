@@ -215,7 +215,7 @@ case class VBCClassNode(
     }
     if (hasCLINIT) {
       pushConstantTRUE(mv)
-      mv.visitMethodInsn(INVOKESTATIC, name, "______clinit______", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
+      mv.visitMethodInsn(INVOKESTATIC, name, "______clinit______", s"($fexprclasstype)$vclasstype", false)
     }
     mv.visitInsn(RETURN)
     mv.visitMaxs(10, 10)
