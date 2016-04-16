@@ -240,7 +240,7 @@ case class VBCClassNode(
     pushConstantTRUE(mv)
     mv.visitMethodInsn(INVOKESTATIC, name, "main", liftMethodDescription(mainMethodSig, false), false)
     mv.visitInsn(RETURN)
-    mv.visitMaxs(2, 0)
+    mv.visitMaxs(2, 1)
     mv.visitEnd()
   }
 

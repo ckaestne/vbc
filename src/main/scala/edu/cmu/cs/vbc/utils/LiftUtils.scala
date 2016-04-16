@@ -165,4 +165,5 @@ object LiftUtils {
   def replaceArgsWithObject(desc: String): String =
     "(" + "Ljava/lang/Object;" * Type.getArgumentTypes(desc).length + ")" + Type.getReturnType(desc)
 
+  def isVoidReturn(desc: String): Boolean = Type.getReturnType(desc) == Type.VOID_TYPE
 }

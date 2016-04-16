@@ -36,7 +36,7 @@ trait MethodInstruction extends JumpInstruction {
     val n = env.clazz.lambdaMethods.size
     def getLambdaFunName = "lambda$" + env.method.name.replace('<', '$').replace('>', '$') + "$" + n
     def getLambdaFunDesc = "(" + VType * Type.getArgumentTypes(desc).size + FEType + Type.getObjectType(owner) + ")" + VType
-    def isReturnVoid = Type.getReturnType(desc) == Type.VOID_TYPE
+    val wasReturnVoid = isVoidReturn(desc)
     def getInvokeType = {
       val nArg = Type.getArgumentTypes(desc).size
       "(" + VType * nArg + ")Ljava/util/function/BiFunction;"
@@ -53,7 +53,8 @@ trait MethodInstruction extends JumpInstruction {
     )
     loadCurrentCtx(mv, env, block)
     mv.visitMethodInsn(INVOKEINTERFACE, flatMapOwner, flatMapName, flatMapDesc, true)
-    if (isReturnVoid) mv.visitInsn(POP)
+    if (wasReturnVoid)
+      mv.visitInsn(POP)
 
     val lambda = (cv: ClassVisitor) => {
       val mv: MethodVisitor = cv.visitMethod(
@@ -80,7 +81,7 @@ trait MethodInstruction extends JumpInstruction {
         else
           mv.visitMethodInsn(INVOKEVIRTUAL, nOwner, nName, nDesc, itf)
       }
-      if (isReturnVoid) {
+      if (wasReturnVoid) {
         // in general, we should use foreach instead of flatMap for function calls with void return
         // types. But as this will change as soon as we have exceptions, for now, we return just
         // One(null)
@@ -269,6 +270,7 @@ case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Bo
     else {
       val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
       val (invokeStatic, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false, false)
+      val wasVoidReturn = isVoidReturn(desc)
       if (invokeLifted) {
         loadCurrentCtx(mv, env, block)
       }
@@ -277,6 +279,9 @@ case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Bo
         mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, true)
       else
         mv.visitMethodInsn(INVOKEVIRTUAL, nOwner, nName, nDesc, itf)
+      //if was a void method, discard return value //TODO check for exception
+      if (wasVoidReturn && !isVoidReturn(nDesc))
+        mv.visitInsn(POP)
 
       if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
@@ -303,11 +308,14 @@ case class InstrINVOKESTATIC(owner: String, name: String, desc: String, itf: Boo
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
     val (invokeStatic, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, true, false)
+    val wasVoidReturn = isVoidReturn(desc)
     if (invokeLifted) {
       loadCurrentCtx(mv, env, block)
     }
 
     mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, itf)
+    if (wasVoidReturn && !isVoidReturn(nDesc))
+      mv.visitInsn(POP)
 
     if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
   }
