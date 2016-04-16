@@ -20,9 +20,9 @@ import org.objectweb.asm.{ClassReader, ClassWriter}
 trait DiffMethodTestInfrastructure {
 
   class MyClassLoader extends ClassLoader(this.getClass.getClassLoader) {
-    def defineClass(name: String, b: Array[Byte]): Class[_] = {
-      return defineClass(name, b, 0, b.length)
-    }
+    def defineClass(name: String, b: Array[Byte]): Class[_] =
+      defineClass(name, b, 0, b.length)
+
   }
 
 
@@ -176,8 +176,8 @@ trait DiffMethodTestInfrastructure {
     val configs = explode(configOptions.toList)
     for ((sel, desel) <- configs) {
       TestOutput.output = Nil
-      Config.configValues = (sel.map((_ -> 1)) ++ desel.map((_ -> 0))).toMap
-      val config = (sel.map(FeatureExprFactory.createDefinedExternal(_))
+      Config.configValues = (sel.map(_ -> 1) ++ desel.map(_ -> 0)).toMap
+      val config = (sel.map(FeatureExprFactory.createDefinedExternal)
         ++ desel.map(FeatureExprFactory.createDefinedExternal(_).not)).
         fold(FeatureExprFactory.True)(_ and _)
 
@@ -274,7 +274,7 @@ trait DiffMethodTestInfrastructure {
         //            new Measurer.IgnoringGC
       } setUp { _ =>
         TestOutput.output = Nil
-        Config.configValues = (sel.map((_ -> 1)) ++ desel.map((_ -> 0))).toMap
+        Config.configValues = (sel.map(_ -> 1) ++ desel.map(_ -> 0)).toMap
         testObject = testClass.newInstance()
       } measure {
         executePlain(testObject, testClass, method)
