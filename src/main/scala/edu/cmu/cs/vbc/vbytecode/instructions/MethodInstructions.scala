@@ -81,7 +81,7 @@ trait MethodInstruction extends JumpInstruction {
         else
           mv.visitMethodInsn(INVOKEVIRTUAL, nOwner, nName, nDesc, itf)
       }
-      if (wasReturnVoid) {
+      if (wasReturnVoid && !isVoidReturn(nDesc)) {
         // in general, we should use foreach instead of flatMap for function calls with void return
         // types. But as this will change as soon as we have exceptions, for now, we return just
         // One(null)
@@ -205,7 +205,8 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
     }
     else {
       val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
-      val (invokeStatic, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false, true)
+      val (invokeStatic, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false, name == "<init>")
+      val wasVoidReturn = isVoidReturn(desc)
       if (invokeLifted) {
         loadCurrentCtx(mv, env, block)
       }
@@ -214,6 +215,8 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
         mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, true)
       else
         mv.visitMethodInsn(INVOKESPECIAL, nOwner, nName, nDesc, itf)
+      if (wasVoidReturn && !isVoidReturn(nDesc))
+        mv.visitInsn(POP)
 
       if (env.getTag(this, env.TAG_WRAP_DUPLICATE)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
       if (env.getTag(this, env.TAG_NEED_V_RETURN)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
