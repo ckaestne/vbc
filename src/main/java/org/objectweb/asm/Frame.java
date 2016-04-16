@@ -1351,7 +1351,7 @@ final class Frame {
             }
             changed |= merge(cw, t, frame.inputStack, i);
         }
-        assert (frame.inputStack.length >= outputStackTop);
+        assert frame.inputStack.length >= outputStackTop : "stack size mismatch in CFG";
         for (i = 0; i < outputStackTop; ++i) {
             s = outputStack[i];
             dim = s & DIM;
