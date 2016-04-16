@@ -227,7 +227,10 @@ package instructions {
     def returnResult(mv: MethodVisitor, env: VMethodEnv): Unit =
       if (isOriginallyVoidReturn && env.method.isInit)
         mv.visitInsn(RETURN)
-      else {
+      else if (isOriginallyVoidReturn) {
+        mv.visitInsn(ACONST_NULL)
+        mv.visitInsn(ARETURN)
+      } else {
         loadV(mv, env, returnVar)
         mv.visitInsn(ARETURN)
       }
