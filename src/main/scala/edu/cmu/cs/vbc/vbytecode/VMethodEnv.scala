@@ -2,7 +2,7 @@ package edu.cmu.cs.vbc.vbytecode
 
 import edu.cmu.cs.vbc.analysis.{VBCAnalyzer, VBCFrame}
 import edu.cmu.cs.vbc.utils.{LiftUtils, Statistics}
-import edu.cmu.cs.vbc.vbytecode.instructions.{Instruction, JumpInstruction}
+import edu.cmu.cs.vbc.vbytecode.instructions._
 
 /**
   * Environment used during generation of the byte code and variational
@@ -135,11 +135,13 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
     val toBlockIdx = getBlockIdx(toBlock)
 
     lastInstr match {
+      case InstrGOTO(t) => false // GOTO does not change the context
+      case method: MethodInstruction => true // all methods can have conditional exceptions
       case jump: JumpInstruction =>
         // all possible jump targets are variational, exception edges are not
         val succ = jump.getSuccessor()
         toBlockIdx == succ._1.getOrElse(fromBlockIdx + 1) || succ._2.exists(_ == toBlockIdx)
-      case _ => false
+      case _ => false // exceptions do not change the context
     }
   }
 

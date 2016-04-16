@@ -174,7 +174,7 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
       storeFExpr(mv, env, thisVBlockConditionVar)
 
       //- if backward jump, jump there (target condition is satisfiable, because this block's condition is and it's propagated)
-      if (env.isVBlockBefore(targetBlock, this)) {
+      if (env.isVBlockBefore(targetBlock, env.getVBlock(this))) {
         mv.visitJumpInsn(GOTO, env.getBlockLabel(targetBlock))
       }
 
@@ -276,6 +276,9 @@ case class CFG(blocks: List[Block]) {
 
 
   def toVByteCode(mv: MethodVisitor, env: VMethodEnv) = {
+    println(env.method.name)
+    println(env.toDot)
+
     var initializeVars: List[LocalVar] = Nil
 
     //initialize all fresh variables (e.g., used for result, unbalanced stacks, exceptionCond, blockCondition)
