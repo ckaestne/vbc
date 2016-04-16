@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
-import edu.cmu.cs.vbc.analysis.VBCFrame.{FrameEntry, UpdatedFrame}
+import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_REF_TYPE, V_TYPE}
 import edu.cmu.cs.vbc.model.LiftCall._
 import edu.cmu.cs.vbc.utils.LiftUtils._
@@ -68,7 +68,7 @@ trait MethodInstruction extends JumpInstruction {
       mv.visitVarInsn(ALOAD, nArg + 1) // load obj
       for (i <- 0 until nArg) mv.visitVarInsn(ALOAD, i) // load arguments
       val hasVArgument = if (nArg > 0) true else false
-      val (invokeModelClass, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgument, owner, name, desc, false)
+      val (invokeModelClass, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgument, owner, name, desc, false, false)
       if (invokeLifted)
         mv.visitVarInsn(ALOAD, nArg) // load ctx
       if (invokeModelClass) {
@@ -204,7 +204,7 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
     }
     else {
       val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
-      val (invokeStatic, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false)
+      val (invokeStatic, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false, true)
       if (invokeLifted) {
         loadCurrentCtx(mv, env, block)
       }
@@ -268,7 +268,7 @@ case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Bo
     }
     else {
       val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
-      val (invokeStatic, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false)
+      val (invokeStatic, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, false, false)
       if (invokeLifted) {
         loadCurrentCtx(mv, env, block)
       }
@@ -302,7 +302,7 @@ case class InstrINVOKESTATIC(owner: String, name: String, desc: String, itf: Boo
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
-    val (invokeStatic, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, true)
+    val (invokeStatic, invokeLifted, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, true, false)
     if (invokeLifted) {
       loadCurrentCtx(mv, env, block)
     }
