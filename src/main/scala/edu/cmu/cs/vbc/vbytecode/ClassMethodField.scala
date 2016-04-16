@@ -27,8 +27,8 @@ case class VBCMethodNode(access: Int,
   }
 
   def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
-    val liftedMethodDesc = liftMethodDescription(desc)
-    val mv = cw.visitMethod(access, liftMethodName(name), liftedMethodDesc, liftMethodSignature(desc, signature).orNull, exceptions.toArray)
+    val liftedMethodDesc = liftMethodDescription(desc, isInit)
+    val mv = cw.visitMethod(access, liftMethodName(name), liftedMethodDesc, liftMethodSignature(desc, signature, isInit).orNull, exceptions.toArray)
     mv.visitCode()
     val labelStart = new Label()
     mv.visitLabel(labelStart)
@@ -238,7 +238,7 @@ case class VBCClassNode(
     callVCreateOne(mv, (m) => pushConstantTRUE(m))
     //set context to True
     pushConstantTRUE(mv)
-    mv.visitMethodInsn(INVOKESTATIC, name, "main", liftMethodDescription(mainMethodSig), false)
+    mv.visitMethodInsn(INVOKESTATIC, name, "main", liftMethodDescription(mainMethodSig, false), false)
     mv.visitInsn(RETURN)
     mv.visitMaxs(2, 0)
     mv.visitEnd()

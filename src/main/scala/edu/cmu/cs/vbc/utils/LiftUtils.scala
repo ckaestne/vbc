@@ -21,20 +21,22 @@ object LiftUtils {
   val lamdaFactoryDesc = "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;"
 
   val vexceptionclassname = "edu/cmu/cs/varex/VException"
+  val vpartialexceptionclassname = "edu/cmu/cs/varex/VPartialException"
 
   //    protected def shouldLift(classname: String) = liftedPackagePrefixes.exists(classname startsWith _)
 
-  def liftType(t: Type): String =
-    if (t == Type.VOID_TYPE) t.getDescriptor
-    else
-      vclasstype
+  def liftType(t: Type): String = liftType(t, false)
+
+  def liftType(t: Type, liftVoid: Boolean): String =
+    if (!liftVoid && t == Type.VOID_TYPE) t.getDescriptor
+    else vclasstype
 
   /**
     * lift each parameter and add a new fexpr parameter at the end for the context
     */
-  def liftMethodDescription(desc: String): String = {
+  def liftMethodDescription(desc: String, isConstructor: Boolean): String = {
     val mtype = Type.getMethodType(desc)
-    (mtype.getArgumentTypes.map(liftType) :+ Type.getObjectType(fexprclassname)).mkString("(", "", ")") + liftType(mtype.getReturnType)
+    (mtype.getArgumentTypes.map(liftType) :+ Type.getObjectType(fexprclassname)).mkString("(", "", ")") + liftType(mtype.getReturnType, !isConstructor)
   }
 
   def liftMethodName(name: String): String = {
@@ -53,12 +55,12 @@ object LiftUtils {
     mtype.getArgumentTypes.map(liftType).mkString("(", "", ")") + liftType(mtype.getReturnType)
   }
 
-  def liftMethodSignature(desc: String, sig: Option[String]): Option[String] = {
+  def liftMethodSignature(desc: String, sig: Option[String], isConstructor: Boolean): Option[String] = {
     val sigReader = new SignatureReader(sig.getOrElse(desc))
-    val sw = new LiftSignatureWriter()
+    val sw = new LiftSignatureWriter(isConstructor)
     sigReader.accept(sw)
     val newSig = sw.getSignature()
-    if (sig.isDefined || newSig != liftMethodDescription(desc))
+    if (sig.isDefined || newSig != liftMethodDescription(desc, isConstructor))
       Some(newSig)
     else None
   }

@@ -8,7 +8,7 @@ import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
 import edu.cmu.cs.varex.{V, VException, VHelper}
 import edu.cmu.cs.vbc.test.TestOutput.TOpt
 import edu.cmu.cs.vbc.test.{Config, InstrLoadConfig, TestOutput}
-import edu.cmu.cs.vbc.vbytecode.instructions.{InstrALOAD, InstrINVOKESPECIAL, InstrRETURNVoid, Instruction}
+import edu.cmu.cs.vbc.vbytecode.instructions._
 import edu.cmu.cs.vbc.vbytecode.{Block, _}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.util.TraceClassVisitor
@@ -65,11 +65,37 @@ trait DiffMethodTestInfrastructure {
     results
   }
 
-  protected def splitBlocksOnMethods(blocks: List[Block]): List[Block] =
-    (for (block <- blocks)
-      yield if (block.instr.dropRight(1).exists(_.isJumpInstr))
+  protected def splitBlocksOnMethods(blocks: List[Block]): List[Block] = {
+    var blockIdxMap = Map[Int, Int]()
+    var updatedBlockIdx = 0
+    val newBlocks = for (blockIdx <- blocks.indices) yield {
+      val block = blocks(blockIdx)
+      val replacement = if (block.instr.dropRight(1).exists(_.isJumpInstr))
         splitBlockOnMethod(block)
-      else List(block)).flatten
+      else List(block)
+      blockIdxMap += (blockIdx -> updatedBlockIdx)
+      updatedBlockIdx += replacement.size
+      replacement
+    }
+
+    newBlocks.flatten.map(updateBlockIdx(blockIdxMap, _)).toList
+  }
+
+  private def updateBlockIdx(updatedBlockIdx: Map[Int, Int], block: Block): Block =
+    block.copy(instr = block.instr.map({
+      case InstrIFEQ(idx) => InstrIFEQ(updatedBlockIdx(idx))
+      case InstrIFNE(idx) => InstrIFNE(updatedBlockIdx(idx))
+      case InstrIFGE(idx) => InstrIFGE(updatedBlockIdx(idx))
+      case InstrIFGT(idx) => InstrIFGT(updatedBlockIdx(idx))
+      case InstrIF_ICMPEQ(idx) => InstrIF_ICMPEQ(updatedBlockIdx(idx))
+      case InstrIF_ICMPGE(idx) => InstrIF_ICMPGE(updatedBlockIdx(idx))
+      case InstrIF_ICMPLT(idx) => InstrIF_ICMPLT(updatedBlockIdx(idx))
+      case InstrIF_ICMPNE(idx) => InstrIF_ICMPNE(updatedBlockIdx(idx))
+      case InstrGOTO(idx) => InstrGOTO(updatedBlockIdx(idx))
+      case x: InstrUnaryIF => assert(false, "unsupported if instruction"); x
+      case x: InstrBinaryIF => assert(false, "unsupported if instruction"); x
+      case x => x
+    }))
 
 
   def loadTestClass(clazz: TestClass): Class[_] = {

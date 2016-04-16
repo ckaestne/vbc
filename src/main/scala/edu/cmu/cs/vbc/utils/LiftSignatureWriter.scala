@@ -9,8 +9,11 @@ import org.objectweb.asm.signature.{SignatureVisitor, SignatureWriter}
   * Exception not supported yet. Array is lifted as conditional
   * array instead of array of conditional elements. May want to explore
   * different alternatives in the future.
+  *
+  * For constructors the return type is not changed, all others get a
+  * V[_] return type
   */
-class LiftSignatureWriter() extends SignatureWriter() {
+class LiftSignatureWriter(isConstructor: Boolean) extends SignatureWriter() {
 
   import LiftUtils._
 
@@ -65,7 +68,10 @@ class LiftSignatureWriter() extends SignatureWriter() {
 
 
   def getSignature(): String =
-    (this.toString + ">;").replace("Ledu/cmu/cs/varex/V<V>;", "V")
+    if (isConstructor)
+      (this.toString + ">;").replace("Ledu/cmu/cs/varex/V<V>;", "V")
+    else
+      (this.toString + ">;").replace("Ledu/cmu/cs/varex/V<V>;", "Ledu/cmu/cs/varex/V;")
 
   //TODO
   override def visitExceptionType(): SignatureVisitor = {
