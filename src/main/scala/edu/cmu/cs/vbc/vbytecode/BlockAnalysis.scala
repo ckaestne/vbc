@@ -174,5 +174,11 @@ trait VBlockAnalysis extends CFGAnalysis {
     vblocks.indexWhere(_._1 == firstv) < vblocks.indexWhere(_._1 == secondv)
   }
 
+  /**
+    * finds the VBlock that this block is in
+    */
+  def getVBlock(block: Block): Block =
+    vblocks.find(_._2 contains block).get._1
+
 
 }

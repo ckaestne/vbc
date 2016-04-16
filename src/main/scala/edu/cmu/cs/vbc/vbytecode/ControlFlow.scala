@@ -196,7 +196,7 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
       storeFExpr(mv, env, elseBlockConditionVar)
 
 
-      val needToJumpBack = env.isVBlockBefore(thenBlock, this)
+      val needToJumpBack = env.isVBlockBefore(thenBlock, env.getVBlock(this))
       //- update then-block's condition to "then-successor.condition or (thisblock.condition and A)"
       loadFExpr(mv, env, thisVBlockConditionVar)
       callFExprAnd(mv)
