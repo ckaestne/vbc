@@ -5,7 +5,7 @@ import java.lang.reflect.InvocationTargetException
 
 import de.fosd.typechef.conditional.{ConditionalLib, Opt}
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
-import edu.cmu.cs.varex.{V, VException, VHelper}
+import edu.cmu.cs.varex.{V, VException, VHelper, VPartialException}
 import edu.cmu.cs.vbc.test.TestOutput.TOpt
 import edu.cmu.cs.vbc.test.{Config, InstrLoadConfig, TestOutput}
 import edu.cmu.cs.vbc.vbytecode.instructions._
@@ -214,17 +214,25 @@ trait DiffMethodTestInfrastructure {
   def executeV(obj: Any, clazz: Class[_], method: String, ctx: FeatureExpr): Any = {
     import scala.collection.JavaConversions._
     try {
-      clazz.getMethod(method, classOf[FeatureExpr]).invoke(obj, ctx)
+      val result = clazz.getMethod(method, classOf[FeatureExpr]).invoke(obj, ctx)
+      if (result.isInstanceOf[VPartialException[_]]) {
+        val ve = result.asInstanceOf[VPartialException[_]]
+        for ((c, e) <- VHelper.explode(ctx and ve.getExceptionCondition, ve.getExceptions))
+          reportException(c, e)
+      }
     } catch {
       case e: InvocationTargetException =>
         if (e.getTargetException.isInstanceOf[VException]) {
           val ve = e.getTargetException.asInstanceOf[VException]
           for ((c, e) <- VHelper.explode(ctx and ve.getExceptionCondition, ve.getExceptions))
-            TestOutput.printVS(V.one("terminated:" + e.getClass.getCanonicalName + ":" + e.getMessage), c)
+            reportException(c, e)
         } else
-          TestOutput.printVS(V.one("terminated:" + e.getTargetException.getClass.getCanonicalName + ":" + e.getTargetException.getMessage), ctx)
+          reportException(ctx, e.getTargetException)
     }
   }
+
+  def reportException(ctx: FeatureExpr, e: Throwable) =
+    TestOutput.printVS(V.one("terminated:" + e.getClass.getCanonicalName + ":" + e.getMessage), ctx)
 
   type Feature = String
   type Config = (List[Feature], List[Feature])

@@ -18,6 +18,7 @@ import org.objectweb.asm.{MethodVisitor, Opcodes}
   *
   * 1) the method has a single return statement as last instruction and no throw instruction:
   * in this case, a void return can remain and all others return V. No restructuring is necessary.
+  * (for now we return One(null) for void methods)
   *
   * 2) In all other cases we need to unify multiple possible exit points by creating a special
   * last block. All throw and return instructions are translated to GOTO statements to
@@ -31,8 +32,8 @@ import org.objectweb.asm.{MethodVisitor, Opcodes}
   * the last instruction is a normal return statement for a V
   *
   * 2c) the method has one or more return statements and one or more throw instructions. In this
-  * case, the last block throws a VException if the $exceptionCond variable is satisfiable and
-  * uses a return statement otherwise.
+  * case, the last block returns a special implementation of V (VPartialException) if the
+  * $exceptionCond variable is satisfiable and return a normal V otherwise.
   *
   * TODO: if we can ensure that all return statements and all throw instructions occur in
   * nonvariational paths and that all throw instructions will only throw nonvariational
@@ -186,7 +187,7 @@ package instructions {
   /**
     * special variational instruction for the final return or exception in the method
     */
-  case class VInstrRETURN(returnVar: LocalVar, exceptionCondVar: LocalVar, hasReturn: Boolean, hasThrows: Boolean, isVoidReturn: Boolean) extends ReturnInstruction {
+  case class VInstrRETURN(returnVar: LocalVar, exceptionCondVar: LocalVar, hasReturn: Boolean, hasThrows: Boolean, isOriginallyVoidReturn: Boolean) extends ReturnInstruction {
     assert(hasReturn || hasThrows)
 
     override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
@@ -198,10 +199,13 @@ package instructions {
     override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
       if (hasThrows && !hasReturn) {
         // only return statement, no need to check whether we have an exception, though we could check to make sure
+
         //assert that exceptionCondVar.equivalentTo(method-ctx)
         loadCurrentCtx(mv, env, block)
         loadFExpr(mv, env, exceptionCondVar)
         mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "assertEquivalent", s"($fexprclasstype$fexprclasstype)V", false)
+
+        //actual throw
         throwVException(mv, env)
       } else if (hasReturn && !hasThrows) {
         //only return, no exception; no need for checking $exceptionCondVar
@@ -212,7 +216,7 @@ package instructions {
         callFExprIsSatisfiable(mv)
         val returnLabel = new Label()
         mv.visitJumpInsn(IFEQ, returnLabel) // jump to return instruction if not satisfiable (no conditional jumps here)
-        throwVException(mv, env)
+        returnVPartialException(mv, env)
         mv.visitLabel(returnLabel)
         returnResult(mv, env)
       }
@@ -221,7 +225,7 @@ package instructions {
     }
 
     def returnResult(mv: MethodVisitor, env: VMethodEnv): Unit =
-      if (isVoidReturn)
+      if (isOriginallyVoidReturn && env.method.isInit)
         mv.visitInsn(RETURN)
       else {
         loadV(mv, env, returnVar)
@@ -238,8 +242,19 @@ package instructions {
       mv.visitInsn(ATHROW)
     }
 
-    override def getVariables = if (hasThrows) Set(returnVar, exceptionCondVar)
-    else if (isVoidReturn) Set() else Set(returnVar)
+    def returnVPartialException(mv: MethodVisitor, env: VMethodEnv): Unit = {
+      // create VException($exceptionCondVar, $returnVar)
+      mv.visitTypeInsn(NEW, vpartialexceptionclassname)
+      mv.visitInsn(DUP)
+      loadFExpr(mv, env, exceptionCondVar)
+      loadV(mv, env, returnVar)
+      mv.visitMethodInsn(INVOKESPECIAL, vpartialexceptionclassname, "<init>", s"($fexprclasstype$vclasstype)V", false)
+      mv.visitInsn(ARETURN)
+    }
+
+    override def getVariables =
+      if (hasThrows) Set(returnVar, exceptionCondVar)
+      else if (isOriginallyVoidReturn) Set() else Set(returnVar)
 
     override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame =
       (s, Set())

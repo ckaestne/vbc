@@ -5,12 +5,16 @@ import de.fosd.typechef.featureexpr.FeatureExpr;
 import javax.annotation.Nonnull;
 
 /**
+ * A choice of exceptions in the entire context of the method call
+ * <p>
  * see https://github.com/ckaestne/vbc/wiki/Exceptions
  */
 public class VException extends RuntimeException {
 
     /**
      * condition under which this exception is relevant
+     * <p>
+     * (should be equivalent to the method's context)
      */
     @Nonnull
     private final FeatureExpr cond;
@@ -21,25 +25,22 @@ public class VException extends RuntimeException {
      * never null, but may be One(null) for all non-exception results
      */
     @Nonnull
-    private final V<?> result;
+    private final V<? extends Throwable> exceptions;
 
 
-    public VException(@Nonnull FeatureExpr cond, @Nonnull V<?> result) {
+    public VException(@Nonnull FeatureExpr cond, @Nonnull V<? extends Throwable> exceptions) {
         assert cond != null;
-        result.select(cond).foreach(e -> {
+        assert exceptions.getConfigSpace().equivalentTo(cond);
+        exceptions.foreach(e -> {
             assert e instanceof Throwable;
         });
 
         this.cond = cond;
-        this.result = result;
+        this.exceptions = exceptions;
     }
 
     public V<? extends Throwable> getExceptions() {
-        return (V<? extends Throwable>) this.result.select(cond);
-    }
-
-    public V<?> getResults() {
-        return this.result.reduce(cond.not());
+        return this.exceptions.select(cond);
     }
 
     public FeatureExpr getExceptionCondition() {
