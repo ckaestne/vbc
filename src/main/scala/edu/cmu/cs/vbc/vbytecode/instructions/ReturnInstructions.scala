@@ -17,8 +17,15 @@ case class InstrRETURNVoid() extends ReturnInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
     mv.visitInsn(RETURN)
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit =
-    mv.visitInsn(RETURN)
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.method.isInit)
+      mv.visitInsn(RETURN)
+    else {
+      mv.visitInsn(ACONST_NULL)
+      mv.visitInsn(ARETURN)
+    }
+
+  }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set())
 }
