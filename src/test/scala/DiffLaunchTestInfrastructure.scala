@@ -27,7 +27,8 @@ trait DiffLaunchTestInfrastructure {
         case InstrINVOKEVIRTUAL(owner, name, desc, _) => List(TraceInstr_S("INVK_VIRT: " + owner + ";" + name + ";" + desc), instr)
         case InstrGETFIELD(owner, name, desc) if (desc == "I" || desc == "Z") => List(instr, TraceInstr_GetField("GETFIELD: " + owner + ";" + name + ";" + desc, desc))
         case InstrRETURNVoid() => List(TraceInstr_S("RETURN"), instr)
-        case InstrRETURNVal(Opcodes.IRETURN) => List(TraceInstr_S("IRETURN"), instr)
+        case InstrRETURNVal(Opcodes.IRETURN) => List(TraceInstr_S("RETURN"), instr)
+        case _: VInstrRETURN => List(TraceInstr_S("RETURN"), instr)
         case instr => List(instr)
       }
       ).flatten, block.exceptionHandlers
