@@ -1665,9 +1665,23 @@ class MethodWriter extends MethodVisitor {
                 System.out.println("  \"" + label.toString() + "\" -> \"" + succ.successor.toString() + "\";");
                 succ = succ.next;
             }
+            if (label.frame.owner != label)
+                System.out.println("  \"" + label.toString() + "\" -> \"" + label.frame.owner.toString() + "\" [ color=\"gray\"];");
 
             label = label.successor;
         }
+        Handler handler = firstHandler;
+        while (handler != null) {
+            System.out.println("  \"" + handler.start.toString() + "\" -> \"" + handler.handler.toString() + "\" [ label = \"" + handler.desc + "\" color=\"red\" ];");
+
+            if (handler.handler.frame.owner != handler.handler)
+                System.out.println("  \"" + handler.handler.toString() + "\" -> \"" + handler.handler.frame.owner.toString() + "\" [ color=\"gray\"];");
+
+
+            handler = handler.next;
+        }
+
+        System.out.println("}");
     }
 
     @Override
