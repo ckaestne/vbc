@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode
 
-import edu.cmu.cs.vbc.analysis.{VBCAnalyzer, VBCFrame}
+import edu.cmu.cs.vbc.analysis.{REF_TYPE, VBCAnalyzer, VBCFrame}
 import edu.cmu.cs.vbc.utils.{LiftUtils, Statistics}
 import edu.cmu.cs.vbc.vbytecode.instructions._
 
@@ -154,7 +154,7 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   val analyzer = new VBCAnalyzer(this)
   val framesBefore: Array[VBCFrame] = analyzer.computeBeforeFrames
   val framesAfter: Array[VBCFrame] = analyzer.computeAfterFrames(framesBefore)
-  val expectingVars: Map[Block, List[Variable]] = blocks.map(computeExpectingVars(_)).toMap
+  val expectingVars: Map[Block, List[Variable]] = blocks.map(computeExpectingVars).toMap
 
   def getLeftVars(block: Block): List[Set[Variable]] = {
     val afterFrame = framesAfter(getInsnIdx(block.instr.last))
@@ -186,8 +186,10 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
 
   def computeExpectingVars(block: Block): (Block, List[Variable]) = {
     val beforeFrame = framesBefore(getInsnIdx(block.instr.head))
+    //ignore exceptions in handler blocks
+    val stack = beforeFrame.stack.filterNot(_._1 == REF_TYPE(true))
     val newVars: Seq[Variable] =
-      for (i <- 0 until beforeFrame.getStackSize)
+      for (i <- 0 until stack.size)
         yield freshLocalVar("$unbalancedstack_b" + getBlockIdx(block) + "_v" + i, LiftUtils.vclasstype, LocalVar.initOneNull)
     (block, newVars.toList)
   }
@@ -238,7 +240,7 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
     }
 
   //////////////////////////////////////////////////
-  // Statistics
+  // Statistics && debugging
   //////////////////////////////////////////////////
   Statistics.collectLiftingRatio(method.name, instructionTags.count(_ != 0), instructionTags.length)
 
@@ -261,5 +263,12 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
 
     result + "}"
   }
+
+  // invariants to check correct working of unbalanced stack
+  for (block <- blocks;
+       succ <- getSuccessors(block);
+       if getVBlock(block) != getVBlock(succ))
+    assert(getExpectingVars(succ).size == getLeftVars(block).size, s"unbalanced stack mismatch: leaving ${getLeftVars(block)} in block ${getBlockIdx(block)} but expecting ${getExpectingVars(succ)} in block ${getBlockIdx(succ)}")
+
 
 }

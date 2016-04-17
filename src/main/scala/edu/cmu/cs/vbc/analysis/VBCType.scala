@@ -29,9 +29,10 @@ case class V_TYPE() extends VBCType {
   override def toString: String = "V"
 }
 
-case class REF_TYPE() extends VBCType {
+case class REF_TYPE(isException: Boolean = false) extends VBCType {
   override def toString: String = "R"
 }
+
 
 /**
   * Represents reference that created by NEW instruction
