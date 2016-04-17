@@ -43,11 +43,11 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
     else
       clazz.toByteCode(cw, rewriter)
 
-    val cr2 = new ClassReader(cw.toByteArray)
-    cr2.accept(getCheckClassAdapter(getTraceClassVisitor(null)), 0)
     // for debugging
     if (toFileDebugging)
       toFile(name, cw)
+    val cr2 = new ClassReader(cw.toByteArray)
+    cr2.accept(getCheckClassAdapter(getTraceClassVisitor(null)), 0)
     //        debugWriteClass(getResourceAsStream(resource))
     defineClass(name, cw.toByteArray, 0, cw.toByteArray.length)
   }
