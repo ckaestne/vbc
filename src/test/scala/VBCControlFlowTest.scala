@@ -158,6 +158,7 @@ class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
 
 
   test("unbalanced - conditional for loop") {
+    //expected output: 5 or 10 timex -1 then 3, 2, 1, and 0 (just printing constants that were on the stack earlier and remained there through the loop)
     val local = new LocalVar("v", "I")
     method(
       Block(InstrLoadConfig("A"), InstrIFNE(2)),

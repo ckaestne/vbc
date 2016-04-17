@@ -294,8 +294,10 @@ case class CFG(blocks: List[Block]) {
     for (v <- initializeVars.distinct)
       v.vinitialize(mv, env, v)
 
-
-    blocks.foreach(_.toVByteCode(mv, env))
+    //serialize blocks, but keep the last vblock in one piece at the end (requires potential reordering of blocks
+    val lastVBlock = env.getLastVBlock()._2
+    blocks.filterNot(lastVBlock.contains).foreach(_.toVByteCode(mv, env))
+    blocks.filter(lastVBlock.contains).foreach(_.toVByteCode(mv, env))
   }
 }
 

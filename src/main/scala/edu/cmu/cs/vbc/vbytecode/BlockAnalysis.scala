@@ -181,5 +181,18 @@ trait VBlockAnalysis extends CFGAnalysis {
     vblocks.find(_._2 contains block).get._1
 
 
+  /**
+    * return the VBlock that contains the return instruction(s)
+    *
+    * there should only be a single vblock with return instructions, because all
+    * cases that allow multiple return/throw instructions require that all those
+    * instructions are in method's original context
+    */
+  def getLastVBlock(): (Block, Set[Block]) = {
+    val vblocksWithReturn = vblocks.filter(_._2.exists(_.instr.exists(_.isReturnInstr)))
+    assert(vblocksWithReturn.size == 1, "there should only be a single vblock with returns, but found " + vblocksWithReturn)
+    vblocksWithReturn.head
+  }
+
 
 }
