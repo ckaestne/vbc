@@ -110,6 +110,8 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
     blockTags(blockIdx)
   }
 
+  def getBlockForInstruction(i: Instruction): Block = blocks.find(_.instr contains i).get
+
   def isNonStaticL0(variable: Variable): Boolean = {
     if (method.isStatic) false
     else getVarIdxNoCtx(variable) == 0
@@ -186,7 +188,7 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
     val beforeFrame = framesBefore(getInsnIdx(block.instr.head))
     val newVars: Seq[Variable] =
       for (i <- 0 until beforeFrame.getStackSize)
-        yield freshLocalVar("$unbalancedstack" + i, LiftUtils.vclasstype, LocalVar.initOneNull)
+        yield freshLocalVar("$unbalancedstack_b" + getBlockIdx(block) + "_v" + i, LiftUtils.vclasstype, LocalVar.initOneNull)
     (block, newVars.toList)
   }
 
@@ -239,5 +241,25 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   // Statistics
   //////////////////////////////////////////////////
   Statistics.collectLiftingRatio(method.name, instructionTags.count(_ != 0), instructionTags.length)
+
+
+  /** graphviz graph for debugging purposes */
+  def toDot: String = {
+    def blockname(b: Block) = "\"B" + getBlockIdx(b) + "\""
+    def blocklabel(b: Block) = "B" + getBlockIdx(b) + ": v" + vblocks.indexWhere(_._1 == getVBlock(b)) + "\\n" +
+      getExpectingVars(b).mkString("stack_load ", ", ", "\\n") +
+      b.instr.mkString("\\n") + "\\n" +
+      getLeftVars(b).mkString("stack_store ", ", ", "\\n")
+
+    var result = "digraph G {\n"
+    for (b <- blocks)
+      result += s"  ${blockname(b)} [ shape=box label = " + "\"" + blocklabel(b) + "\"];\n"
+    for (b <- blocks;
+         succ <- getSuccessors(b))
+      result += s"  ${blockname(b)} -> ${blockname(succ)}" +
+        (if (isVariationalJump(b, succ)) "[ color=\"red\" ]" else "") + ";\n"
+
+    result + "}"
+  }
 
 }
