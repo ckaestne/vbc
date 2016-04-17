@@ -176,7 +176,16 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
       //- if backward jump, jump there (target condition is satisfiable, because this block's condition is and it's propagated)
       if (env.isVBlockBefore(targetBlock, env.getVBlock(this))) {
         mv.visitJumpInsn(GOTO, env.getBlockLabel(targetBlock))
+      } else if (Some(targetBlock) == env.getNextBlock(this)) {
+        //forward jump to next block is leaving this block; then the next block must be the next vblock. do nothing.
+      } else {
+        //found some forward jump, that's leaving this vblock
+        //jump to next vblock (not next block)
+        val nextVBlock = env.getNextVBlock(env.getVBlock(this))
+        if (nextVBlock.isDefined)
+          mv.visitJumpInsn(GOTO, env.getBlockLabel(nextVBlock.get))
       }
+
 
     } else {
       //if conditional jump (then the last instruction left us a featureexpr on the stack)
