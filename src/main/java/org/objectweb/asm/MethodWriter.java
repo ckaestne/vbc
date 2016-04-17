@@ -1403,6 +1403,8 @@ class MethodWriter extends MethodVisitor {
 
     @Override
     public void visitMaxs(final int maxStack, final int maxLocals) {
+        genDot();
+
         if (resize) {
             // replaces the temporary jump opcodes introduced by Label.resolve.
             if (ClassReader.RESIZE) {
@@ -1646,6 +1648,25 @@ class MethodWriter extends MethodVisitor {
         } else {
             this.maxStack = maxStack;
             this.maxLocals = maxLocals;
+        }
+    }
+
+    private void genDot() {
+        Label label = this.labels;
+        System.out.println("digraph G {");
+        while (label != null) {
+            String col = "";
+            if (label.frame.outputStackTop > 0)
+                col = "[ color=\"red\" ]";
+            System.out.println("  \"" + label.toString() + "\" " + col + ";");
+
+            Edge succ = label.successors;
+            while (succ != null) {
+                System.out.println("  \"" + label.toString() + "\" -> \"" + succ.successor.toString() + "\";");
+                succ = succ.next;
+            }
+
+            label = label.successor;
         }
     }
 

@@ -181,20 +181,5 @@ trait VBlockAnalysis extends CFGAnalysis {
     vblocks.find(_._2 contains block).get._1
 
 
-  /** graphviz graph for debugging purposes */
-  def toDot: String = {
-    def blockname(b: Block) = "\"B" + getBlockIdx(b) + "\""
-    def blocklabel(b: Block) = "B" + getBlockIdx(b) + ": v" + vblocks.indexWhere(_._1 == getVBlock(b)) + "\\n" + b.instr.mkString("\\n")
-
-    var result = "digraph G {\n"
-    for (b <- blocks)
-      result += s"  ${blockname(b)} [ shape=box label = " + "\"" + blocklabel(b) + "\"];\n"
-    for (b <- blocks;
-         succ <- getSuccessors(b))
-      result += s"  ${blockname(b)} -> ${blockname(succ)}" +
-        (if (isVariationalJump(b, succ)) "[ color=\"red\" ]" else "") + ";\n"
-
-    result + "}"
-  }
 
 }

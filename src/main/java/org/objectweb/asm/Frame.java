@@ -496,7 +496,7 @@ final class Frame {
      * When the stack map frames are completely computed, this field is the
      * actual number of types in {@link #outputStack}.
      */
-    private int outputStackTop;
+    int outputStackTop;
 
     /**
      * Number of types that are initialized in the basic block.
