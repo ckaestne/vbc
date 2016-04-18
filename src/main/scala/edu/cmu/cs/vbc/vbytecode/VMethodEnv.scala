@@ -202,7 +202,7 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   // EBlocks have variables that do not need to be initialized (we cannot jump there directly)
   val vblockVars: Map[VBlock, Variable] =
     (for ((vblock, vblockidx) <- (vblocks zip vblocks.indices).tail) yield
-      (vblock -> freshLocalVar((if (isExceptionHandlerVBlock(vblock)) "$exctx" else "$blockctx") + vblockidx, LiftUtils.fexprclasstype, if (isExceptionHandlerVBlock(vblock)) LocalVar.noInit else LocalVar.initFalse))).toMap +
+      (vblock -> freshLocalVar((if (isExceptionHandlerVBlock(vblock)) "$exctx" else "$blockctx") + vblockidx, LiftUtils.fexprclasstype, if (isExceptionHandlerVBlock(vblock)) LocalVar.initNull else LocalVar.initFalse))).toMap +
       (vblocks.head -> ctxParameter)
 
   def getVBlockVar(vblock: VBlock): Variable = vblockVars(vblock)
