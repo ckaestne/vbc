@@ -46,7 +46,7 @@ trait CFGAnalysis {
     (succ, pred)
   }
 
-  val exceptionHandlerBlocks: Set[Block] =
+  private val exceptionHandlerBlocks: Set[Block] =
     (for (block <- blocks; handler <- block.exceptionHandlers) yield handler.handlerBlockIdx).toSet.map(getBlock)
 
 
@@ -93,10 +93,12 @@ trait CFGAnalysis {
   def getNextNonExceptionBlock(block: Block): Option[Block] = {
     val next = getNextBlock(block)
     if (next.isDefined)
-      if (exceptionHandlerBlocks.contains(next.get)) getNextNonExceptionBlock(next.get)
+      if (isExceptionHandlerBlock(next.get)) getNextNonExceptionBlock(next.get)
       else next
     else None
   }
+
+  def isExceptionHandlerBlock(block: Block): Boolean = exceptionHandlerBlocks contains block
 
   def getLastBlock(): Block = blocks.last
 }
@@ -160,7 +162,7 @@ trait VBlockAnalysis extends CFGAnalysis {
   def getNextNonExceptionVBlock(vblock: VBlock): Option[VBlock] = {
     val next = getNextVBlock(vblock)
     if (next.isDefined)
-      if (isExceptionHandler(next.get)) getNextNonExceptionVBlock(next.get)
+      if (isExceptionHandlerVBlock(next.get)) getNextNonExceptionVBlock(next.get)
       else next
     else None
   }
@@ -226,7 +228,7 @@ trait VBlockAnalysis extends CFGAnalysis {
   def getVExceptionHandlers(vblock: VBlock): Set[(String, VBlock)] =
     vblock.allBlocks.flatMap(getExceptionHandlers).map(e => (e._1, getVBlock(e._2)))
 
-  def isExceptionHandler(vblock: VBlock): Boolean =
-    exceptionHandlerBlocks contains vblock.firstBlock
+  def isExceptionHandlerVBlock(vblock: VBlock): Boolean =
+    isExceptionHandlerBlock(vblock.firstBlock)
 
 }

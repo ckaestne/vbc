@@ -38,12 +38,12 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
     //possibly jump over VBlocks and load extra stack variables (if this is the VBlock head)
     //a unique first block always has a satisfiable condition and no stack variables
     //exception blocks have no stack variables and always a satisfiable condition
-    if (env.isVBlockHead(this) && !isUniqueFirstBlock(env) && !env.isExceptionHandler(env.getVBlock(this))) {
+    if (env.isVBlockHead(this) && !isUniqueFirstBlock(env) && !env.isExceptionHandlerVBlock(env.getVBlock(this))) {
       vblockSkipIfCtxContradition(mv, env)
       loadUnbalancedStackVariables(mv, env)
     }
     //initialize context variables for all exception handlers
-    if (env.isVBlockHead(this) && !env.isExceptionHandler(env.getVBlock(this)))
+    if (env.isVBlockHead(this) && !env.isExceptionHandlerVBlock(env.getVBlock(this)))
       initializeExceptionHandlerContexts(mv, env)
 
     //generate block code

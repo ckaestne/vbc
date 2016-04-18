@@ -202,7 +202,7 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   // EBlocks have variables that do not need to be initialized (we cannot jump there directly)
   val vblockVars: Map[VBlock, Variable] =
     (for ((vblock, vblockidx) <- (vblocks zip vblocks.indices).tail) yield
-      (vblock -> freshLocalVar((if (isExceptionHandler(vblock)) "$exctx" else "$blockctx") + vblockidx, LiftUtils.fexprclasstype, if (isExceptionHandler(vblock)) LocalVar.noInit else LocalVar.initFalse))).toMap +
+      (vblock -> freshLocalVar((if (isExceptionHandlerVBlock(vblock)) "$exctx" else "$blockctx") + vblockidx, LiftUtils.fexprclasstype, if (isExceptionHandlerVBlock(vblock)) LocalVar.noInit else LocalVar.initFalse))).toMap +
       (vblocks.head -> ctxParameter)
 
   def getVBlockVar(vblock: VBlock): Variable = vblockVars(vblock)
@@ -260,7 +260,7 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
 
     var result = "digraph G {\n"
     for (b <- blocks)
-      result += s"  ${blockname(b)} [ shape=box label = " + "\"" + blocklabel(b) + "\"];\n"
+      result += s"  ${blockname(b)} [ shape=box label = " + "\"" + blocklabel(b) + "\" " + (if (isExceptionHandlerBlock(b)) " color=\"blue\"" else "") + "];\n"
     for (b <- blocks;
          succ <- getSuccessors(b))
       result += s"  ${blockname(b)} -> ${blockname(succ)}" +
@@ -281,7 +281,7 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
 
   // exception blocks should start only with an exception on the stack
   for (block <- blocks;
-       if exceptionHandlerBlocks.contains(block)) {
+       if isExceptionHandlerBlock(block)) {
     assert(isVBlockHead(block))
     val beforeFrame = framesBefore(getInsnIdx(block.instr.head))
     assert(beforeFrame.stack.size == 1)
