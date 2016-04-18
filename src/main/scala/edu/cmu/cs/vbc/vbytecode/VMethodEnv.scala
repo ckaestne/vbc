@@ -199,16 +199,21 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   //////////////////////////////////////////////////
 
   // allocate a variable for each VBlock, except for the first, which can reuse the parameter slot
-  val vblockVars: Map[Block, Variable] =
-    (for (((block, _), vblockidx) <- (vblocks zip vblocks.indices).tail) yield
-      (block -> freshLocalVar("$blockctx" + vblockidx, LiftUtils.fexprclasstype, LocalVar.initFalse))).toMap +
-      (vblocks.head._1 -> ctxParameter)
+  // EBlocks have variables that do not need to be initialized (we cannot jump there directly)
+  val vblockVars: Map[VBlock, Variable] =
+    (for ((vblock, vblockidx) <- (vblocks zip vblocks.indices).tail) yield
+      (vblock -> freshLocalVar((if (isExceptionHandler(vblock)) "$exctx" else "$blockctx") + vblockidx, LiftUtils.fexprclasstype, if (isExceptionHandler(vblock)) LocalVar.noInit else LocalVar.initFalse))).toMap +
+      (vblocks.head -> ctxParameter)
+
+  def getVBlockVar(vblock: VBlock): Variable = vblockVars(vblock)
 
   def getVBlockVar(block: Block): Variable = {
-    val vblock = vblocks.filter(_._2 contains block)
+    val vblock = vblocks.filter(_.allBlocks contains block)
     assert(vblock.size == 1, "expected the block to be in exactly one VBlock")
-    vblockVars(vblock.head._1)
+    vblockVars(vblock.head)
   }
+
+  def getVBlockLabel(vblock: VBlock) = getBlockLabel(vblock.firstBlock)
 
   //  def getVBlockVarVIdx(block: Block): Int = getVarIdx(getBlockVar(block))
 
@@ -248,7 +253,7 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   /** graphviz graph for debugging purposes */
   def toDot: String = {
     def blockname(b: Block) = "\"B" + getBlockIdx(b) + "\""
-    def blocklabel(b: Block) = "B" + getBlockIdx(b) + ": v" + vblocks.indexWhere(_._1 == getVBlock(b)) + "\\n" +
+    def blocklabel(b: Block) = "B" + getBlockIdx(b) + ": v" + vblocks.indexOf(getVBlock(b)) + "\\n" +
       getExpectingVars(b).mkString("stack_load ", ", ", "\\n") +
       b.instr.mkString("\\n") + "\\n" +
       getLeftVars(b).mkString("stack_store ", ", ", "\\n")
@@ -259,7 +264,11 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
     for (b <- blocks;
          succ <- getSuccessors(b))
       result += s"  ${blockname(b)} -> ${blockname(succ)}" +
-        (if (isVariationalJump(b, succ)) "[ color=\"red\" ]" else "") + ";\n"
+        (if (isVariationalJump(b, succ)) "[ color=\"red\" label=\"V\" ]" else "") + ";\n"
+    for (b <- blocks;
+         (ex, handler) <- getExceptionHandlers(b))
+      result += s"  ${blockname(b)} -> ${blockname(handler)}" +
+        " [ color=\"blue\" label=\"" + ex + "\" ];\n"
 
     result + "}"
   }

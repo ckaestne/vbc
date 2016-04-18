@@ -35,10 +35,16 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
     mv.visitLabel(env.getBlockLabel(this))
 
 
-    if (env.isVBlockHead(this) && !isUniqueFirstBlock(env)) {
+    //possibly jump over VBlocks and load extra stack variables (if this is the VBlock head)
+    //a unique first block always has a satisfiable condition and no stack variables
+    //exception blocks have no stack variables and always a satisfiable condition
+    if (env.isVBlockHead(this) && !isUniqueFirstBlock(env) && !env.isExceptionHandler(env.getVBlock(this))) {
       vblockSkipIfCtxContradition(mv, env)
       loadUnbalancedStackVariables(mv, env)
     }
+    //initialize context variables for all exception handlers
+    if (env.isVBlockHead(this) && !env.isExceptionHandler(env.getVBlock(this)))
+      initializeExceptionHandlerContexts(mv, env)
 
     //generate block code
     instr.foreach(_.toVByteCode(mv, env, this))
@@ -61,7 +67,18 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
     * is not a jump target within the method, as it can only be executed
     * at the method beginning, where we assume satisfiable contexts
     */
-  private def isUniqueFirstBlock(env: VMethodEnv) = env.vblocks.head._1 == this && env.getPredecessors(this).isEmpty
+  private def isUniqueFirstBlock(env: VMethodEnv) = env.vblocks.head.firstBlock == this && env.getPredecessors(this).isEmpty
+
+
+  private def initializeExceptionHandlerContexts(mv: MethodVisitor, env: VMethodEnv): Unit = {
+    val vblock = env.getVBlock(this)
+    val thisVBlockConditionVar = env.getVBlockVar(this)
+    for ((ex, eblock) <- env.getVExceptionHandlers(vblock)) {
+      val exceptionCondVar = env.getVBlockVar(eblock)
+      loadFExpr(mv, env, thisVBlockConditionVar)
+      storeFExpr(mv, env, exceptionCondVar)
+    }
+  }
 
 
   private def storeUnbalancedStackVariables(mv: MethodVisitor, env: VMethodEnv): Unit = {
@@ -128,7 +145,7 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
     */
   private def vblockSkipIfCtxContradition(mv: MethodVisitor, env: VMethodEnv): Unit = {
     assert(env.isVBlockHead(this))
-    val nextVBlock = env.getNextVBlock(this)
+    val nextVBlock = env.getNextVBlock(env.getVBlock(this))
     val thisVBlockConditionVar = env.getVBlockVar(this)
 
     //load block condition (local variable for each block)
@@ -140,7 +157,7 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
       callFExprIsContradiction(mv)
       //            mv.visitInsn(DUP)
       //            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printI", "(I)V", false)
-      mv.visitJumpInsn(IFNE, env.getBlockLabel(nextVBlock.get))
+      mv.visitJumpInsn(IFNE, env.getVBlockLabel(nextVBlock.get))
     }
 
 
@@ -152,9 +169,7 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
   }
 
   private def variationalJump(mv: MethodVisitor, env: VMethodEnv): Unit = {
-    val jumpTargets = env.getJumpTargets(this)
-    assert(jumpTargets._1.forall(env.isVBlockHead) && jumpTargets._2.forall(env.isVBlockHead),
-      "all successors in a variational jump should be the heads of VBlocks")
+    val jumpTargets = env.getVJumpTargets(this)
     val thisVBlockConditionVar = env.getVBlockVar(this)
 
     if (jumpTargets._1.isEmpty) {
@@ -175,7 +190,7 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
 
       //- if backward jump, jump there (target condition is satisfiable, because this block's condition is and it's propagated)
       if (env.isVBlockBefore(targetBlock, env.getVBlock(this))) {
-        mv.visitJumpInsn(GOTO, env.getBlockLabel(targetBlock))
+        mv.visitJumpInsn(GOTO, env.getVBlockLabel(targetBlock))
       } else if (Some(targetBlock) == env.getNextBlock(this)) {
         //forward jump to next block is leaving this block; then the next block must be the next vblock. do nothing.
       } else {
@@ -183,7 +198,7 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
         //jump to next vblock (not next block)
         val nextVBlock = env.getNextVBlock(env.getVBlock(this))
         if (nextVBlock.isDefined)
-          mv.visitJumpInsn(GOTO, env.getBlockLabel(nextVBlock.get))
+          mv.visitJumpInsn(GOTO, env.getVBlockLabel(nextVBlock.get))
       }
 
 
@@ -223,7 +238,7 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
       if (needToJumpBack) {
         //value remembered with DUP up there to avoid loading it again
         callFExprIsSatisfiable(mv)
-        mv.visitJumpInsn(IFNE, env.getBlockLabel(thenBlock))
+        mv.visitJumpInsn(IFNE, env.getVBlockLabel(thenBlock))
       }
     }
   }
@@ -304,7 +319,7 @@ case class CFG(blocks: List[Block]) {
       v.vinitialize(mv, env, v)
 
     //serialize blocks, but keep the last vblock in one piece at the end (requires potential reordering of blocks
-    val lastVBlock = env.getLastVBlock()._2
+    val lastVBlock = env.getLastVBlock().allBlocks
     blocks.filterNot(lastVBlock.contains).foreach(_.toVByteCode(mv, env))
     blocks.filter(lastVBlock.contains).foreach(_.toVByteCode(mv, env))
   }
