@@ -1403,7 +1403,7 @@ class MethodWriter extends MethodVisitor {
 
     @Override
     public void visitMaxs(final int maxStack, final int maxLocals) {
-        genDot();
+//        genDot();
 
         if (resize) {
             // replaces the temporary jump opcodes introduced by Label.resolve.
