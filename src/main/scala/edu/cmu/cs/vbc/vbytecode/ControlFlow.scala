@@ -145,7 +145,7 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
     */
   private def vblockSkipIfCtxContradition(mv: MethodVisitor, env: VMethodEnv): Unit = {
     assert(env.isVBlockHead(this))
-    val nextVBlock = env.getNextVBlock(env.getVBlock(this))
+    val nextVBlock = env.getNextNonExceptionVBlock(env.getVBlock(this))
     val thisVBlockConditionVar = env.getVBlockVar(this)
 
     //load block condition (local variable for each block)
@@ -195,8 +195,8 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
         //forward jump to next block is leaving this block; then the next block must be the next vblock. do nothing.
       } else {
         //found some forward jump, that's leaving this vblock
-        //jump to next vblock (not next block)
-        val nextVBlock = env.getNextVBlock(env.getVBlock(this))
+        //jump to next vblock (not next block) that's not an exception handler
+        val nextVBlock = env.getNextNonExceptionVBlock(env.getVBlock(this))
         if (nextVBlock.isDefined)
           mv.visitJumpInsn(GOTO, env.getVBlockLabel(nextVBlock.get))
       }

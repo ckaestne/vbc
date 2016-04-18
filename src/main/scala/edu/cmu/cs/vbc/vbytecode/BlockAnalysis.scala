@@ -21,7 +21,6 @@ trait CFGAnalysis {
   private val (succ, pred) = {
     var succ: Map[Block, Set[Block]] = Map()
     var pred: Map[Block, Set[Block]] = blocks.map((_, Set[Block]())).toMap
-    var exceptionHandlerBlocks: Set[Block] = Set()
     for (block <- blocks) {
       val lastInstr = block.instr.last
       val blockIdx = getBlockIdx(block)
@@ -91,6 +90,13 @@ trait CFGAnalysis {
       Some(blocks(blockIdx + 1))
   }
 
+  def getNextNonExceptionBlock(block: Block): Option[Block] = {
+    val next = getNextBlock(block)
+    if (next.isDefined)
+      if (exceptionHandlerBlocks.contains(next.get)) getNextNonExceptionBlock(next.get)
+      else next
+    else None
+  }
 
   def getLastBlock(): Block = blocks.last
 }
@@ -150,6 +156,15 @@ trait VBlockAnalysis extends CFGAnalysis {
       None
     else b.tail.headOption
   }
+
+  def getNextNonExceptionVBlock(vblock: VBlock): Option[VBlock] = {
+    val next = getNextVBlock(vblock)
+    if (next.isDefined)
+      if (isExceptionHandler(next.get)) getNextNonExceptionVBlock(next.get)
+      else next
+    else None
+  }
+
 
   /**
     * is the given block the start of a VBlock?

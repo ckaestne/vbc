@@ -279,5 +279,13 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
        if getVBlock(block) != getVBlock(succ))
     assert(getExpectingVars(succ).size == getLeftVars(block).size, s"unbalanced stack mismatch: leaving ${getLeftVars(block)} in block ${getBlockIdx(block)} but expecting ${getExpectingVars(succ)} in block ${getBlockIdx(succ)}")
 
+  // exception blocks should start only with an exception on the stack
+  for (block <- blocks;
+       if exceptionHandlerBlocks.contains(block)) {
+    assert(isVBlockHead(block))
+    val beforeFrame = framesBefore(getInsnIdx(block.instr.head))
+    assert(beforeFrame.stack.size == 1)
+    assert(beforeFrame.stack.head._1 == REF_TYPE(true))
+  }
 
 }
