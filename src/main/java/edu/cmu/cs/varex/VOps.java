@@ -1,13 +1,14 @@
 package edu.cmu.cs.varex;
 
 import de.fosd.typechef.featureexpr.FeatureExpr;
+import edu.cmu.cs.vbc.model.lang.VInteger;
 
 /**
  * Created by ckaestne on 1/16/2016.
  */
 public class VOps {
 
-    public static V<? extends Integer> IADD(V<? extends Integer> a, V<? extends Integer> b) {
+    public static V<? extends VInteger> IADD(V<? extends VInteger> a, V<? extends VInteger> b) {
         return a.flatMap(aa -> {
             if (aa == null)
                 return V.one(null);
@@ -16,17 +17,17 @@ public class VOps {
                     if (bb == null)
                         return null;
                     else
-                        return aa + bb;
+                        return new VInteger(aa.actual + bb.actual);
                 });
         });
     }
 
-    public static V<? extends Integer> IINC(V<? extends Integer> a, int increment) {
+    public static V<? extends VInteger> IINC(V<? extends VInteger> a, int increment) {
         return a.map(aa -> {
             if (aa == null)
                 return null;
             else {
-                return aa + increment;
+                return new VInteger(aa.actual + increment);
             }
         });
     }
@@ -37,12 +38,12 @@ public class VOps {
      * @param a
      * @return
      */
-    public static FeatureExpr whenEQ(V<? extends Integer> a) {
+    public static FeatureExpr whenEQ(V<? extends VInteger> a) {
         return a.when(v -> {
             if (v == null)
                 return false;
             else
-                return v == 0;
+                return v.actual == 0;
         });
     }
 
@@ -52,43 +53,43 @@ public class VOps {
      * @param a
      * @return
      */
-    public static FeatureExpr whenNE(V<? extends Integer> a) {
+    public static FeatureExpr whenNE(V<? extends VInteger> a) {
         return a.when(v -> {
             if (v == null)
                 return false;
             else
-                return v != 0;
+                return v.actual != 0;
         });
     }
 
-    public static FeatureExpr whenGT(V<? extends Integer> a) {
-        return a.when(v -> v > 0);
+    public static FeatureExpr whenGT(V<? extends VInteger> a) {
+        return a.when(v -> v.actual > 0);
     }
 
-    public static FeatureExpr whenGE(V<? extends Integer> a) {
+    public static FeatureExpr whenGE(V<? extends VInteger> a) {
         return a.when(v -> {
             if (v == null)
                 return false;
             else
-                return v >= 0;
+                return v.actual >= 0;
         });
     }
 
-    public static FeatureExpr whenLT(V<? extends Integer> a) {
+    public static FeatureExpr whenLT(V<? extends VInteger> a) {
         return a.when(v -> {
             if (v == null)
                 return false;
             else
-                return v < 0;
+                return v.actual < 0;
         });
     }
 
-    public static FeatureExpr whenLE(V<? extends Integer> a) {
+    public static FeatureExpr whenLE(V<? extends VInteger> a) {
         return a.when(v -> {
             if (v == null)
                 return false;
             else
-                return v <= 0;
+                return v.actual <= 0;
         });
     }
 
@@ -96,32 +97,32 @@ public class VOps {
         return a.when(v -> v != null);
     }
 
-    public static FeatureExpr whenIEQ(V<? extends Integer> a, V<? extends Integer> b) {
-        V<? extends Integer> sub = ISUB(a, b);
+    public static FeatureExpr whenIEQ(V<? extends VInteger> a, V<? extends VInteger> b) {
+        V<? extends VInteger> sub = ISUB(a, b);
         return whenEQ(sub);
     }
 
-    public static FeatureExpr whenIGE(V<? extends Integer> a, V<? extends Integer> b) {
-        V<? extends Integer> sub = ISUB(a, b);
+    public static FeatureExpr whenIGE(V<? extends VInteger> a, V<? extends VInteger> b) {
+        V<? extends VInteger> sub = ISUB(a, b);
         return whenGE(sub);
     }
 
-    public static FeatureExpr whenILT(V<? extends Integer> a, V<? extends Integer> b) {
-        V<? extends Integer> sub = ISUB(a, b);
+    public static FeatureExpr whenILT(V<? extends VInteger> a, V<? extends VInteger> b) {
+        V<? extends VInteger> sub = ISUB(a, b);
         return whenLT(sub);
     }
 
-    public static FeatureExpr whenILE(V<? extends Integer> a, V<? extends Integer> b) {
-        V<? extends Integer> sub = ISUB(a, b);
+    public static FeatureExpr whenILE(V<? extends VInteger> a, V<? extends VInteger> b) {
+        V<? extends VInteger> sub = ISUB(a, b);
         return whenLE(sub);
     }
 
-    public static FeatureExpr whenINE(V<? extends Integer> a, V<? extends Integer> b) {
-        V<? extends Integer> sub = ISUB(a, b);
+    public static FeatureExpr whenINE(V<? extends VInteger> a, V<? extends VInteger> b) {
+        V<? extends VInteger> sub = ISUB(a, b);
         return whenNE(sub);
     }
 
-    public static V<? extends Integer> ISUB(V<? extends Integer> a, V<? extends Integer> b) {
+    public static V<? extends VInteger> ISUB(V<? extends VInteger> a, V<? extends VInteger> b) {
         return a.flatMap(aa -> {
             if (aa == null)
                 return V.one(null);
@@ -130,12 +131,12 @@ public class VOps {
                     if (bb == null)
                         return null;
                     else
-                        return aa - bb;
+                        return new VInteger(aa.actual - bb.actual);
                 });
         });
     }
 
-    public static V<? extends Integer> IMUL(V<? extends Integer> a, V<? extends Integer> b) {
+    public static V<? extends VInteger> IMUL(V<? extends VInteger> a, V<? extends VInteger> b) {
         return a.flatMap(aa -> {
             if (aa == null)
                 return V.one(null);
@@ -144,20 +145,20 @@ public class VOps {
                     if (bb == null)
                         return null;
                     else
-                        return aa * bb;
+                        return new VInteger(aa.actual * bb.actual);
                 });
         });
     }
 
-    public static V<? extends Integer> IDIV(V<? extends Integer> a, V<? extends Integer> b) {
-        return a.flatMap(aa -> b.map(bb -> aa / bb));
+    public static V<? extends VInteger> IDIV(V<? extends VInteger> a, V<? extends VInteger> b) {
+        return a.flatMap(aa -> b.map(bb -> new VInteger(aa.actual / bb.actual)));
     }
 
-    public static V<? extends Integer> i2c(V<? extends Integer> a, FeatureExpr ctx) {
+    public static V<? extends VInteger> i2c(V<? extends VInteger> a, FeatureExpr ctx) {
         return a.smap((v -> {
-            int i = v;
+            int i = v.actual;
             char c = (char)i;
-            return (int) c;
+            return new VInteger((int)c);
         }), ctx);
     }
 

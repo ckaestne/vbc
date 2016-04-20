@@ -1,13 +1,14 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
+import edu.cmu.cs.vbc.OpcodePrint
 import edu.cmu.cs.vbc.analysis.VBCFrame.{FrameEntry, UpdatedFrame}
 import edu.cmu.cs.vbc.analysis._
 import edu.cmu.cs.vbc.model.LiftCall._
 import edu.cmu.cs.vbc.utils.LiftUtils._
-import edu.cmu.cs.vbc.utils.LiftingFilter
+import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftingFilter}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
-import org.objectweb.asm.{ClassVisitor, Handle, MethodVisitor, Type}
+import org.objectweb.asm.{MethodVisitor, Type}
 
 /**
   * @author chupanw
@@ -15,94 +16,34 @@ import org.objectweb.asm.{ClassVisitor, Handle, MethodVisitor, Type}
 
 trait MethodInstruction extends Instruction {
 
-  def invokeDynamic(owner: String, name: String, desc: String, itf: Boolean,
-                    mv: MethodVisitor, env: VMethodEnv, block: Block,
-                    isSpecial: Boolean): Unit = {
-    val FEType = "Lde/fosd/typechef/featureexpr/FeatureExpr;"
-    val VType = "Ledu/cmu/cs/varex/V;"
-    val invokeName = "apply"
-    val flatMapDesc = s"(Ljava/util/function/BiFunction;${FEType})$VType"
-    val flatMapOwner = "edu/cmu/cs/varex/V"
-    val flatMapName = "sflatMap"
-    val lamdaFactoryOwner = "java/lang/invoke/LambdaMetafactory"
-    val lamdaFactoryMethod = "metafactory"
-    val lamdaFactoryDesc = "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;"
+  def invokeDynamic(owner: String, name: String, desc: String, itf: Boolean, mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    val nArgs = Type.getArgumentTypes(desc).length
+    val hasVArgs = nArgs > 0
+    val (nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc)
+    val objType = Type.getObjectType(nOwner).toString
+    val argTypes = "(" + vclasstype * nArgs + ")"
 
-    val n = env.clazz.lambdaMethods.size
-    def getLambdaFunName = "lambda$" + env.method.name.replace('<', '$').replace('>', '$') + "$" + n
-    def getLambdaFunDesc = "(" + VType * Type.getArgumentTypes(desc).size + FEType + Type.getObjectType(owner) + ")" + VType
-    def isReturnVoid = Type.getReturnType(desc) == Type.VOID_TYPE
-    def getInvokeType = {
-      val nArg = Type.getArgumentTypes(desc).size
-      "(" + VType * nArg + ")Ljava/util/function/BiFunction;"
+    val isReturnVoid = Type.getReturnType(desc) == Type.VOID_TYPE
+    val retType = if (isReturnVoid) "V" else vclasstype
+    val vCall = if (isReturnVoid) "sforeach" else "sflatMap"
+
+    val invokeType: Int = this match {
+      case i: InstrINVOKEVIRTUAL => INVOKEVIRTUAL
+      case i: InstrINVOKESPECIAL => INVOKESPECIAL
+      case i: InstrINVOKEINTERFACE => INVOKEINTERFACE
+      case _ => throw new UnsupportedOperationException("Unsupported invoke type")
     }
 
-    mv.visitInvokeDynamicInsn(
-      invokeName, // Method to invoke
-      getInvokeType, // Descriptor for call site
-      new Handle(H_INVOKESTATIC, lamdaFactoryOwner, lamdaFactoryMethod, lamdaFactoryDesc), // Default LambdaFactory
-      // Arguments:
-      Type.getType("(Ljava/lang/Object;Ljava/lang/Object;)" + "Ljava/lang/Object;"),
-      new Handle(H_INVOKESTATIC, env.clazz.name, getLambdaFunName, getLambdaFunDesc),
-      Type.getType("(" + FEType + Type.getObjectType(owner) + ")" + VType)
-    )
-    loadCurrentCtx(mv, env, block)
-    mv.visitMethodInsn(INVOKEINTERFACE, flatMapOwner, flatMapName, flatMapDesc, true)
-    if (isReturnVoid) mv.visitInsn(POP)
-
-    val lambda = (cv: ClassVisitor) => {
-      val mv: MethodVisitor = cv.visitMethod(
-        ACC_PRIVATE | ACC_STATIC | ACC_SYNTHETIC,
-        getLambdaFunName,
-        getLambdaFunDesc,
-        getLambdaFunDesc,
-        Array[String]() // TODO: handle exception list
-      )
-      mv.visitCode()
-      val nArg = Type.getArgumentTypes(desc).size
-      mv.visitVarInsn(ALOAD, nArg + 1) // load obj
-      for (i <- 0 until nArg) mv.visitVarInsn(ALOAD, i) // load arguments
-      val hasVArgument = if (nArg > 0) true else false
-      val (loadCtx, nOwner, nName, nDesc) = liftCall(hasVArgument, owner, name, desc, false)
-      if (loadCtx)
-        mv.visitVarInsn(ALOAD, nArg) // load ctx
-      this match {
-        case _: InstrINVOKESPECIAL => mv.visitMethodInsn(INVOKESPECIAL, nOwner, nName, nDesc, itf)
-        case _: InstrINVOKEINTERFACE => mv.visitMethodInsn(INVOKEINTERFACE, nOwner, nName, nDesc, itf)
-        case _ => mv.visitMethodInsn(INVOKEVIRTUAL, nOwner, nName, nDesc, itf)
+    InvokeDynamicUtils.invoke(vCall, mv, env, block, OpcodePrint.print(invokeType) + "$" + name, s"$objType$argTypes$retType") {
+      (mv: MethodVisitor) => {
+        mv.visitVarInsn(ALOAD, nArgs + 1) // objref
+        0 until nArgs foreach { (i) => mv.visitVarInsn(ALOAD, i) } // arguments
+        mv.visitVarInsn(ALOAD, nArgs) // ctx
+        mv.visitMethodInsn(invokeType, nOwner, nName, nDesc, itf)
+        if (!LiftingFilter.shouldLiftMethod(owner, name, desc) && !hasVArgs) callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, nArgs))
+        if (isReturnVoid) mv.visitInsn(RETURN) else mv.visitInsn(ARETURN)
       }
-      if (isReturnVoid) {
-        // in general, we should use foreach instead of flatMap for function calls with void return
-        // types. But as this will change as soon as we have exceptions, for now, we return just
-        // One(null)
-        mv.visitInsn(ACONST_NULL) // this is because flatMap requires some return values
-        callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, nArg))
-        mv.visitInsn(ARETURN)
-      } else {
-//        // if we are not calling lifted method, we will get a non-V as return value and thus we need
-//        // to wrap it into a V so that our invariant could hold
-//        if (!loadCtx) {
-//          // since we are calling java lang methods, return value might be primitive type (e.g. Integer.intValue())
-//          val tSort = Type.getReturnType(desc).getSort
-//          if (tSort != Type.OBJECT) {
-//            tSort match {
-//              case Type.INT => mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
-//              case Type.CHAR => mv.visitMethodInsn(INVOKESTATIC, "java/lang/Character", "valueOf", "(C)Ljava/lang/Character;", false)
-//              case Type.BOOLEAN => mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false)
-//              case _ => throw new UnsupportedOperationException("Unsupported primitive type: " + tSort)
-//            }
-//          }
-//          // TODO: avoid this ad-hoc checking
-//          if (owner != "java/util.LinkedList" && name != "removeFirst")
-//            callVCreateOne(mv, (m) => pushConstantTRUE(m))
-//        }
-        mv.visitInsn(ARETURN)
-      }
-      mv.visitMaxs(nArg + 2, nArg + 2)
-      mv.visitEnd()
     }
-
-    env.clazz.lambdaMethods += (getLambdaFunName -> lambda)
   }
 
   override def doBacktrack(env: VMethodEnv): Unit = env.setTag(this, env.TAG_NEED_V)
@@ -174,8 +115,8 @@ trait MethodInstruction extends Instruction {
     }
 
     // For exception handling, method invocation implies the end of a block
-//    val backtrack = backtraceNonVStackElements(frame)
-//    (frame, backtrack)
+    //    val backtrack = backtraceNonVStackElements(frame)
+    //    (frame, backtrack)
     (frame, Set())
   }
 
@@ -215,15 +156,13 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
     */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
-      invokeDynamic(owner, name, desc, itf, mv, env, block, isSpecial = true)
+      invokeDynamic(owner, name, desc, itf, mv, env, block)
     }
     else {
       val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
-      val (loadCtx, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, isStatic = false)
-      if (loadCtx) {
-        loadCurrentCtx(mv, env, block)
-      }
+      val (nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc)
 
+      loadCurrentCtx(mv, env, block)
       mv.visitMethodInsn(INVOKESPECIAL, nOwner, nName, nDesc, itf)
 
       if (env.getTag(this, env.TAG_WRAP_DUPLICATE)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
@@ -276,15 +215,13 @@ case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Bo
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
 
     if (env.shouldLiftInstr(this)) {
-      invokeDynamic(owner, name, desc, itf, mv, env, block, isSpecial = false)
+      invokeDynamic(owner, name, desc, itf, mv, env, block)
     }
     else {
       val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
-      val (loadCtx, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, isStatic = false)
-      if (loadCtx) {
-        loadCurrentCtx(mv, env, block)
-      }
+      val (nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc)
 
+      loadCurrentCtx(mv, env, block)
       mv.visitMethodInsn(INVOKEVIRTUAL, nOwner, nName, nDesc, itf)
 
       if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
@@ -311,11 +248,9 @@ case class InstrINVOKESTATIC(owner: String, name: String, desc: String, itf: Boo
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
-    val (loadCtx, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, isStatic = true)
-    if (loadCtx) {
-      loadCurrentCtx(mv, env, block)
-    }
+    val (nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc)
 
+    loadCurrentCtx(mv, env, block)
     mv.visitMethodInsn(INVOKESTATIC, nOwner, nName, nDesc, itf)
 
     if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
@@ -337,15 +272,13 @@ case class InstrINVOKEINTERFACE(owner: String, name: String, desc: String, itf: 
     */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
-      invokeDynamic(owner, name, desc, itf, mv, env, block, isSpecial = false)
+      invokeDynamic(owner, name, desc, itf, mv, env, block)
     }
     else {
       val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
-      val (loadCtx, nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc, isStatic = false)
-      if (loadCtx) {
-        loadCurrentCtx(mv, env, block)
-      }
+      val (nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc)
 
+      loadCurrentCtx(mv, env, block)
       mv.visitMethodInsn(INVOKEINTERFACE, nOwner, nName, nDesc, itf)
 
       if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))

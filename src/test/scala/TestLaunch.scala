@@ -29,7 +29,7 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
   }
 
   test("bankaccount") {
-    checkCrash(classOf[edu.cmu.cs.vbc.prog.bankaccount.Main])
+    testMain(classOf[edu.cmu.cs.vbc.prog.bankaccount.Main])
   }
 
   test("static fields") {
@@ -41,7 +41,7 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
   }
 
   test("bankaccout2") {
-    checkCrash(classOf[edu.cmu.cs.vbc.prog.bankaccount2.Main])
+    testMain(classOf[edu.cmu.cs.vbc.prog.bankaccount2.Main])
   }
 
   test("conditional field assignment") {

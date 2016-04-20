@@ -14,10 +14,10 @@ import org.objectweb.asm._
   */
 trait ArrayInstructions extends Instruction {
   def createVArray(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    InvokeDynamicUtils.invoke("smap", mv, env, block, "anewarray", s"Ljava/lang/Integer;()[$vclasstype") {
+    InvokeDynamicUtils.invoke("smap", mv, env, block, "anewarray", s"$vIntType()[$vclasstype") {
       (visitor: MethodVisitor) => {
         visitor.visitVarInsn(ALOAD, 1)
-        visitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false) // JVM specification requires an int
+        visitor.visitMethodInsn(INVOKEVIRTUAL, vInt, "intValue", "()I", false) // JVM specification requires an int
         visitor.visitTypeInsn(ANEWARRAY, "edu/cmu/cs/varex/V")
         visitor.visitInsn(ARETURN)
       }
@@ -25,11 +25,11 @@ trait ArrayInstructions extends Instruction {
   }
 
   def storeOperation(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    InvokeDynamicUtils.invoke("sforeach", mv, env, block, "aastore", s"[$vclasstype(Ljava/lang/Integer;$vclasstype)V", nExplodeArgs = 1) {
+    InvokeDynamicUtils.invoke("sforeach", mv, env, block, "aastore", s"[$vclasstype($vIntType$vclasstype)V", nExplodeArgs = 1) {
       (visitor: MethodVisitor) => {
         visitor.visitVarInsn(ALOAD, 1) //array ref
         visitor.visitVarInsn(ALOAD, 3) //index
-        visitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false)
+        visitor.visitMethodInsn(INVOKEVIRTUAL, vInt, "intValue", "()I", false)
         visitor.visitVarInsn(ALOAD, 0) //new value
         visitor.visitInsn(AASTORE)
         visitor.visitInsn(RETURN)
@@ -38,11 +38,11 @@ trait ArrayInstructions extends Instruction {
   }
 
   def loadOperation(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    InvokeDynamicUtils.invoke("sflatMap", mv, env, block, "aaload", s"[$vclasstype(Ljava/lang/Integer;)$vclasstype", nExplodeArgs = 1) {
+    InvokeDynamicUtils.invoke("sflatMap", mv, env, block, "aaload", s"[$vclasstype($vIntType)$vclasstype", nExplodeArgs = 1) {
       (visitor: MethodVisitor) => {
         visitor.visitVarInsn(ALOAD, 0) // array ref
         visitor.visitVarInsn(ALOAD, 2) // index
-        visitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false)
+        visitor.visitMethodInsn(INVOKEVIRTUAL, vInt, "intValue", "()I", false)
         visitor.visitInsn(AALOAD)
         visitor.visitInsn(ARETURN)
       }

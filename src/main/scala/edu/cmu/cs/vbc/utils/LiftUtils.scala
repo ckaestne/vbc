@@ -53,7 +53,7 @@ object LiftUtils {
   }
 
   def liftMethodSignature(desc: String, sig: Option[String]): Option[String] = {
-    val sigReader = new SignatureReader(sig.getOrElse(desc))
+    val sigReader = new SignatureReader(sig.getOrElse(replaceLibCls(desc)))
     val sw = new LiftSignatureWriter()
     sigReader.accept(sw)
     val newSig = sw.getSignature()
@@ -138,7 +138,7 @@ object LiftUtils {
 
   def primitiveToObjectType(t: String): String = t match {
     case "Z" => "Ljava/lang/Boolean;"
-    case "C" => "Ljava/lang/Char;"
+    case "C" => "Ljava/lang/Character;"
     case "B" => "Ljava/lang/Byte;"
     case "S" => "Ljava/lang/Short;"
     case "I" => "Ljava/lang/Integer;"
@@ -148,7 +148,6 @@ object LiftUtils {
     case "O" => "Ljava/lang/Object;"
     case _ => t
   }
-
 
   /**
     * Helper function to get the method descriptor
@@ -162,4 +161,52 @@ object LiftUtils {
   def replaceArgsWithObject(desc: String): String =
     "(" + "Ljava/lang/Object;" * Type.getArgumentTypes(desc).length + ")" + Type.getReturnType(desc)
 
+  //////////////////////////////////////////////////
+  // Model class related utils
+  //////////////////////////////////////////////////
+  def liftClsType(desc: String): String = {
+    val t: Type = Type.getType(desc)
+    t.getSort match {
+      case Type.OBJECT =>
+        desc match {
+          case s if s.startsWith("Ljava") =>
+            val lastSlashIdx = desc.lastIndexOf('/')
+            val javaIdx = desc.indexOf("java")
+            assert(lastSlashIdx != -1 && javaIdx != -1)
+            desc.substring(0, javaIdx) + "edu/cmu/cs/vbc/model/" + desc.substring(javaIdx + 5, lastSlashIdx) + "/V" + desc.substring(lastSlashIdx + 1)
+          case _ => desc
+        }
+      case _ => desc
+    }
+  }
+
+  def liftCls(owner: String): String = {
+    owner match {
+      case s if s.startsWith("java") =>
+        val lastSlash = owner.lastIndexOf('/')
+        val vClsName = "/V" + owner.substring(lastSlash + 1)
+        "edu/cmu/cs/vbc/model/" + owner.substring(5, lastSlash) + vClsName
+      case _ => owner
+    }
+  }
+
+  def vCls(cls: String) = s"edu/cmu/cs/vbc/model/$cls"
+
+  def vClsType(cls: String) = s"Ledu/cmu/cs/vbc/model/$cls;"
+
+  val vInt = "edu/cmu/cs/vbc/model/lang/VInteger"
+  val vIntType = "Ledu/cmu/cs/vbc/model/lang/VInteger;"
+  val vString = "edu/cmu/cs/vbc/model/lang/VString"
+  val vStringType = "Ledu/cmu/cs/vbc/model/lang/VString;"
+
+  /**
+    * Scan and replace java library classes with model classes
+    */
+  private def replaceLibCls(desc: String): String = {
+    val liftType = (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else liftClsType(t.toString)
+    val mtype = Type.getMethodType(desc)
+    "(" +
+      mtype.getArgumentTypes.map(liftType).mkString("", "", ")") +
+      liftType(mtype.getReturnType)
+  }
 }

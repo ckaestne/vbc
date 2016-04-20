@@ -5,9 +5,7 @@ package edu.cmu.cs.vbc.prog.bankaccount2;
  */
 public class Main {
     public static void main(String[] args) {
-        if (FM.valid()) {
-            new Main();
-        }
+        new Main();
     }
 
     private Application a;

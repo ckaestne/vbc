@@ -1,19 +1,11 @@
 package edu.cmu.cs.vbc.model
 
+import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.utils.LiftingFilter
 import org.objectweb.asm.Type
 
-
 /**
   * Handle method calls, especially methods that we don't lift (e.g. java/lang/)
-  *
-  * There are two cases to consider:
-  *
-  * 1. passing a V as argument actually makes sense (e.g. StringBuilder.append)
-  * 2. passing a V as argument is not necessary (e.g. Integer.valueOf)
-  *
-  * For both cases, we use model classes. But 2 is easier because we only need to call (flat)map
-  * on each V arguments.
   *
   * @author chupanw
   */
@@ -22,59 +14,73 @@ object LiftCall {
   /**
     * Takes the method signature and returns the lifted method signature
     *
-    * @param hasVArguments We assume that either all arguments are Vs, or all arguments are not Vs.
     * @param owner
     * @param name
     * @param desc
-    * @return (
-    *         Boolean -> whether or not we are using model classes,
-    *         Boolean -> whether or not we are invoking a lifted method (first boolean return value implies this one),
-    *         String -> lifted owner name,
+    * @return String -> lifted owner name,
     *         String -> lifted method name,
     *         String -> lifted method description
-    *         )
+    *
     */
-  def liftCall(hasVArguments: Boolean, owner: String, name: String, desc: String, isStatic: Boolean): (Boolean, String, String, String) = {
+  def liftCall(hasVArgs: Boolean, owner: String, name: String, desc: String): (String, String, String) = {
     val shouldLiftMethod = LiftingFilter.shouldLiftMethod(owner, name, desc)
     if (shouldLiftMethod) {
       /*
-       * true -> means that we need to load ctx parameter to stack and no need to wrap return value into V
+       * VarexC is going to lift this method
+       *
+       * owner: no need to change because VarexC is going to lift this method
+       * name: same as above
+       * desc: needs to be replaced with V, because this is the way VarexC lifts method signature
        */
-      (true, owner, name, liftDesc(owner, desc, isStatic))
+      (owner, name, replaceWithVs(desc))
     }
-    else if (hasVArguments) {
+    else if (hasVArgs) {
       /*
-       * Now all arguments are Vs. There should be a model class for this
+       * Calling V methods from model classes, all arguments should be V, and type information will be
+       * encoded into the method name to avoid type erasure.
+       *
+       * owner needs to be lifted in case we are calling methods from jre
+       * encode the type information into the method name
+       * desc should be replaced by V type
        */
-      (true, getModelOwner(owner), name, liftDesc(owner, desc, isStatic))
+      (liftCls(owner), encodeTypeInName(name, desc), replaceWithVs(desc))
     }
     else {
       /*
-       * No V arguments at all, we are happy
+       * Now we are calling library methods that we could not lift, so we are going to use model classes
+       *
+       * owner should be updated with model classes
+       * name should be the same
+       * desc should be updated with model classes
        */
-      (false, getModelOwner(owner), name, desc)
+      (liftCls(owner), name, replaceLibCls(desc))
     }
   }
 
   /**
-    * Change owner to our own model class name
-    *
-    * @param owner For now assume we are only lifting classes in java/xxx
-    * @return model class name
+    * Scan and replace java library classes with model classes
     */
-  def getModelOwner(owner: String) = {
-    assert(owner.startsWith("java/"))
-    val lastSlash = owner.lastIndexOf('/')
-    val vClsName = "/V" + owner.substring(lastSlash + 1)
-    "edu/cmu/cs/vbc/model/" + owner.substring(5, lastSlash) + vClsName
+  private def replaceLibCls(desc: String): String = {
+    val liftType = (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else liftClsType(t.toString)
+    val mtype = Type.getMethodType(desc)
+    "(" +
+      (mtype.getArgumentTypes.map(liftType) :+ "Lde/fosd/typechef/featureexpr/FeatureExpr;").mkString("", "", ")") +
+      liftType(Type.getType(primitiveToObjectType(mtype.getReturnType.toString)))
   }
 
-  private def liftDesc(owner: String, desc: String, isStatic: Boolean): String = {
+  /**
+    * Replace all the none-void parameter types with V types, also add FE to the end of parameter list
+    */
+  private def replaceWithVs(desc: String): String = {
     val liftType = (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else "Ledu/cmu/cs/varex/V;"
     val mtype = Type.getMethodType(desc)
     "(" +
       (mtype.getArgumentTypes.map(liftType) :+ "Lde/fosd/typechef/featureexpr/FeatureExpr;").mkString("", "", ")") +
       liftType(mtype.getReturnType)
+  }
+
+  private def encodeTypeInName(name: String, desc: String): String = {
+    name + desc.replace('/', '_').replace('(', '$').replace(')', '$').replace(";", "")
   }
 
 }

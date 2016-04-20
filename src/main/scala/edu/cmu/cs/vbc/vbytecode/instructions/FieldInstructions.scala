@@ -26,23 +26,30 @@ case class InstrGETSTATIC(owner: String, name: String, desc: String) extends Fie
     mv.visitFieldInsn(GETSTATIC, owner, name, desc)
   }
 
+  /**
+    * Lifting means wrap it into a V
+    */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    val shouldLiftField = LiftingFilter.shouldLiftField(owner, name, desc)
     if (env.shouldLiftInstr(this)) {
-      if (LiftingFilter.shouldLiftField(owner, name, desc)) {
+      if (shouldLiftField) {
         // fields are lifted, the desc should be V
         mv.visitFieldInsn(GETSTATIC, owner, name, "Ledu/cmu/cs/varex/V;")
       }
       else {
         // fields are not lifted but we need a V, so we wrap it into a V
-        mv.visitFieldInsn(GETSTATIC, owner, name, desc)
+        mv.visitFieldInsn(GETSTATIC, liftCls(owner), name, liftClsType(desc))
         callVCreateOne(mv, (m) => loadCurrentCtx(mv, env, block))
       }
     }
     else {
-      mv.visitFieldInsn(GETSTATIC, owner, name, desc)
+      mv.visitFieldInsn(GETSTATIC, liftCls(owner), name, liftClsType(desc))
     }
   }
 
+  /**
+    * Lifting means wrap it into a V
+    */
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     if (LiftingFilter.shouldLiftField(owner, name, desc)) {
       // This field should be lifted (e.g. fields that are not from java.lang)

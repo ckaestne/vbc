@@ -41,7 +41,7 @@ class LiftSignatureWriter() extends SignatureWriter() {
     if (descriptor == 'V') {
       super.visitBaseType(descriptor)
     } else {
-      visitClassType(primitiveToObjectType("" + descriptor).drop(1).dropRight(1))
+      visitClassType(liftClsType(primitiveToObjectType("" + descriptor)).drop(1).dropRight(1))
       visitEnd()
     }
   }
@@ -63,6 +63,9 @@ class LiftSignatureWriter() extends SignatureWriter() {
     super.visitTypeArgument('=')
   }
 
+  override def visitInnerClassType(name: String): Unit = super.visitInnerClassType(liftCls(name))
+
+  override def visitClassType(name: String): Unit = super.visitClassType(liftCls(name))
 
   def getSignature(): String =
     (this.toString + ">;").replace("Ledu/cmu/cs/varex/V<V>;", "V")

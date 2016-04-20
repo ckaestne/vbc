@@ -2,7 +2,6 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{INT_TYPE, VBCFrame, VBCType, V_TYPE}
-import edu.cmu.cs.vbc.utils.LiftUtils
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
@@ -25,7 +24,7 @@ case class InstrICONST(v: Int) extends Instruction {
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
       pushConstant(mv, v)
-      mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
+      mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
     else {
@@ -52,16 +51,20 @@ case class InstrLDC(o: Object) extends Instruction {
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, blockA: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
       mv.visitLdcInsn(o)
-      //TODO: wrap into a V
-      if (!o.isInstanceOf[String]) {
-        if (o.isInstanceOf[Integer]) {
-          mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
-        }
+      o match {
+        case s: String => mv.visitMethodInsn(INVOKESTATIC, vString, "valueOf", s"(Ljava/lang/String;)$vStringType", false)
+        case i: Integer => mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+        case _ => throw new UnsupportedOperationException("Unsupported LDC type")
       }
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, blockA))
     }
     else {
       mv.visitLdcInsn(o)
+      o match {
+        case s: String => mv.visitMethodInsn(INVOKESTATIC, vString, "valueOf", s"(Ljava/lang/String;)$vStringType", false)
+        case i: Integer => mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+        case _ => throw new UnsupportedOperationException("Unsupported LDC type")
+      }
     }
   }
 

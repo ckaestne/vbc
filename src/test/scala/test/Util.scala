@@ -5,6 +5,7 @@ import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
 import edu.cmu.cs.varex.{V, VHelper}
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, V_TYPE}
+import edu.cmu.cs.vbc.model.lang.{VInteger, VString}
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
 import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, VMethodEnv}
@@ -31,8 +32,8 @@ object Config {
       throw new RuntimeException("Configuration value for `B` not set")
   }
 
-  val VA = V.choice(FeatureExprFactory.createDefinedExternal("A"), 1, 0)
-  val VB = V.choice(FeatureExprFactory.createDefinedExternal("B"), 1, 0)
+  val VA = V.choice(FeatureExprFactory.createDefinedExternal("A"), new VInteger(1), new VInteger(0))
+  val VB = V.choice(FeatureExprFactory.createDefinedExternal("B"), new VInteger(1), new VInteger(0))
 }
 
 object TestOutput {
@@ -45,19 +46,19 @@ object TestOutput {
     output ::= de.fosd.typechef.conditional.Opt(FeatureExprFactory.True, i.toString)
   }
 
-  def printVI(i: V[_ <: Int], ctx: FeatureExpr): Unit = {
+  def printVI(i: V[_ <: VInteger], ctx: FeatureExpr): Unit = {
     //        println(i)
     for ((c, v) <- VHelper.explode(ctx, i))
-      output ::= de.fosd.typechef.conditional.Opt(c, v.asInstanceOf[Int].toString)
+      output ::= de.fosd.typechef.conditional.Opt(c, v.toString)
   }
 
   def printStr(s: String): Unit = {
     output ::= de.fosd.typechef.conditional.Opt(FeatureExprFactory.True, s)
   }
 
-  def printVStr(vs: V[_ <: String], ctx: FeatureExpr): Unit = {
+  def printVStr(vs: V[_ <: VString], ctx: FeatureExpr): Unit = {
     for ((c, v) <- VHelper.explode(ctx, vs))
-      output ::= de.fosd.typechef.conditional.Opt(c, v.asInstanceOf[String])
+      output ::= de.fosd.typechef.conditional.Opt(c, v.toString)
   }
 
   def printFE(f: FeatureExpr): Unit = {
