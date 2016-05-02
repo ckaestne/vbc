@@ -30,6 +30,7 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
   }
 
 
+
   def toVByteCode(mv: MethodVisitor, env: VMethodEnv) = {
     vvalidate(env)
     mv.visitLabel(env.getBlockLabel(this))
@@ -45,6 +46,10 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
     //initialize context variables for all exception handlers
     if (env.isVBlockHead(this) && !env.isExceptionHandlerVBlock(env.getVBlock(this)))
       initializeExceptionHandlerContexts(mv, env)
+
+    if (env.isVBlockHead(this) && env.isExceptionHandlerVBlock(env.getVBlock(this)))
+      liftException(mv, env)
+
 
     //generate block code
     instr.foreach(_.toVByteCode(mv, env, this))
@@ -70,7 +75,17 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
   private def isUniqueFirstBlock(env: VMethodEnv) = env.vblocks.head.firstBlock == this && env.getPredecessors(this).isEmpty
 
 
+  /**
+    * at the beginning of a EBlock, we immediately lift the exception
+    *
+    * TODO some analysis could check whether the value is ever even read again
+    */
+  private def liftException(mv: MethodVisitor, env: VMethodEnv) = {
+    callVCreateOne(mv, (mv) => loadCurrentCtx(mv, env, this))
+  }
+
   private def initializeExceptionHandlerContexts(mv: MethodVisitor, env: VMethodEnv): Unit = {
+    //TODO EBlocks that are only reachable from a single VBlock do not need a separate variable but can be folded into the same VBlock
     val vblock = env.getVBlock(this)
     val thisVBlockConditionVar = env.getVBlockVar(this)
     for ((ex, eblock) <- env.getVExceptionHandlers(vblock)) {

@@ -203,7 +203,7 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   val vblockVars: Map[VBlock, Variable] =
     (for ((vblock, vblockidx) <- (vblocks zip vblocks.indices).tail) yield
       (vblock -> freshLocalVar((if (isExceptionHandlerVBlock(vblock)) "$exctx" else "$blockctx") + vblockidx, LiftUtils.fexprclasstype, if (isExceptionHandlerVBlock(vblock)) LocalVar.initNull else LocalVar.initFalse))).toMap +
-      (vblocks.head -> ctxParameter)
+      (vblocks.head -> ctxParameter) //TODO should not reuse ctxParameter if we want to access that value later on, e.g., in VInstrRETURN
 
   def getVBlockVar(vblock: VBlock): Variable = vblockVars(vblock)
 

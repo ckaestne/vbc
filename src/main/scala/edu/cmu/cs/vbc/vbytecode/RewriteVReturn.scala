@@ -211,7 +211,7 @@ package instructions {
         //only return, no exception; no need for checking $exceptionCondVar
         returnResult(mv, env)
       } else {
-        //both throw and return are possible. throw exception if $exceptionCondVar is satisfiable
+        //both throw and return are possible. return partial exception if $exceptionCondVar is satisfiable
         loadFExpr(mv, env, exceptionCondVar)
         callFExprIsSatisfiable(mv)
         val returnLabel = new Label()
