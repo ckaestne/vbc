@@ -4,6 +4,7 @@ import de.fosd.typechef.featureexpr.FeatureExprFactory
 import edu.cmu.cs.vbc.test.{InstrDBGIPrint, InstrLoadConfig}
 import edu.cmu.cs.vbc.vbytecode._
 import edu.cmu.cs.vbc.vbytecode.instructions._
+import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Opcodes.ACC_PUBLIC
 import org.scalatest.FunSuite
 
@@ -25,6 +26,9 @@ class VBCExceptionTest extends FunSuite with DiffMethodTestInfrastructure {
   private def methodI(name: String, desc: String, instrs: Instruction*) =
     new VBCMethodNode(0, name, desc, None, Nil, CFG(List(Block(instrs.toList: _*))))
 
+  def invokeVirt(m: VBCMethodNode) = InstrINVOKEVIRTUAL("Test", m.name, m.desc, false)
+
+  val thisvar = new Parameter(0, "this")
 
   def createException(classname: String, msg: String): List[Instruction] =
     InstrNEW(classname) :: InstrDUP() :: InstrLDC(msg) :: InstrINVOKESPECIAL(classname, "<init>", "(Ljava/lang/String;)V", false) :: Nil
@@ -153,6 +157,19 @@ class VBCExceptionTest extends FunSuite with DiffMethodTestInfrastructure {
       /*2*/ Block(InstrICONST(0), InstrISTORE(x)),
       /*3*/ Block(InstrICONST(5), InstrILOAD(x), InstrIDIV(), InstrDBGIPrint(), InstrRETURNVoid())
     ))
+  }
+
+  // returns a choice between 0 and an ArithmeticException depending on A
+  val m_partialException = method("partialException", "()I",
+    Block(InstrLoadConfig("A"), InstrIFEQ(2)),
+    Block(InstrICONST(0), InstrICONST(1), InstrIDIV(), InstrRETURNVal(Opcodes.IRETURN)),
+    Block(InstrICONST(0), InstrICONST(0), InstrIDIV(), InstrRETURNVal(Opcodes.IRETURN))
+  )
+
+  ignore("partially continue after partial exception from method call") {
+    runMethod(List(
+      Block(InstrALOAD(thisvar), invokeVirt(m_partialException), InstrDBGIPrint(), InstrRETURNVoid())
+    ), List(m_partialException))
   }
 
 

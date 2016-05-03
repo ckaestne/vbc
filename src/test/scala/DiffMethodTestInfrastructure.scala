@@ -131,7 +131,7 @@ trait DiffMethodTestInfrastructure {
     val clazz = new TestClass(m, extraMethods)
 
 
-    val configOptions: Set[String] = getConfigOptions(m)
+    val configOptions: Set[String] = getConfigOptions(m) ++ extraMethods.flatMap(getConfigOptions)
 
 
     //        val resource: String = "edu.cmu.cs.vbc.Tmp".replace('.', '/') + ".class"

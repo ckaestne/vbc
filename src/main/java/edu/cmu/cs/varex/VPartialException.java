@@ -51,57 +51,57 @@ public class VPartialException<T> implements V<Object> {
 
     @Override
     public Object getOne() {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("operation not supported on VPartialException");
     }
 
     @Override
     public <U> V<? extends U> map(@Nonnull Function<? super Object, ? extends U> fun) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("operation not supported on VPartialException");
     }
 
     @Override
     public <U> V<? extends U> map(@Nonnull BiFunction<FeatureExpr, ? super Object, ? extends U> fun) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("operation not supported on VPartialException");
     }
 
     @Override
     public <U> V<? extends U> flatMap(@Nonnull Function<? super Object, V<? extends U>> fun) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("operation not supported on VPartialException");
     }
 
     @Override
     public <U> V<? extends U> flatMap(@Nonnull BiFunction<FeatureExpr, ? super Object, V<? extends U>> fun) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("operation not supported on VPartialException");
     }
 
     @Override
     public void foreach(@Nonnull Consumer<Object> fun) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("operation not supported on VPartialException");
     }
 
     @Override
     public void foreach(@Nonnull BiConsumer<FeatureExpr, Object> fun) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("operation not supported on VPartialException");
     }
 
     @Override
     public FeatureExpr when(@Nonnull Predicate<Object> condition) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("operation not supported on VPartialException");
     }
 
     @Override
     public V<Object> select(@Nonnull FeatureExpr configSpace) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("operation not supported on VPartialException");
     }
 
     @Override
     public V<Object> reduce(@Nonnull FeatureExpr reducedConfigSpace) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("operation not supported on VPartialException");
     }
 
     @Override
     public FeatureExpr getConfigSpace() {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("operation not supported on VPartialException");
     }
 }
 
