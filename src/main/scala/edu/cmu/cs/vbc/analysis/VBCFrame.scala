@@ -36,7 +36,7 @@ case class VBCFrame(localVar: Map[Variable, FrameEntry], stack: List[FrameEntry]
     if (this == that)
       this
     else if (this.stack.size != that.stack.size) {
-      throw new RuntimeException("Incompatible stack heights")
+      throw new RuntimeException("Incompatible stack heights: " + this.stack + " vs " + that.stack)
     }
     else {
       VBCFrame(
