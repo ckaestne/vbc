@@ -190,6 +190,17 @@ class VBCMethodInvTest extends FunSuite with DiffMethodTestInfrastructure {
     ))
   }
 
+  ignore("partial exception on IDIV on variational values") {
+    //TODO does not yet support partial exceptions in IDIV library function
+    val x = new LocalVar("x", "I")
+    runMethod(List(
+      /*0*/ Block(InstrLoadConfig("A"), InstrIFEQ(2)),
+      /*1*/ Block(InstrICONST(1), InstrISTORE(x), InstrGOTO(3)),
+      /*2*/ Block(InstrICONST(0), InstrISTORE(x)),
+      /*3*/ Block(InstrICONST(5), InstrILOAD(x), InstrIDIV(), InstrDBGIPrint(), InstrRETURNVoid())
+    ))
+  }
+
 
 
 }
