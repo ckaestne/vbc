@@ -39,16 +39,15 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
     //possibly jump over VBlocks and load extra stack variables (if this is the VBlock head)
     //a unique first block always has a satisfiable condition and no stack variables
     //exception blocks have no stack variables and always a satisfiable condition
-    if (env.isVBlockHead(this) && !isUniqueFirstBlock(env) && !env.isExceptionHandlerVBlock(env.getVBlock(this))) {
+    if (env.isVBlockHead(this) && !isUniqueFirstBlock(env)) {
       vblockSkipIfCtxContradition(mv, env)
       loadUnbalancedStackVariables(mv, env)
     }
-    //initialize context variables for all exception handlers
-    if (env.isVBlockHead(this) && !env.isExceptionHandlerVBlock(env.getVBlock(this)))
-      initializeExceptionHandlerContexts(mv, env)
 
-    if (env.isVBlockHead(this) && env.isExceptionHandlerVBlock(env.getVBlock(this)))
+    if (env.isExceptionHandlerBlock(this)) {
+      assert(!env.isVBlockHead(this), "exception handler cannot be the start of an VBlock: " + this)
       liftException(mv, env)
+    }
 
 
     //generate block code
@@ -82,17 +81,6 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
     */
   private def liftException(mv: MethodVisitor, env: VMethodEnv) = {
     callVCreateOne(mv, (mv) => loadCurrentCtx(mv, env, this))
-  }
-
-  private def initializeExceptionHandlerContexts(mv: MethodVisitor, env: VMethodEnv): Unit = {
-    //TODO EBlocks that are only reachable from a single VBlock do not need a separate variable but can be folded into the same VBlock
-    val vblock = env.getVBlock(this)
-    val thisVBlockConditionVar = env.getVBlockVar(this)
-    for ((ex, eblock) <- env.getVExceptionHandlers(vblock)) {
-      val exceptionCondVar = env.getVBlockVar(eblock)
-      loadFExpr(mv, env, thisVBlockConditionVar)
-      storeFExpr(mv, env, exceptionCondVar)
-    }
   }
 
 
@@ -160,7 +148,7 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
     */
   private def vblockSkipIfCtxContradition(mv: MethodVisitor, env: VMethodEnv): Unit = {
     assert(env.isVBlockHead(this))
-    val nextVBlock = env.getNextNonExceptionVBlock(env.getVBlock(this))
+    val nextVBlock = env.getNextVBlock(env.getVBlock(this))
     val thisVBlockConditionVar = env.getVBlockVar(this)
 
     //load block condition (local variable for each block)
@@ -211,7 +199,7 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
       } else {
         //found some forward jump, that's leaving this vblock
         //jump to next vblock (not next block) that's not an exception handler
-        val nextVBlock = env.getNextNonExceptionVBlock(env.getVBlock(this))
+        val nextVBlock = env.getNextVBlock(env.getVBlock(this))
         if (nextVBlock.isDefined)
           mv.visitJumpInsn(GOTO, env.getVBlockLabel(nextVBlock.get))
       }
@@ -286,6 +274,14 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
     * this may produce larger than necessary tables when two consecutive blocks
     * have the same or overlapping handlers, but it's easier to write and shouldn't
     * really affect runtime performance in practice
+    *
+    * atomic exceptions that can be thrown by instructions in the block
+    * are handled as follows:
+    * if there is already an exception catching them, great, nothing to do.
+    * otherwise, add a handler that just uses the ATHROW mechanism and then
+    * jumps back to the first block (after updating this blocks condition).
+    * we handling the priorization by adding the atomic exception handlers to
+    * the end.
     */
   private def writeExceptions(mv: MethodVisitor, env: MethodEnv) = {
     if (exceptionHandlers.nonEmpty) {
@@ -301,6 +297,20 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
           an.accept(mv.visitTryCatchAnnotation(an.typeRef, an.typePath, an.desc, true))
       }
     }
+  }
+
+
+  /**
+    * returns the next block (unless this is the last block), and in case of a conditional
+    * jump, the conditional next block
+    */
+  def getJumpTargets(nextBlockIdx: Option[Int]): (Option[Int], Option[Int]) = {
+    val lastInstr = instr.last
+    val jumpInstr = lastInstr.getJumpInstr
+    if (jumpInstr.isDefined) {
+      val succ = jumpInstr.get.getSuccessor()
+      (if (succ._1.isDefined) succ._1 else nextBlockIdx, succ._2)
+    } else (nextBlockIdx, None)
   }
 
 
@@ -342,5 +352,5 @@ case class CFG(blocks: List[Block]) {
 
 case class VBCHandler(exceptionType: String,
                       handlerBlockIdx: Int,
-                      visibleTypeAnnotations: List[TypeAnnotationNode],
-                      invisibleTypeAnnotations: List[TypeAnnotationNode])
+                      visibleTypeAnnotations: List[TypeAnnotationNode] = Nil,
+                      invisibleTypeAnnotations: List[TypeAnnotationNode] = Nil)

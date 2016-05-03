@@ -2,7 +2,6 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{INT_TYPE, VBCFrame, V_TYPE}
-import edu.cmu.cs.vbc.utils.LiftUtils
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
@@ -90,4 +89,6 @@ case class InstrIDIV() extends BinOpInstruction {
     } else
       mv.visitInsn(IDIV)
   }
+
+  override def atomicExceptions: Set[String] = Set("java/lang/ArithmeticException")
 }

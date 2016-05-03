@@ -187,7 +187,11 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   def computeExpectingVars(block: Block): (Block, List[Variable]) = {
     val beforeFrame = framesBefore(getInsnIdx(block.instr.head))
     //ignore exceptions in handler blocks
-    val stack = beforeFrame.stack.filterNot(_._1 == REF_TYPE(true))
+    val stack =
+      if (isExceptionHandlerBlock(block))
+        beforeFrame.stack.filterNot(_._1 == REF_TYPE(true))
+      else
+        beforeFrame.stack
     val newVars: Seq[Variable] =
       for (i <- 0 until stack.size)
         yield freshLocalVar("$unbalancedstack_b" + getBlockIdx(block) + "_v" + i, LiftUtils.vclasstype, LocalVar.initOneNull)
@@ -202,7 +206,7 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   // EBlocks have variables that do not need to be initialized (we cannot jump there directly)
   val vblockVars: Map[VBlock, Variable] =
     (for ((vblock, vblockidx) <- (vblocks zip vblocks.indices).tail) yield
-      (vblock -> freshLocalVar((if (isExceptionHandlerVBlock(vblock)) "$exctx" else "$blockctx") + vblockidx, LiftUtils.fexprclasstype, if (isExceptionHandlerVBlock(vblock)) LocalVar.initNull else LocalVar.initFalse))).toMap +
+      (vblock -> freshLocalVar("$blockctx" + vblockidx, LiftUtils.fexprclasstype, LocalVar.initFalse))).toMap +
       (vblocks.head -> ctxParameter) //TODO should not reuse ctxParameter if we want to access that value later on, e.g., in VInstrRETURN
 
   def getVBlockVar(vblock: VBlock): Variable = vblockVars(vblock)
@@ -282,7 +286,6 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   // exception blocks should start only with an exception on the stack
   for (block <- blocks;
        if isExceptionHandlerBlock(block)) {
-    assert(isVBlockHead(block))
     val beforeFrame = framesBefore(getInsnIdx(block.instr.head))
     assert(beforeFrame.stack.size == 1)
     assert(beforeFrame.stack.head._1 == REF_TYPE(true))

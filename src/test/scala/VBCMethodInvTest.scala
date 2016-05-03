@@ -128,4 +128,56 @@ class VBCMethodInvTest extends FunSuite with DiffMethodTestInfrastructure {
       Block(InstrICONST(4), InstrDBGIPrint(), InstrRETURNVoid())
     ))
   }
+
+  test("terminate with exception from atomic instruction") {
+    //TODO why is this all lifted, there is no inner variability? -- shouldn't tagV handle this? @chupanw
+    runMethod(List(
+      Block(InstrICONST(0), InstrICONST(0), InstrIDIV(), InstrDBGIPrint(), InstrRETURNVoid())
+    ))
+  }
+
+  test("conditionally terminate with exception from atomic instruction") {
+    runMethod(List(
+      Block(InstrLoadConfig("A"), InstrIFEQ(2)),
+      Block(InstrICONST(0), InstrICONST(0), InstrIDIV(), InstrDBGIPrint(), InstrRETURNVoid()),
+      Block(InstrICONST(0), InstrICONST(1), InstrIDIV(), InstrDBGIPrint(), InstrRETURNVoid())
+    ))
+  }
+
+  test("conditionally terminate with exception from atomic instruction 2") {
+    runMethod(List(
+      Block(InstrLoadConfig("A"), InstrIFEQ(2)),
+      Block(InstrICONST(0), InstrICONST(1), InstrIDIV(), InstrDBGIPrint(), InstrRETURNVoid()),
+      Block(InstrICONST(0), InstrICONST(0), InstrIDIV(), InstrDBGIPrint(), InstrRETURNVoid())
+    ))
+  }
+
+  test("caught atomic exception") {
+    runMethod(List(
+      Block(InstrLoadConfig("A"), InstrIFEQ(2)),
+      Block(InstrICONST(1), InstrDBGIPrint(), InstrICONST(0), InstrICONST(1), InstrIDIV(), InstrDBGIPrint(), InstrRETURNVoid()),
+      Block(Seq(InstrICONST(2), InstrDBGIPrint(), InstrICONST(0), InstrICONST(0), InstrIDIV(), InstrDBGIPrint(), InstrRETURNVoid()), Seq(VBCHandler("java/lang/ArithmeticException", 3))),
+      Block(InstrPOP(), InstrICONST(-1), InstrDBGIPrint(), InstrRETURNVoid())
+    ))
+  }
+
+  test("two blocks with same exception handler") {
+    runMethod(List(
+      Block(InstrLoadConfig("A"), InstrIFEQ(2)),
+      Block(Seq(InstrICONST(1), InstrDBGIPrint(), InstrICONST(0), InstrICONST(0), InstrIDIV(), InstrDBGIPrint(), InstrRETURNVoid()), Seq(VBCHandler("java/lang/ArithmeticException", 3))),
+      Block(Seq(InstrICONST(2), InstrDBGIPrint(), InstrICONST(0), InstrICONST(0), InstrIDIV(), InstrDBGIPrint(), InstrRETURNVoid()), Seq(VBCHandler("java/lang/ArithmeticException", 3))),
+      Block(InstrPOP(), InstrICONST(-1), InstrDBGIPrint(), InstrRETURNVoid())
+    ))
+  }
+
+  test("jump directly to exception handler") {
+    runMethod(List(
+      Block(InstrLoadConfig("A"), InstrIFEQ(2)),
+      Block(InstrICONST(1) +: InstrDBGIPrint() +: createException("java/lang/Exception", "foo") :+ InstrGOTO(3): _*),
+      Block(Seq(InstrICONST(2), InstrDBGIPrint(), InstrICONST(0), InstrICONST(0), InstrIDIV(), InstrDBGIPrint(), InstrRETURNVoid()), Seq(VBCHandler("java/lang/ArithmeticException", 3))),
+      Block(InstrPOP(), InstrICONST(-1), InstrDBGIPrint(), InstrRETURNVoid())
+    ))
+  }
+
+
 }

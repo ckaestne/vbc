@@ -54,6 +54,14 @@ trait Instruction {
   def isINVOKESPECIAL_OBJECT_INIT: Boolean = false
 
   /**
+    * returns the set of all exceptions this instruction may throw (not considering exceptions
+    * from method invocations, but only from this instruction directly). Since the instruction
+    * is executed in a context and throws the exception in the entire context, there shouldn't
+    * be any VExceptions
+    */
+  def atomicExceptions: Set[String] = Set()
+
+  /**
     * instructions should not be compared for structural equality but for object identity.
     * overwriting case class defaults to original Java defaults
     */

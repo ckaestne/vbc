@@ -43,6 +43,11 @@ trait CFGAnalysis {
       for (n <- next)
         pred += (n -> (pred.getOrElse(n, Set()) + block))
     }
+    for (block <- blocks; handler <- block.exceptionHandlers) {
+      val handlerBlock = getBlock(handler.handlerBlockIdx)
+      pred += (handlerBlock -> (pred.getOrElse(handlerBlock, Set()) + block))
+    }
+
     (succ, pred)
   }
 
@@ -59,6 +64,11 @@ trait CFGAnalysis {
     */
   def getSuccessors(block: Block): Set[Block] = succ(block)
 
+  def getSuccessorsAndExceptionHandlers(block: Block): Set[Block] = getSuccessors(block) ++ getExceptionHandlers(block).map(_._2)
+
+  /**
+    * predecessor blocks, including exception edges
+    */
   def getPredecessors(block: Block): Set[Block] = pred(block)
 
   def getExceptionHandlers(block: Block): Seq[(String, Block)] =
@@ -124,7 +134,7 @@ trait VBlockAnalysis extends CFGAnalysis {
     //initially every block has its own id
     var vblockId: Map[Block, Int] = (blocks zip blocks.indices).toMap
     //which block is the first for each VBlock group?
-    var vblockEntry: Map[Int, Block] = (blocks.indices zip blocks).toMap
+    var vblockHead: Map[Int, Block] = (blocks.indices zip blocks).toMap
 
     var queue: Queue[Block] = Queue()
     queue = queue.enqueue(blocks)
@@ -133,6 +143,7 @@ trait VBlockAnalysis extends CFGAnalysis {
     //use the same id as parent
     while (queue.nonEmpty) {
       val (block, q) = queue.dequeue
+      queue = q
 
       val pred = getPredecessors(block)
       val variationalEdgeFromPred = pred.exists(isVariationalJump(_, block))
@@ -141,13 +152,12 @@ trait VBlockAnalysis extends CFGAnalysis {
         val thisVBlockIdx = vblockId(block)
         if (predVBlockIdxs.size == 1 && predVBlockIdxs.head != thisVBlockIdx) {
           vblockId += (block -> predVBlockIdxs.head)
-          queue = queue.enqueue(getSuccessors(block))
+          queue = queue.enqueue(getSuccessorsAndExceptionHandlers(block))
         }
       }
-      queue = q
     }
     for ((vblockId, blocks) <- vblockId.groupBy(_._2).toList.sortBy(_._1))
-      yield VBlock(vblockEntry(vblockId), blocks.keys.toSet)
+      yield VBlock(vblockHead(vblockId), blocks.keys.toSet)
   }
 
 
@@ -158,15 +168,6 @@ trait VBlockAnalysis extends CFGAnalysis {
       None
     else b.tail.headOption
   }
-
-  def getNextNonExceptionVBlock(vblock: VBlock): Option[VBlock] = {
-    val next = getNextVBlock(vblock)
-    if (next.isDefined)
-      if (isExceptionHandlerVBlock(next.get)) getNextNonExceptionVBlock(next.get)
-      else next
-    else None
-  }
-
 
   /**
     * is the given block the start of a VBlock?
@@ -228,7 +229,9 @@ trait VBlockAnalysis extends CFGAnalysis {
   def getVExceptionHandlers(vblock: VBlock): Set[(String, VBlock)] =
     vblock.allBlocks.flatMap(getExceptionHandlers).map(e => (e._1, getVBlock(e._2)))
 
-  def isExceptionHandlerVBlock(vblock: VBlock): Boolean =
-    isExceptionHandlerBlock(vblock.firstBlock)
+
+  //sanity checks
+  for (vblock <- vblocks)
+    assert(vblock.allBlocks contains vblock.firstBlock, "VBlock: firstblock not in allblocks " + vblock)
 
 }

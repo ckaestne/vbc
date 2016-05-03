@@ -73,21 +73,26 @@ public class PlainException {
     }
 
     private static void bar() {
-        int i = 0;
-        int j = 5;
         try {
-            System.out.println(i + j);
-        } finally {
-            System.out.println("finally1");
-        }
 
-        try {
-            int x = j / i;
-            System.out.println(x);
-        } finally {
-            System.out.println("finally2");
-        }
+            int i = 0;
+            int j = 5;
+            try {
+                System.out.println(i + j);
+            } finally {
+                System.out.println("finally1");
+            }
 
+            try {
+                int x = j / i;
+                System.out.println(x);
+            } finally {
+                System.out.println("finally2");
+            }
+
+        } catch (ArithmeticException e) {
+            System.out.println("exception");
+        }
     }
 
 }

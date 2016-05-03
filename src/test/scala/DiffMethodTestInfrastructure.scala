@@ -82,20 +82,22 @@ trait DiffMethodTestInfrastructure {
   }
 
   private def updateBlockIdx(updatedBlockIdx: Map[Int, Int], block: Block): Block =
-    block.copy(instr = block.instr.map({
-      case InstrIFEQ(idx) => InstrIFEQ(updatedBlockIdx(idx))
-      case InstrIFNE(idx) => InstrIFNE(updatedBlockIdx(idx))
-      case InstrIFGE(idx) => InstrIFGE(updatedBlockIdx(idx))
-      case InstrIFGT(idx) => InstrIFGT(updatedBlockIdx(idx))
-      case InstrIF_ICMPEQ(idx) => InstrIF_ICMPEQ(updatedBlockIdx(idx))
-      case InstrIF_ICMPGE(idx) => InstrIF_ICMPGE(updatedBlockIdx(idx))
-      case InstrIF_ICMPLT(idx) => InstrIF_ICMPLT(updatedBlockIdx(idx))
-      case InstrIF_ICMPNE(idx) => InstrIF_ICMPNE(updatedBlockIdx(idx))
-      case InstrGOTO(idx) => InstrGOTO(updatedBlockIdx(idx))
-      case x: InstrUnaryIF => assert(false, "unsupported if instruction"); x
-      case x: InstrBinaryIF => assert(false, "unsupported if instruction"); x
-      case x => x
-    }))
+    Block(
+      block.instr.map({
+        case InstrIFEQ(idx) => InstrIFEQ(updatedBlockIdx(idx))
+        case InstrIFNE(idx) => InstrIFNE(updatedBlockIdx(idx))
+        case InstrIFGE(idx) => InstrIFGE(updatedBlockIdx(idx))
+        case InstrIFGT(idx) => InstrIFGT(updatedBlockIdx(idx))
+        case InstrIF_ICMPEQ(idx) => InstrIF_ICMPEQ(updatedBlockIdx(idx))
+        case InstrIF_ICMPGE(idx) => InstrIF_ICMPGE(updatedBlockIdx(idx))
+        case InstrIF_ICMPLT(idx) => InstrIF_ICMPLT(updatedBlockIdx(idx))
+        case InstrIF_ICMPNE(idx) => InstrIF_ICMPNE(updatedBlockIdx(idx))
+        case InstrGOTO(idx) => InstrGOTO(updatedBlockIdx(idx))
+        case x: InstrUnaryIF => assert(false, "unsupported if instruction"); x
+        case x: InstrBinaryIF => assert(false, "unsupported if instruction"); x
+        case x => x
+      }),
+      block.exceptionHandlers.map(x => x.copy(handlerBlockIdx = updatedBlockIdx(x.handlerBlockIdx))))
 
 
   def loadTestClass(clazz: TestClass): Class[_] = {
