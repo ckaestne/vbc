@@ -179,5 +179,17 @@ class VBCMethodInvTest extends FunSuite with DiffMethodTestInfrastructure {
     ))
   }
 
+  test("caught atomic exception in one branch") {
+    runMethod(List(
+      Block(InstrLoadConfig("A"), InstrIFEQ(3)),
+      Block(InstrLoadConfig("B"), InstrIFEQ(4)),
+      Block(InstrICONST(1), InstrDBGIPrint(), InstrICONST(0), InstrICONST(1), InstrIDIV(), InstrDBGIPrint(), InstrRETURNVoid()),
+      Block(Seq(InstrICONST(2), InstrDBGIPrint(), InstrICONST(0), InstrICONST(0), InstrIDIV(), InstrDBGIPrint(), InstrRETURNVoid()), Seq(VBCHandler("java/lang/ArithmeticException", 5))),
+      Block(InstrICONST(2), InstrDBGIPrint(), InstrICONST(0), InstrICONST(0), InstrIDIV(), InstrDBGIPrint(), InstrRETURNVoid()),
+      Block(InstrPOP(), InstrICONST(-1), InstrDBGIPrint(), InstrRETURNVoid())
+    ))
+  }
+
+
 
 }
