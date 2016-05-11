@@ -9,7 +9,7 @@ import edu.cmu.cs.vbc.model.lang.{VInteger, VString}
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
 import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, VMethodEnv}
-import org.objectweb.asm.MethodVisitor
+import org.objectweb.asm.{MethodVisitor, Type}
 import org.objectweb.asm.Opcodes._
 
 import scala.collection.JavaConversions._
@@ -107,15 +107,28 @@ case class TraceInstr_ConfigInit() extends Instruction {
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    for (conditionalField <- env.clazz.fields
-         if conditionalField.hasConditionalAnnotation) {
-      mv.visitVarInsn(ALOAD, 0)
-      mv.visitLdcInsn(conditionalField.name)
-      mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TraceConfig", "getVConfig", "(Ljava/lang/String;)Ledu/cmu/cs/varex/V;", false)
-      if (conditionalField.isStatic)
-        mv.visitFieldInsn(PUTSTATIC, env.clazz.name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
-      else
-        mv.visitFieldInsn(PUTFIELD, env.clazz.name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
+    for (field <- env.clazz.fields if !field.isStatic) {
+      if (field.hasConditionalAnnotation()) {
+        mv.visitVarInsn(ALOAD, 0)
+        mv.visitLdcInsn(field.name)
+        mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TraceConfig", "getVConfig", "(Ljava/lang/String;)Ledu/cmu/cs/varex/V;", false)
+        if (field.isStatic)
+          mv.visitFieldInsn(PUTSTATIC, env.clazz.name, field.name, "Ledu/cmu/cs/varex/V;")
+        else
+          mv.visitFieldInsn(PUTFIELD, env.clazz.name, field.name, "Ledu/cmu/cs/varex/V;")
+      }
+      else {
+        // Init all UNCONDITIONAL fields to be One(null)
+        mv.visitVarInsn(ALOAD, 0)
+        Type.getType(field.desc).getSort match {
+          case Type.INT => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+          case Type.OBJECT => mv.visitInsn(ACONST_NULL)
+          case Type.BOOLEAN => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+          case _ => ???
+        }
+        callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+        mv.visitFieldInsn(PUTFIELD, env.clazz.name, field.name, vclasstype)
+      }
     }
   }
 
