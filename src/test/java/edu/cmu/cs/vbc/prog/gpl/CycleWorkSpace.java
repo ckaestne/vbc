@@ -8,11 +8,11 @@ public class CycleWorkSpace implements  WorkSpace {
 
     public int     counter;
 
-    public static final int WHITE = 0;
+    public static int WHITE = 0;
 
-    public static final int GRAY  = 1;
+    public static int GRAY  = 1;
 
-    public static final int BLACK = 2;
+    public static int BLACK = 2;
 
     public CycleWorkSpace() {
         AnyCycles = false;

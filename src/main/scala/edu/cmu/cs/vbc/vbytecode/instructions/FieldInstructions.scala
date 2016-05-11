@@ -34,7 +34,7 @@ case class InstrGETSTATIC(owner: String, name: String, desc: String) extends Fie
     if (env.shouldLiftInstr(this)) {
       if (shouldLiftField) {
         // fields are lifted, the desc should be V
-        mv.visitFieldInsn(GETSTATIC, owner, name, "Ledu/cmu/cs/varex/V;")
+        mv.visitFieldInsn(GETSTATIC, liftCls(owner), name, "Ledu/cmu/cs/varex/V;")
       }
       else {
         // fields are not lifted but we need a V, so we wrap it into a V

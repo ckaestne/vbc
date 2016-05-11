@@ -31,8 +31,9 @@ object LiftCall {
        * owner: no need to change because VarexC is going to lift this method
        * name: same as above
        * desc: needs to be replaced with V, because this is the way VarexC lifts method signature
+       * todo: could have type erasure problem
        */
-      (owner, name, replaceWithVs(desc))
+      (liftCls(owner), name, replaceWithVs(desc))
     }
     else if (hasVArgs) {
       /*
@@ -79,8 +80,11 @@ object LiftCall {
       liftType(mtype.getReturnType)
   }
 
-  private def encodeTypeInName(name: String, desc: String): String = {
-    name + desc.replace('/', '_').replace('(', '$').replace(')', '$').replace(";", "")
+  def encodeTypeInName(name: String, desc: String): String = {
+    name match {
+      case "<init>" => name
+      case _ => name + desc.replace('/', '_').replace('(', '$').replace(')', '$').replace(";", "").replace("[", "Array_")
+    }
   }
 
 }

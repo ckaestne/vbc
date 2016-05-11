@@ -378,7 +378,10 @@ class Loader {
       case MONITORENTER => UNKNOWN(MONITORENTER)
       case MONITOREXIT => UNKNOWN(MONITOREXIT)
       case MULTIANEWARRAY => UNKNOWN(MULTIANEWARRAY)
-      case IFNULL => UNKNOWN(IFNULL)
+      case IFNULL => {
+        val i = inst.asInstanceOf[JumpInsnNode]
+        InstrIFNULL(labelLookup(i.label))
+      }
       case IFNONNULL => {
         val i = inst.asInstanceOf[JumpInsnNode]
         InstrIFNONNULL(labelLookup(i.label))

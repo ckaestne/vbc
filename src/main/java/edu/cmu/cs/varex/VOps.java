@@ -1,6 +1,7 @@
 package edu.cmu.cs.varex;
 
 import de.fosd.typechef.featureexpr.FeatureExpr;
+import edu.cmu.cs.vbc.model.lang.VBoolean;
 import edu.cmu.cs.vbc.model.lang.VInteger;
 
 /**
@@ -17,7 +18,7 @@ public class VOps {
                     if (bb == null)
                         return null;
                     else
-                        return new VInteger(aa.actual + bb.actual);
+                        return new VInteger(aa.intValue() + bb.intValue());
                 });
         });
     }
@@ -27,7 +28,7 @@ public class VOps {
             if (aa == null)
                 return null;
             else {
-                return new VInteger(aa.actual + increment);
+                return new VInteger(aa.intValue() + increment);
             }
         });
     }
@@ -38,12 +39,21 @@ public class VOps {
      * @param a
      * @return
      */
-    public static FeatureExpr whenEQ(V<? extends VInteger> a) {
+    public static FeatureExpr whenEQ(V a) {
         return a.when(v -> {
             if (v == null)
                 return false;
-            else
-                return v.actual == 0;
+            else {
+                if (v instanceof VBoolean) {
+                    return ((VBoolean) v).actual == false;
+                }
+                else if (v instanceof VInteger) {
+                    return ((VInteger) v).intValue() == 0;
+                }
+                else {
+                    throw new RuntimeException("Unsupported type in whenEQ");
+                }
+            }
         });
     }
 
@@ -53,17 +63,25 @@ public class VOps {
      * @param a
      * @return
      */
-    public static FeatureExpr whenNE(V<? extends VInteger> a) {
+    public static FeatureExpr whenNE(V a) {
         return a.when(v -> {
             if (v == null)
                 return false;
-            else
-                return v.actual != 0;
+            else {
+                if (v instanceof VBoolean) {
+                    return ((VBoolean) v).actual == true;
+                } else if (v instanceof VInteger) {
+                    return ((VInteger) v).intValue() != 0;
+                }
+                else {
+                    throw new RuntimeException("Unsupported type in whenEQ");
+                }
+            }
         });
     }
 
     public static FeatureExpr whenGT(V<? extends VInteger> a) {
-        return a.when(v -> v.actual > 0);
+        return a.when(v -> v.intValue() > 0);
     }
 
     public static FeatureExpr whenGE(V<? extends VInteger> a) {
@@ -71,7 +89,7 @@ public class VOps {
             if (v == null)
                 return false;
             else
-                return v.actual >= 0;
+                return v.intValue() >= 0;
         });
     }
 
@@ -80,7 +98,7 @@ public class VOps {
             if (v == null)
                 return false;
             else
-                return v.actual < 0;
+                return v.intValue() < 0;
         });
     }
 
@@ -89,12 +107,16 @@ public class VOps {
             if (v == null)
                 return false;
             else
-                return v.actual <= 0;
+                return v.intValue() <= 0;
         });
     }
 
     public static FeatureExpr whenNONNULL(V<? extends Object> a) {
         return a.when(v -> v != null);
+    }
+
+    public static FeatureExpr whenNULL(V<? extends Object> a) {
+        return a.when(v -> v == null);
     }
 
     public static FeatureExpr whenIEQ(V<? extends VInteger> a, V<? extends VInteger> b) {
@@ -131,7 +153,7 @@ public class VOps {
                     if (bb == null)
                         return null;
                     else
-                        return new VInteger(aa.actual - bb.actual);
+                        return new VInteger(aa.intValue() - bb.intValue());
                 });
         });
     }
@@ -145,18 +167,18 @@ public class VOps {
                     if (bb == null)
                         return null;
                     else
-                        return new VInteger(aa.actual * bb.actual);
+                        return new VInteger(aa.intValue() * bb.intValue());
                 });
         });
     }
 
     public static V<? extends VInteger> IDIV(V<? extends VInteger> a, V<? extends VInteger> b) {
-        return a.flatMap(aa -> b.map(bb -> new VInteger(aa.actual / bb.actual)));
+        return a.flatMap(aa -> b.map(bb -> new VInteger(aa.intValue() / bb.intValue())));
     }
 
     public static V<? extends VInteger> i2c(V<? extends VInteger> a, FeatureExpr ctx) {
         return a.smap((v -> {
-            int i = v.actual;
+            int i = v.intValue();
             char c = (char)i;
             return new VInteger((int)c);
         }), ctx);

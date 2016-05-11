@@ -624,15 +624,15 @@ public class Graph {
             Main.splPrint___( "<CYCLE___>: " + CycleCheck() );
             Graph.resumeProfile();
         }
-        if (Main.STRONGLYCONNECTED) {
-            System.out.println("RUN STRCON");
-            Graph gaux4 = StrongComponents();
-            Graph.stopProfile();
-            Main.splPrint___( "******************************************" );
-            Main.splPrint___( "<STRONGLYCONNECTED___ graph>");
-            gaux4.display();
-            Graph.resumeProfile();
-        }
+//        if (Main.STRONGLYCONNECTED) {
+//            System.out.println("RUN STRCON");
+//            Graph gaux4 = StrongComponents();
+//            Graph.stopProfile();
+//            Main.splPrint___( "******************************************" );
+//            Main.splPrint___( "<STRONGLYCONNECTED___ graph>");
+//            gaux4.display();
+//            Graph.resumeProfile();
+//        }
         if (Main.CONNECTED) {
             System.out.println("RUN CON");
             Graph.stopProfile();

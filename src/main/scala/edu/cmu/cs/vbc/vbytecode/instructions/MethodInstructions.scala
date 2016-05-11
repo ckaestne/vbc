@@ -3,6 +3,7 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 import edu.cmu.cs.vbc.OpcodePrint
 import edu.cmu.cs.vbc.analysis.VBCFrame.{FrameEntry, UpdatedFrame}
 import edu.cmu.cs.vbc.analysis._
+import edu.cmu.cs.vbc.model.LiftCall
 import edu.cmu.cs.vbc.model.LiftCall._
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftingFilter}
@@ -40,7 +41,8 @@ trait MethodInstruction extends Instruction {
         0 until nArgs foreach { (i) => mv.visitVarInsn(ALOAD, i) } // arguments
         mv.visitVarInsn(ALOAD, nArgs) // ctx
         mv.visitMethodInsn(invokeType, nOwner, nName, nDesc, itf)
-        if (!LiftingFilter.shouldLiftMethod(owner, name, desc) && !hasVArgs) callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, nArgs))
+        if (!LiftingFilter.shouldLiftMethod(owner, name, desc) && !hasVArgs && !isReturnVoid)
+          callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, nArgs))
         if (isReturnVoid) mv.visitInsn(RETURN) else mv.visitInsn(ARETURN)
       }
     }
@@ -85,7 +87,7 @@ trait MethodInstruction extends Instruction {
           val (ref2, prev2, frame2) = frame.pop()
           assert(ref2 == ref, "Two different uninitialized refs on stack")
           if (!shouldLift && hasVArgs) {
-            // we are going to use model class to do initialization
+            // we are going to use special model class to do initialization
             frame = frame2.push(V_TYPE(), prev2)
           }
           else {
@@ -163,7 +165,20 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
       val (nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc)
 
       loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(INVOKESPECIAL, nOwner, nName, nDesc, itf)
+      if (name == "<init>" && hasVArgs && !LiftingFilter.shouldLiftMethod(owner, name, desc)) {
+        // Use a special init method to do initialization
+        val newDesc = nDesc.init + vclasstype
+        val newName = LiftCall.encodeTypeInName("Vinit", desc)
+        mv.visitMethodInsn(INVOKESTATIC, nOwner, newName, newDesc, false)
+        // pop the useless uninitialized references
+        mv.visitInsn(SWAP)
+        mv.visitInsn(POP)
+        mv.visitInsn(SWAP)
+        mv.visitInsn(POP)
+      }
+      else {
+        mv.visitMethodInsn(INVOKESPECIAL, nOwner, nName, nDesc, itf)
+      }
 
       if (env.getTag(this, env.TAG_WRAP_DUPLICATE)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
       if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))

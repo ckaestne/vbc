@@ -26,6 +26,7 @@ case class VBCMethodNode(access: Int,
   }
 
   def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
+    createBackupMethod(cw, clazz)
     val liftedMethodDesc = liftMethodDescription(desc)
     val mv = cw.visitMethod(access, liftMethodName(name), liftedMethodDesc, liftMethodSignature(desc, signature).getOrElse(null), exceptions.toArray)
     mv.visitCode()
@@ -83,6 +84,47 @@ case class VBCMethodNode(access: Int,
 
   lazy val isClinit = name == "<clinit>"
 
+  /**
+    * Create a wrapper method that call the V method
+    *
+    * Useful for methods like compare(), which is called in JDK
+    */
+  def createBackupMethod(cw: ClassVisitor, clazz: VBCClassNode): Unit = {
+    // todo: checking interface name might not be accurate enough
+    if (clazz.interfaces.exists(_.startsWith("java"))) {
+      val mv = cw.visitMethod(access, name, desc, signature.getOrElse(null), exceptions.toArray)
+      mv.visitCode()
+      // wrap all arguments into V and call V method
+      val callType = if ((access & Opcodes.ACC_STATIC) != 0) INVOKESTATIC else if (name == "<init>") INVOKESPECIAL else INVOKEVIRTUAL
+      val nArgs = Type.getArgumentTypes(desc).length
+      if (callType != INVOKESTATIC) mv.visitVarInsn(ALOAD, 0)
+      (1 to nArgs) foreach {i =>
+        // todo: could be primitive type
+        mv.visitVarInsn(ALOAD, i)
+        callVCreateOne(mv, pushConstantTRUE)
+      }
+      pushConstantTRUE(mv)  //ctx
+      mv.visitMethodInsn(callType, clazz.name, name, liftMethodDescription(desc), false)
+      // unwrap return type
+      Type.getReturnType(desc).getSort match {
+        case Type.INT =>
+          mv.visitMethodInsn(INVOKEINTERFACE, vclassname, "getOne", "()Ljava/lang/Object;", true)
+          mv.visitTypeInsn(CHECKCAST, vInt)
+          mv.visitMethodInsn(INVOKEVIRTUAL, vInt, "intValue", "()I", false)
+          mv.visitInsn(IRETURN)
+        case Type.OBJECT =>
+          mv.visitMethodInsn(INVOKEINTERFACE, vclassname, "getOne", "()Ljava/lang/Object;", true)
+          mv.visitInsn(ARETURN)
+        case Type.VOID =>
+          mv.visitInsn(RETURN)
+        case _ =>
+          throw new RuntimeException("Unsupported type")
+      }
+
+      mv.visitMaxs(0, 0)
+      mv.visitEnd()
+    }
+  }
 }
 
 
@@ -150,8 +192,17 @@ case class VBCClassNode(
   }
 
 
+  def liftSuperName(superName: String) = {
+    // Super class of interface must be java/lang/Object, could not be VObject
+    if ((access & ACC_INTERFACE) == 0)
+      liftCls(superName)
+    else
+      superName
+  }
+
   def toVByteCode(cv: ClassVisitor, rewriter: VBCMethodNode => VBCMethodNode = a => a) = {
-    cv.visit(version, access, name, signature.getOrElse(null), superName, interfaces.toArray)
+    val liftedSuperName = liftSuperName(superName)
+    cv.visit(version, access, name, signature.getOrElse(null), liftedSuperName, interfaces.toArray)
     commonToByteCode(cv)
     //        innerClasses.foreach(_.toVByteCode(cv))
     fields.foreach(_.toVByteCode(cv))

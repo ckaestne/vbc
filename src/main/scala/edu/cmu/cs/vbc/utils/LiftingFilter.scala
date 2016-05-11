@@ -14,20 +14,30 @@ object LiftingFilter {
     * More coming later, e.g. logging library
     */
   def shouldLiftMethod(owner: String, name: String, desc: String): Boolean = {
-    var should = true
     owner match {
-      case java if owner.startsWith("java") => should = false
-      case _ => // do nothing
+      case java if owner.startsWith("java") => !isImmutableCls(LiftUtils.liftCls(owner).replace('/', '.'))
+      case _ => true
     }
-    should
   }
 
+  /**
+    * Should we lift this field?
+    *
+    * @param owner *original* owner name
+    * @param name  field name
+    * @param desc  field descriptor
+    * @return true if should lift
+    */
   def shouldLiftField(owner: String, name: String, desc: String): Boolean = {
-    var should = true
     owner match {
-      case java if owner.startsWith("java") => should = false
-      case _ => // do nothing
+      case java if owner.startsWith("java") => !isImmutableCls(LiftUtils.liftCls(owner).replace('/', '.'))
+      case _ => true
     }
-    should
+  }
+
+  def isImmutableCls(name: String): Boolean = {
+    // Use reflection to check @Immutable annotation
+    val cls = Class.forName(name)
+    cls.getAnnotations.exists(_.isInstanceOf[edu.cmu.cs.varex.annotation.Immutable])
   }
 }

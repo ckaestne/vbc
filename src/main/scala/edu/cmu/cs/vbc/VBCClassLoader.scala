@@ -2,7 +2,8 @@ package edu.cmu.cs.vbc
 
 import java.io._
 
-import edu.cmu.cs.vbc.loader.Loader
+import edu.cmu.cs.vbc.loader.{JavaLibClassModifier, Loader}
+import edu.cmu.cs.vbc.utils.LiftingFilter
 import edu.cmu.cs.vbc.vbytecode.{VBCClassNode, VBCMethodNode}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.tree.ClassNode
@@ -68,7 +69,11 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
     * @param name (partial) name of the class that SHOULD be modified
     * @return false if the class needs to be modified
     */
-  private def filterByName(name: String): Boolean = !name.startsWith("edu.cmu.cs.vbc.prog")
+  private def filterByName(name: String): Boolean = name match {
+    case s: String if s.startsWith("edu.cmu.cs.vbc.prog") => false
+//    case s: String if s.startsWith("edu.cmu.cs.vbc.model") => LiftingFilter.isImmutableCls(name)
+    case _ => true
+  }
 
 
   def toFile(name: String, cw: ClassWriter) = {

@@ -6,7 +6,7 @@ import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.utils.LiftUtils
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
-import org.objectweb.asm.{Label, MethodVisitor}
+import org.objectweb.asm.{Label, MethodVisitor, Type}
 
 trait Instruction {
 
@@ -113,20 +113,34 @@ case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    for (conditionalField <- env.clazz.fields
-         if conditionalField.hasConditionalAnnotation; if !conditionalField.isStatic) {
+    for (field <- env.clazz.fields if !field.isStatic) {
       import LiftUtils._
-      mv.visitVarInsn(ALOAD, 0)
-      mv.visitLdcInsn(conditionalField.name)
-      mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "createDefinedExternal", "(Ljava/lang/String;)Lde/fosd/typechef/featureexpr/SingleFeatureExpr;", false)
-      mv.visitInsn(ICONST_1)
-      mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
-      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
-      mv.visitInsn(ICONST_0)
-      mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
-      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
-      callVCreateChoice(mv)
-      mv.visitFieldInsn(PUTFIELD, env.clazz.name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
+      if (field.hasConditionalAnnotation()) {
+        mv.visitVarInsn(ALOAD, 0)
+        mv.visitLdcInsn(field.name)
+        mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "createDefinedExternal", "(Ljava/lang/String;)Lde/fosd/typechef/featureexpr/SingleFeatureExpr;", false)
+        mv.visitInsn(ICONST_1)
+        mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+        callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+        mv.visitInsn(ICONST_0)
+        mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+        callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+        callVCreateChoice(mv)
+        mv.visitFieldInsn(PUTFIELD, env.clazz.name, field.name, "Ledu/cmu/cs/varex/V;")
+      }
+      else {
+        // Init all UNCONDITIONAL fields to be One(null)
+        mv.visitVarInsn(ALOAD, 0)
+        Type.getType(field.desc).getSort match {
+          case Type.INT => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+          case Type.OBJECT => mv.visitInsn(ACONST_NULL)
+//          case Type.BOOLEAN => mv.visitIntInsn(BIPUSH, 0); mv.visitMethodInsn(INVOKESTATIC, vBoolean, "valueOf", s"(Z)$vBooleanType", false)
+          case Type.BOOLEAN => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+          case _ => ???
+        }
+        callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+        mv.visitFieldInsn(PUTFIELD, env.clazz.name, field.name, "Ledu/cmu/cs/varex/V;")
+      }
     }
   }
 

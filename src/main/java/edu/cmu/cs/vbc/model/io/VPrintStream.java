@@ -2,6 +2,7 @@ package edu.cmu.cs.vbc.model.io;
 
 import de.fosd.typechef.featureexpr.FeatureExpr;
 import edu.cmu.cs.varex.V;
+import edu.cmu.cs.varex.annotation.Immutable;
 import edu.cmu.cs.vbc.model.lang.VInteger;
 import edu.cmu.cs.vbc.model.lang.VString;
 
@@ -10,6 +11,7 @@ import java.io.PrintStream;
 /**
  * @author chupanw
  */
+@Immutable
 public class VPrintStream {
 
     private PrintStream actual;

@@ -350,3 +350,26 @@ case class InstrIF_ICMPLE(targetBlockIdx: Int) extends JumpInstruction {
       mv.visitJumpInsn(IF_ICMPLE, env.getBlockLabel(env.getBlock(targetBlockIdx)))
   }
 }
+
+case class InstrIFNULL(targetBlockIdx: Int) extends JumpInstruction {
+  /**
+    * gets the successor of a jump. the first value is the
+    * target of an unconditional jump, but it can be None
+    * when it just falls through to the next block
+    * the second value is the target of a conditional jump,
+    * if any
+    */
+  override def getSuccessor(): (Option[Int], Option[Int]) = (None, Some(targetBlockIdx))
+
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
+    mv.visitJumpInsn(IFNULL, env.getBlockLabel(env.getBlock(targetBlockIdx)))
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStack1(s, env)
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this))
+      mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenNULL", genSign(vclasstype, fexprclasstype), false)
+    else
+      mv.visitJumpInsn(IFNULL, env.getBlockLabel(env.getBlock(targetBlockIdx)))
+  }
+}

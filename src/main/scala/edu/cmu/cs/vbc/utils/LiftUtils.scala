@@ -196,8 +196,12 @@ object LiftUtils {
 
   val vInt = "edu/cmu/cs/vbc/model/lang/VInteger"
   val vIntType = "Ledu/cmu/cs/vbc/model/lang/VInteger;"
+  val vBoolean = "edu/cmu/cs/vbc/model/lang/VBoolean"
+  val vBooleanType = "Ledu/cmu/cs/vbc/model/lang/VBoolean;"
   val vString = "edu/cmu/cs/vbc/model/lang/VString"
   val vStringType = "Ledu/cmu/cs/vbc/model/lang/VString;"
+  val vObject = "edu/cmu/cs/vbc/model/lang/VObject"
+  val vObjectType = "Ledu/cmu/cs/vbc/model/lang/VObject;"
 
   /**
     * Scan and replace java library classes with model classes

@@ -41,7 +41,7 @@ class LiftSignatureWriter() extends SignatureWriter() {
     if (descriptor == 'V') {
       super.visitBaseType(descriptor)
     } else {
-      visitClassType(liftClsType(primitiveToObjectType("" + descriptor)).drop(1).dropRight(1))
+      visitClassType(liftClsType(liftCls(primitiveToObjectType("" + descriptor))).drop(1).dropRight(1))
       visitEnd()
     }
   }
