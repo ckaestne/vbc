@@ -3,6 +3,10 @@ package edu.cmu.cs.varex;
 import de.fosd.typechef.featureexpr.FeatureExpr;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A choice of exceptions in the entire context of the method call
@@ -45,6 +49,24 @@ public class VException extends RuntimeException {
 
     public FeatureExpr getExceptionCondition() {
         return cond;
+    }
+
+    public Iterator<ExceptionConditionPair> getExceptionIterator() {
+        Map<FeatureExpr, ? extends Throwable> allExceptions = VHelper.explode(cond, exceptions);
+        List<ExceptionConditionPair> result = new ArrayList<>(allExceptions.size());
+        for (Map.Entry<FeatureExpr, ? extends Throwable> e : allExceptions.entrySet())
+            result.add(new ExceptionConditionPair(e.getKey(), e.getValue()));
+        return result.iterator();
+    }
+
+    public static class ExceptionConditionPair {
+        public final Throwable exception;
+        public final FeatureExpr cond;
+
+        private ExceptionConditionPair(@Nonnull FeatureExpr cond, @Nonnull Throwable exception) {
+            this.cond = cond;
+            this.exception = exception;
+        }
     }
 }
 

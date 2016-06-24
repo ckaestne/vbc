@@ -1,5 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
+import de.fosd.typechef.featureexpr.FeatureExpr
+import edu.cmu.cs.varex.{V, VException, VHelper}
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_REF_TYPE, V_TYPE}
 import edu.cmu.cs.vbc.model.LiftCall._
@@ -173,6 +175,9 @@ trait MethodInstruction extends JumpInstruction {
 
   //fall through to next block
   def getSuccessor() = (None, None)
+
+
+
 }
 
 /**

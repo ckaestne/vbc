@@ -3,7 +3,7 @@ package edu.cmu.cs.vbc
 import de.fosd.typechef.featureexpr.FeatureExprFactory
 import edu.cmu.cs.vbc.test.{InstrDBGIPrint, InstrLoadConfig}
 import edu.cmu.cs.vbc.vbytecode._
-import edu.cmu.cs.vbc.vbytecode.instructions._
+import edu.cmu.cs.vbc.vbytecode.instructions.{InstrATHROW, _}
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Opcodes.ACC_PUBLIC
 import org.scalatest.FunSuite
@@ -166,7 +166,30 @@ class VBCExceptionTest extends FunSuite with DiffMethodTestInfrastructure {
     Block(InstrICONST(0), InstrICONST(0), InstrIDIV(), InstrRETURNVal(Opcodes.IRETURN))
   )
 
-  ignore("partially continue after partial exception from method call") {
+  // throws a VException with two different possible exceptions
+  val m_vException = method("vException", "()I",
+    Block(InstrLoadConfig("A"), InstrIFEQ(3)),
+    Block(createException("java/lang/Exception", "foo")  :_*),
+    Block(InstrATHROW()),
+    Block(createException("java/lang/RuntimeException", "foo")  :_*),
+    Block(InstrATHROW())
+  )
+
+  test("correctly propagate VException") {
+    runMethod(List(
+      Block(InstrALOAD(thisvar), invokeVirt(m_vException), InstrDBGIPrint(), InstrRETURNVoid())
+    ), List(m_vException))
+  }
+
+  test("partially catch VException") {
+    runMethod(List(
+      Block(List(InstrALOAD(thisvar), invokeVirt(m_vException),InstrDBGIPrint(), InstrRETURNVoid()), Seq(VBCHandler("java/lang/RuntimeException", 1))),
+      Block(InstrPOP(),InstrICONST(-1), InstrDBGIPrint(), InstrRETURNVoid())
+    ), List(m_vException))
+  }
+
+
+  test("partially continue after partial exception from method call") {
     runMethod(List(
       Block(InstrALOAD(thisvar), invokeVirt(m_partialException), InstrDBGIPrint(), InstrRETURNVoid())
     ), List(m_partialException))

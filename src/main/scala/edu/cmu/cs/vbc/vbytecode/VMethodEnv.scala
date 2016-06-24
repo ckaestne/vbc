@@ -138,7 +138,7 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
 
     lastInstr match {
       case InstrGOTO(t) => false // GOTO does not change the context
-      case method: MethodInstruction => true // all methods can have conditional exceptions
+//      case method: MethodInstruction => true // all methods can have conditional exceptions
       case jump: JumpInstruction =>
         // all possible jump targets are variational, exception edges are not
         val succ = jump.getSuccessor()

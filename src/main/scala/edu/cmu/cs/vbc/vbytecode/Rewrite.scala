@@ -18,8 +18,10 @@ object Rewrite {
 
   def rewriteV(m: VBCMethodNode): VBCMethodNode =
     initializeConditionalFields(
-      RewriteVReturn.ensureUniqueReturnInstr(addHandlerForAtomicExceptions(ensureUniqueHandlers(m)))
-    )
+      RewriteVReturn.ensureUniqueReturnInstr(
+        RewriteInvocationExceptionHandling.injectVExceptionHandling(
+          addHandlerForAtomicExceptions(
+            ensureUniqueHandlers(m)))))
 
 
   /* Assume that the first two instructions in the <init> method are:

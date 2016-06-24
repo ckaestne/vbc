@@ -134,9 +134,51 @@ object RewriteVReturn {
   }
 }
 
+object RewriteInvocationExceptionHandling {
+
+  /**
+    * TODO detect which blocks are not part of the first VBlock - nodes in the first VBlock can be ignored if their exception handler is empty
+    *
+    * @param m
+    * @return
+    */
+  private def skipInjection(m: VBCMethodNode) =
+    (m.body.blocks.head.exceptionHandlers.isEmpty || !containsInvocation(m.body.blocks.head)) &&
+      !m.body.blocks.tail.exists(containsInvocation)
+
+
+  private def containsInvocation(block: Block) = block.instr.last.isInstanceOf[InstrINVOKESTATIC] || block.instr.last.isInstanceOf[InstrINVOKEVIRTUAL]
+
+  /**
+    * for every block that ends in a method call, add an own exception handler for VException
+    * (the only exception is when that block is not on a conditional path and did
+    * not catch any exceptions before)
+    */
+  def injectVExceptionHandling(m: VBCMethodNode): VBCMethodNode = if (skipInjection(m)) m
+  else {
+
+    var extraBlocks: List[Block] = Nil
+
+    val blocks = for (block <- m.body.blocks) yield
+      if (containsInvocation(block)) {
+        //add exception handler
+        if (block.exceptionHandlers.nonEmpty)
+          extraBlocks ::= Block(VInstrDispatchVException(block.exceptionHandlers),InstrATHROW())
+        else
+          extraBlocks ::= Block(InstrATHROW())
+        block.copy(exceptionHandlers = VBCHandler("edu/cmu/cs/varex/VException", m.body.blocks.size + extraBlocks.size - 1) +: block.exceptionHandlers) //TODO check order
+      } else block
+
+    m.copy(body = CFG(blocks ++ extraBlocks.reverse)) //TODO check order
+  }
+
+
+}
+
 
 package instructions {
 
+  import edu.cmu.cs.vbc.analysis.REF_TYPE
   import org.objectweb.asm.Label
 
   /**
@@ -265,5 +307,89 @@ package instructions {
     override def isReturnInstr = true
   }
 
+
+  case class VInstrDispatchVException(handlers: Seq[VBCHandler]) extends Instruction {
+    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
+      throw new UnsupportedOperationException("VInstrDispatchVException cannot be used in a nonvariational context; generated only as part of variation rewrite of invocation instructions")
+
+    override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
+      val (v, prev, newFrame) = s.pop()
+      (newFrame.push(V_TYPE(), Set()), Set())
+    }
+
+    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+      //stack: [VException]
+      mv.visitInsn(DUP)
+      //stack: [VException,VException]
+      mv.visitMethodInsn(INVOKEVIRTUAL, "edu/cmu/cs/varex/VException", "getExceptionIterator", "()Ljava/util/Iterator;", false)
+      //stack: [VException,Iterator]
+      val loopLabel = new Label()
+      mv.visitLabel(loopLabel)
+
+      mv.visitInsn(DUP)
+      mv.visitMethodInsn(INVOKEVIRTUAL, "java/util/Iterator", "next", "()Ledu/cmu/cs/varex/VException/ExceptionConditionPair;", false)
+      //stack: [VException,Iterator,ExceptionConditionPair]
+
+      mv.visitInsn(DUP)
+      mv.visitFieldInsn(GETFIELD, "edu/cmu/cs/varex/VException/ExceptionConditionPair", "exception", "Ljava/lang/Throwable;")
+      //stack: [VException,Iterator,ExceptionConditionPair,Throwable]
+
+      for (handler <- handlers) {
+        //stack: [VException,Iterator,ExceptionConditionPair,Throwable]
+        mv.visitInsn(DUP)
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Throwable", "getClass", "()Ljava/lang/Class;", false)
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getCanonicalName", "()Ljava/lang/String;", false)
+        //stack: [VException,Iterator,ExceptionConditionPair,Throwable,String(exceptionname)]
+
+        mv.visitLdcInsn(handler.exceptionType)
+        //stack: [VException,Iterator,ExceptionConditionPair,Throwable,String(exceptionname),String(handledException)]
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "equals", "(Ljava/lang/Object;)Z", false)
+        //stack: [VException,Iterator,ExceptionConditionPair,Throwable,boolean]
+        val jumpOverLabel = new Label()
+        mv.visitJumpInsn(IFNE, jumpOverLabel)
+        //stack: [VException,Iterator,ExceptionConditionPair,Throwable]
+
+        //ctx = ctx andNot exception.cond
+        mv.visitInsn(SWAP)
+        //stack: [VException,Iterator,Throwable,ExceptionConditionPair]
+        mv.visitInsn(DUP)
+        mv.visitFieldInsn(GETFIELD, "edu/cmu/cs/varex/VException/ExceptionConditionPair", "cond", fexprclasstype)
+        //stack: [VException,Iterator,Throwable,ExceptionConditionPair,FeatureExpr]
+        mv.visitInsn(DUP)
+        callFExprNot(mv)
+        loadCurrentCtx(mv, env, block)
+        callFExprAnd(mv)
+        storeCurrentCtx(mv, env, block)
+        //stack: [VException,Iterator,Throwable,ExceptionConditionPair,FeatureExpr]
+
+        val targetBlock = env.getBlock(handler.handlerBlockIdx)
+        val targetBlockCtx = env.getVBlockVar(targetBlock)
+        loadFExpr(mv, env, targetBlockCtx)
+        callFExprOr(mv)
+        storeFExpr(mv, env, targetBlockCtx)
+        //stack: [VException,Iterator,Throwable,ExceptionConditionPair]
+
+        mv.visitInsn(SWAP)
+        //stack: [VException,Iterator,ExceptionConditionPair,Throwable]
+        mv.visitInsn(DUP)
+        assert(env.getExpectingVars(targetBlock).size == 1, "exception blocks may only expect exactly one Exception variable")
+        mv.visitVarInsn(ASTORE, env.getVarIdx(env.getExpectingVars(targetBlock).head))
+
+        mv.visitLabel(jumpOverLabel)
+        //stack: [VException,Iterator,ExceptionConditionPair,Throwable]
+      }
+      mv.visitInsn(POP)
+      mv.visitInsn(POP)
+      //stack: [VException,Iterator]
+      mv.visitInsn(DUP)
+      mv.visitMethodInsn(INVOKEVIRTUAL, "java/util/Iterator", "hasNext", "()Z", false)
+      //stack: [VException,Iterator,boolean(hasNext)]
+      mv.visitJumpInsn(IFNE, loopLabel)
+      mv.visitInsn(POP)
+      //stack: [VException]
+      mv.visitMethodInsn(INVOKEVIRTUAL, "edu/cmu/cs/varex/VException", "getException", "()" + vclasstype, false)
+      //stack: [V<Exception>]
+    }
+  }
 
 }

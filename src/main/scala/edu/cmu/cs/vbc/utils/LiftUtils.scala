@@ -108,6 +108,9 @@ object LiftUtils {
   def loadCurrentCtx(mv: MethodVisitor, env: VMethodEnv, block: Block) =
     if (env.isMain) pushConstantTRUE(mv) else loadFExpr(mv, env, env.getVBlockVar(block))
 
+  def storeCurrentCtx(mv: MethodVisitor, env: VMethodEnv, block: Block) =
+    storeFExpr(mv, env, env.getVBlockVar(block))
+
   def storeV(mv: MethodVisitor, env: MethodEnv, v: Variable) =
     mv.visitVarInsn(ASTORE, env.getVarIdx(v))
 
