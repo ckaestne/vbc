@@ -31,8 +31,16 @@ object Config {
       throw new RuntimeException("Configuration value for `B` not set")
   }
 
+  def C = {
+    if (configValues contains "C")
+      configValues("C")
+    else
+      throw new RuntimeException("Configuration value for `C` not set")
+  }
+
   val VA = V.choice(FeatureExprFactory.createDefinedExternal("A"), 1, 0)
   val VB = V.choice(FeatureExprFactory.createDefinedExternal("B"), 1, 0)
+  val VC = V.choice(FeatureExprFactory.createDefinedExternal("C"), 1, 0)
 }
 
 object TestOutput {

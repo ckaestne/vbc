@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode
 
-import edu.cmu.cs.vbc.analysis.{REF_TYPE, VBCAnalyzer, VBCFrame}
+import edu.cmu.cs.vbc.analysis.{REF_TYPE, VBCAnalyzer, VBCFrame, V_TYPE}
 import edu.cmu.cs.vbc.utils.{LiftUtils, Statistics}
 import edu.cmu.cs.vbc.vbytecode.instructions._
 
@@ -283,12 +283,12 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
        if getVBlock(block) != getVBlock(succ))
     assert(getExpectingVars(succ).size == getLeftVars(block).size, s"unbalanced stack mismatch: leaving ${getLeftVars(block)} in block ${getBlockIdx(block)} but expecting ${getExpectingVars(succ)} in block ${getBlockIdx(succ)}")
 
-  // exception blocks should start only with an exception on the stack
+  // exception blocks should start only with an V<exception> on the stack
   for (block <- blocks;
        if isExceptionHandlerBlock(block)) {
     val beforeFrame = framesBefore(getInsnIdx(block.instr.head))
     assert(beforeFrame.stack.size == 1)
-    assert(beforeFrame.stack.head._1 == REF_TYPE(true))
+    assert(beforeFrame.stack.head._1 == V_TYPE())
   }
 
 }

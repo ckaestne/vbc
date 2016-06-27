@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc
 
 import de.fosd.typechef.featureexpr.FeatureExprFactory
-import edu.cmu.cs.vbc.test.{InstrDBGIPrint, InstrLoadConfig}
+import edu.cmu.cs.vbc.test.{InstrDBGIPrint, InstrDBGStrPrint, InstrLoadConfig}
 import edu.cmu.cs.vbc.vbytecode._
 import edu.cmu.cs.vbc.vbytecode.instructions.{InstrATHROW, _}
 import org.objectweb.asm.Opcodes
@@ -169,9 +169,23 @@ class VBCExceptionTest extends FunSuite with DiffMethodTestInfrastructure {
   // throws a VException with two different possible exceptions
   val m_vException = method("vException", "()I",
     Block(InstrLoadConfig("A"), InstrIFEQ(3)),
-    Block(createException("java/lang/Exception", "foo")  :_*),
+    Block(createException("java/lang/Exception", "foo"): _*),
     Block(InstrATHROW()),
-    Block(createException("java/lang/RuntimeException", "foo")  :_*),
+    Block(createException("java/lang/RuntimeException", "bar"): _*),
+    Block(InstrATHROW())
+  )
+
+  val m_vException2 = method("vException2", "()I",
+    Block(InstrLoadConfig("A"), InstrIFEQ(6)),
+    Block(InstrLoadConfig("C"), InstrIFEQ(4)),
+    Block(createException("java/lang/RuntimeException", "foo"): _*),
+    Block(InstrATHROW()),
+    Block(createException("java/lang/InterruptedException", "interr"): _*),
+    Block(InstrATHROW()),
+    Block(InstrLoadConfig("B"), InstrIFEQ(9)),
+    Block(createException("java/lang/NullPointerException", "nullp"): _*),
+    Block(InstrATHROW()),
+    Block(createException("java/lang/Exception", "bar"): _*),
     Block(InstrATHROW())
   )
 
@@ -183,11 +197,32 @@ class VBCExceptionTest extends FunSuite with DiffMethodTestInfrastructure {
 
   test("partially catch VException") {
     runMethod(List(
-      Block(List(InstrALOAD(thisvar), invokeVirt(m_vException),InstrDBGIPrint(), InstrRETURNVoid()), Seq(VBCHandler("java/lang/RuntimeException", 1))),
-      Block(InstrPOP(),InstrICONST(-1), InstrDBGIPrint(), InstrRETURNVoid())
+      Block(List(InstrALOAD(thisvar), invokeVirt(m_vException), InstrDBGIPrint(), InstrRETURNVoid()), Seq(VBCHandler("java/lang/RuntimeException", 1))),
+      Block(InstrPOP(), InstrLDC("caught runtime exception"), InstrDBGStrPrint(), InstrRETURNVoid())
     ), List(m_vException))
   }
 
+  test("partially catch VException and print exception message") {
+    runMethod(List(
+      Block(List(InstrALOAD(thisvar), invokeVirt(m_vException), InstrDBGIPrint(), InstrRETURNVoid()), Seq(VBCHandler("java/lang/RuntimeException", 1))),
+      Block(InstrINVOKEVIRTUAL("java/lang/Exception", "getMessage", "()Ljava/lang/String;", false), InstrDBGStrPrint(), InstrRETURNVoid())
+    ), List(m_vException))
+  }
+
+  test("catch all VException alternatives and print exception messages") {
+    runMethod(List(
+      Block(List(InstrALOAD(thisvar), invokeVirt(m_vException), InstrDBGIPrint(), InstrRETURNVoid()), Seq(VBCHandler("java/lang/Throwable", 1))),
+      Block(InstrINVOKEVIRTUAL("java/lang/Throwable", "getMessage", "()Ljava/lang/String;", false), InstrDBGStrPrint(), InstrRETURNVoid())
+    ), List(m_vException))
+  }
+
+
+  test("catch all VException alternatives and print exception messages 2") {
+    runMethod(List(
+      Block(List(InstrALOAD(thisvar), invokeVirt(m_vException2), InstrDBGIPrint(), InstrRETURNVoid()), Seq(VBCHandler("java/lang/RuntimeException", 1))),
+      Block(InstrINVOKEVIRTUAL("java/lang/Throwable", "getMessage", "()Ljava/lang/String;", false), InstrDBGStrPrint(), InstrRETURNVoid())
+    ), List(m_vException2))
+  }
 
   test("partially continue after partial exception from method call") {
     runMethod(List(

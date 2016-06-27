@@ -115,7 +115,7 @@ class VBCAnalyzer(env: VMethodEnv) {
         // TODO do we need to insert some dummy statement to lift the exception if necessary?
         for (exHandler <- block.exceptionHandlers)
           updateFrameForInstr(env.getBlockStart(exHandler.handlerBlockIdx),
-            frame.emptyStack().push(REF_TYPE(true), Set()))
+            frame.emptyStack().push(V_TYPE(), Set()))//we assume all exceptions are V (they are lifted immediately as part of the control-flow logic in Block
       }
 
     }

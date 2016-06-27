@@ -47,12 +47,17 @@ public class VException extends RuntimeException {
         return this.exceptions.select(cond);
     }
 
+    public static V<? extends Throwable> getExceptions(V<VException> ex) {
+        return ex.flatMap(e -> e.exceptions.select(e.cond));
+    }
+
     public FeatureExpr getExceptionCondition() {
         return cond;
     }
 
-    public Iterator<ExceptionConditionPair> getExceptionIterator() {
-        Map<FeatureExpr, ? extends Throwable> allExceptions = VHelper.explode(cond, exceptions);
+    public static Iterator<ExceptionConditionPair> getExceptionIterator(V<VException> ex) {
+        V<? extends Throwable> allexceptions = getExceptions(ex);
+        Map<FeatureExpr, ? extends Throwable> allExceptions = VHelper.explode(ex.getConfigSpace(), allexceptions);
         List<ExceptionConditionPair> result = new ArrayList<>(allExceptions.size());
         for (Map.Entry<FeatureExpr, ? extends Throwable> e : allExceptions.entrySet())
             result.add(new ExceptionConditionPair(e.getKey(), e.getValue()));
@@ -67,6 +72,11 @@ public class VException extends RuntimeException {
             this.cond = cond;
             this.exception = exception;
         }
+    }
+
+    public static void test(V<VException> ex) {
+        Throwable x = getExceptionIterator(ex).next().exception;
+        System.out.println(x);
     }
 }
 

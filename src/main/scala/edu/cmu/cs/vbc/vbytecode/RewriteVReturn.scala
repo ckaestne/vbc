@@ -113,10 +113,14 @@ object RewriteVReturn {
           case o => throw new UnsupportedOperationException(s"return $o not supported yet")
         }) :: InstrGOTO(newReturnBlockIdx) :: Nil
     }
+    def substituteExceptionHandlingInstruction(i: Instruction): Instruction = i match {
+      case VInstrDispatchVExceptionPlaceHolder(h) => VInstrDispatchVException(h, returnVar, exceptionCondVar, newReturnBlockIdx)
+      case e => e
+    }
 
     val rewrittenBlocks = method.body.blocks.map(block =>
       new Block(block.instr.flatMap(instr =>
-        if (instr.isReturnInstr) substituteReturnInstr(instr.asInstanceOf[ReturnInstruction]) else List(instr)
+        if (instr.isReturnInstr) substituteReturnInstr(instr.asInstanceOf[ReturnInstruction]) else List(substituteExceptionHandlingInstruction(instr))
       ), block.exceptionHandlers))
 
 
@@ -163,7 +167,7 @@ object RewriteInvocationExceptionHandling {
       if (containsInvocation(block)) {
         //add exception handler
         if (block.exceptionHandlers.nonEmpty)
-          extraBlocks ::= Block(VInstrDispatchVException(block.exceptionHandlers),InstrATHROW())
+          extraBlocks ::= Block(VInstrDispatchVExceptionPlaceHolder(block.exceptionHandlers)) //cannot figure out where the other exception handlers really are, therefor just going back to the beginning. happens only for exceptions, thus overhead shouldn't be that bad
         else
           extraBlocks ::= Block(InstrATHROW())
         block.copy(exceptionHandlers = VBCHandler("edu/cmu/cs/varex/VException", m.body.blocks.size + extraBlocks.size - 1) +: block.exceptionHandlers) //TODO check order
@@ -178,8 +182,24 @@ object RewriteInvocationExceptionHandling {
 
 package instructions {
 
-  import edu.cmu.cs.vbc.analysis.REF_TYPE
   import org.objectweb.asm.Label
+
+  private object ExceptionHandlingHelper {
+    def storeException(mv: MethodVisitor, env: VMethodEnv, block: Block, resultVar: LocalVar, exceptionCondVar: LocalVar): Unit = {
+      // incoming stack: ..., V<Throwable>
+      loadCurrentCtx(mv, env, block) // stack: ..., V<Throwable>, ctx
+      mv.visitInsn(SWAP) // stack: ..., ctx, V<Throwable>
+      loadV(mv, env, resultVar) // stack: ..., ctx, V<Throwable>, oldResult
+      callVCreateChoice(mv) // stack: ..., V<?>
+      storeV(mv, env, resultVar) // stack: ...
+
+      loadFExpr(mv, env, exceptionCondVar) // stack: ..., exceptionCond
+      loadCurrentCtx(mv, env, block) // stack: ..., exceptionCond, ctx
+      callFExprOr(mv) // stack: ..., newExceptionCond
+      storeFExpr(mv, env, exceptionCondVar) // statck: ...
+    }
+
+  }
 
   /**
     * special instruction to store an exception in the resultVariable and update the
@@ -191,17 +211,7 @@ package instructions {
 
     override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
       if (env.shouldLiftInstr(this)) {
-        // incoming stack: ..., V<Throwable>
-        loadCurrentCtx(mv, env, block) // stack: ..., V<Throwable>, ctx
-        mv.visitInsn(SWAP) // stack: ..., ctx, V<Throwable>
-        loadV(mv, env, resultVar) // stack: ..., ctx, V<Throwable>, oldResult
-        callVCreateChoice(mv) // stack: ..., V<?>
-        storeV(mv, env, resultVar) // stack: ...
-
-        loadFExpr(mv, env, exceptionCondVar) // stack: ..., exceptionCond
-        loadCurrentCtx(mv, env, block) // stack: ..., exceptionCond, ctx
-        callFExprOr(mv) // stack: ..., newExceptionCond
-        storeFExpr(mv, env, exceptionCondVar)
+        ExceptionHandlingHelper.storeException(mv, env, block, resultVar, exceptionCondVar)
       }
       else {
         //in unlifted context, there should be a real throw instruction, not this special store instruction
@@ -307,89 +317,156 @@ package instructions {
     override def isReturnInstr = true
   }
 
+  /**
+    * used only temporarily until replaced by  VInstrDispatchVException with more information
+    */
+  case class VInstrDispatchVExceptionPlaceHolder(handlers: Seq[VBCHandler]) extends Instruction {
+    override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block) = ???
 
-  case class VInstrDispatchVException(handlers: Seq[VBCHandler]) extends Instruction {
+    override def updateStack(s: VBCFrame, env: VMethodEnv) = ???
+
+    override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block) = ???
+  }
+
+  case class VInstrDispatchVException(handlers: Seq[VBCHandler], returnVar: LocalVar, exceptionCondVar: LocalVar, newReturnBlockIdx: Int) extends JumpInstruction {
     override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
       throw new UnsupportedOperationException("VInstrDispatchVException cannot be used in a nonvariational context; generated only as part of variation rewrite of invocation instructions")
 
     override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
+      //pops a V<VException> and leaves nothing (does all the management of contexts and extra stack variables itself)
+      env.setLift(this)
       val (v, prev, newFrame) = s.pop()
-      (newFrame.push(V_TYPE(), Set()), Set())
+      (newFrame, Set())
     }
 
+    /**
+      * after Rewrite.ensureUniqueHandlers, handlers point to special blocks with
+      * a single jump statement. We want the target of that jump statement to find
+      * the new VBlock with the real handler's code, that expects a single V<Exception>
+      * value on the statck
+      */
+    private def getRealHandlerBlockIdx(env: VMethodEnv, handlerBlockIdx: Int): Int = {
+      val extraHandlerBlock = env.getBlock(handlerBlockIdx)
+      assert(extraHandlerBlock.instr.size == 1 && extraHandlerBlock.instr.head.isInstanceOf[InstrGOTO], "expect a wrapper around an exception handler with a single GOTO instruction")
+      extraHandlerBlock.instr.head.asInstanceOf[InstrGOTO].targetBlockIdx
+    }
+
+
     override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-      //stack: [VException]
+      var possibleExceptionTargetBlockIdxs: Set[Int] = Set()
+
+      //stack: [V<VException>]
       mv.visitInsn(DUP)
-      //stack: [VException,VException]
-      mv.visitMethodInsn(INVOKEVIRTUAL, "edu/cmu/cs/varex/VException", "getExceptionIterator", "()Ljava/util/Iterator;", false)
-      //stack: [VException,Iterator]
+      //stack: [V<VException>,V<VException>]
+      mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/varex/VException", "getExceptionIterator", s"($vclasstype)Ljava/util/Iterator;", false)
+      //stack: [V<VException>,Iterator]
       val loopLabel = new Label()
       mv.visitLabel(loopLabel)
 
       mv.visitInsn(DUP)
-      mv.visitMethodInsn(INVOKEVIRTUAL, "java/util/Iterator", "next", "()Ledu/cmu/cs/varex/VException/ExceptionConditionPair;", false)
+      mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Iterator", "next", "()Ljava/lang/Object;", true)
+      mv.visitTypeInsn(CHECKCAST, "edu/cmu/cs/varex/VException$ExceptionConditionPair")
       //stack: [VException,Iterator,ExceptionConditionPair]
 
       mv.visitInsn(DUP)
-      mv.visitFieldInsn(GETFIELD, "edu/cmu/cs/varex/VException/ExceptionConditionPair", "exception", "Ljava/lang/Throwable;")
-      //stack: [VException,Iterator,ExceptionConditionPair,Throwable]
+      mv.visitFieldInsn(GETFIELD, "edu/cmu/cs/varex/VException$ExceptionConditionPair", "exception", "Ljava/lang/Throwable;")
+      //stack: [V<VException>,Iterator,ExceptionConditionPair,Throwable]
 
       for (handler <- handlers) {
-        //stack: [VException,Iterator,ExceptionConditionPair,Throwable]
+        //stack: [V<VException>,Iterator,ExceptionConditionPair,Throwable]
         mv.visitInsn(DUP)
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Throwable", "getClass", "()Ljava/lang/Class;", false)
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getCanonicalName", "()Ljava/lang/String;", false)
-        //stack: [VException,Iterator,ExceptionConditionPair,Throwable,String(exceptionname)]
+        mv.visitTypeInsn(INSTANCEOF, handler.exceptionType)
 
-        mv.visitLdcInsn(handler.exceptionType)
-        //stack: [VException,Iterator,ExceptionConditionPair,Throwable,String(exceptionname),String(handledException)]
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "equals", "(Ljava/lang/Object;)Z", false)
-        //stack: [VException,Iterator,ExceptionConditionPair,Throwable,boolean]
+        //stack: [V<VException>,Iterator,ExceptionConditionPair,Throwable,boolean(isRightException)]
         val jumpOverLabel = new Label()
-        mv.visitJumpInsn(IFNE, jumpOverLabel)
-        //stack: [VException,Iterator,ExceptionConditionPair,Throwable]
+        mv.visitJumpInsn(IFEQ, jumpOverLabel)
+        //stack: [V<VException>,Iterator,ExceptionConditionPair,Throwable]
+        mv.visitInsn(DUP_X1)
+        //stack: [V<VException>,Iterator,Throwable,ExceptionConditionPair,Throwable]
 
         //ctx = ctx andNot exception.cond
         mv.visitInsn(SWAP)
-        //stack: [VException,Iterator,Throwable,ExceptionConditionPair]
+        //stack: [V<VException>,Iterator,Throwable,Throwable,ExceptionConditionPair]
         mv.visitInsn(DUP)
-        mv.visitFieldInsn(GETFIELD, "edu/cmu/cs/varex/VException/ExceptionConditionPair", "cond", fexprclasstype)
-        //stack: [VException,Iterator,Throwable,ExceptionConditionPair,FeatureExpr]
+        mv.visitFieldInsn(GETFIELD, "edu/cmu/cs/varex/VException$ExceptionConditionPair", "cond", fexprclasstype)
+        //stack: [V<VException>,Iterator,Throwable,Throwable,ExceptionConditionPair,FeatureExpr]
+        mv.visitInsn(DUP_X1)
+        //stack: [V<VException>,Iterator,Throwable,Throwable,FeatureExpr,ExceptionConditionPair,FeatureExpr]
         mv.visitInsn(DUP)
         callFExprNot(mv)
         loadCurrentCtx(mv, env, block)
         callFExprAnd(mv)
         storeCurrentCtx(mv, env, block)
-        //stack: [VException,Iterator,Throwable,ExceptionConditionPair,FeatureExpr]
+        //stack: [V<VException>,Iterator,Throwable,Throwable,FeatureExpr,ExceptionConditionPair,FeatureExpr]
 
-        val targetBlock = env.getBlock(handler.handlerBlockIdx)
+        val targetBlockIdx = getRealHandlerBlockIdx(env, handler.handlerBlockIdx)
+        val targetBlock = env.getBlock(targetBlockIdx)
+        possibleExceptionTargetBlockIdxs += targetBlockIdx
         val targetBlockCtx = env.getVBlockVar(targetBlock)
         loadFExpr(mv, env, targetBlockCtx)
         callFExprOr(mv)
         storeFExpr(mv, env, targetBlockCtx)
-        //stack: [VException,Iterator,Throwable,ExceptionConditionPair]
+        //stack: [V<VException>,Iterator,Throwable,Throwable,FeatureExpr,ExceptionConditionPair]
 
+        mv.visitInsn(DUP_X2)
+        mv.visitInsn(POP)
+        //stack: [V<VException>,Iterator,Throwable, ExceptionConditionPair,Throwable,FeatureExpr]
+        mv.visitInsn(DUP_X1)
+        callVCreateOne(mv, (m) => {})
+        //stack: [V<VException>,Iterator,Throwable, ExceptionConditionPair,FeatureExpr,V<Throwable>]
+        val targetVar = env.getVarIdx(env.getExpectingVars(targetBlock).head)
+        assert(env.getExpectingVars(targetBlock).size == 1, "exception blocks may only expect exactly one V<Exception> variable")
+        mv.visitVarInsn(ALOAD, targetVar)
+        callVCreateChoice(mv)
+        mv.visitVarInsn(ASTORE, targetVar)
+        //stack: [V<VException>,Iterator,Throwable, ExceptionConditionPair]
         mv.visitInsn(SWAP)
-        //stack: [VException,Iterator,ExceptionConditionPair,Throwable]
-        mv.visitInsn(DUP)
-        assert(env.getExpectingVars(targetBlock).size == 1, "exception blocks may only expect exactly one Exception variable")
-        mv.visitVarInsn(ASTORE, env.getVarIdx(env.getExpectingVars(targetBlock).head))
 
         mv.visitLabel(jumpOverLabel)
-        //stack: [VException,Iterator,ExceptionConditionPair,Throwable]
+        //stack: [V<VException>,Iterator,ExceptionConditionPair,Throwable]
       }
       mv.visitInsn(POP)
       mv.visitInsn(POP)
-      //stack: [VException,Iterator]
+      //      stack: [V<VException>,Iterator]
       mv.visitInsn(DUP)
-      mv.visitMethodInsn(INVOKEVIRTUAL, "java/util/Iterator", "hasNext", "()Z", false)
-      //stack: [VException,Iterator,boolean(hasNext)]
+      mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Iterator", "hasNext", "()Z", true)
+      //      stack: [V<VException>,Iterator,boolean(hasNext)]
       mv.visitJumpInsn(IFNE, loopLabel)
       mv.visitInsn(POP)
-      //stack: [VException]
-      mv.visitMethodInsn(INVOKEVIRTUAL, "edu/cmu/cs/varex/VException", "getException", "()" + vclasstype, false)
+      //stack: [V<VException>]
+      mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/varex/VException", "getExceptions", s"($vclasstype)$vclasstype", false)
       //stack: [V<Exception>]
+      ExceptionHandlingHelper.storeException(mv, env, block, returnVar, exceptionCondVar)
+
+      val newReturnBlockConditionVar = env.getVBlockVar(env.getBlock(newReturnBlockIdx))
+      val thisVBlockConditionVar = env.getVBlockVar(block)
+      //if non-conditional jump
+      //- update next block's condition (disjunction with prior value)
+      loadFExpr(mv, env, thisVBlockConditionVar)
+      loadFExpr(mv, env, newReturnBlockConditionVar)
+      callFExprOr(mv)
+      storeFExpr(mv, env, newReturnBlockConditionVar)
+
+      //- set this block's condition to FALSE
+      pushConstantFALSE(mv)
+      storeFExpr(mv, env, thisVBlockConditionVar)
+
+      //stack: []
+
+      //jump to the exception handler that's furthest back (even though that might not have anything to do right now
+      val jumpTarget = (possibleExceptionTargetBlockIdxs + newReturnBlockIdx).min
+      mv.visitJumpInsn(GOTO, env.getVBlockLabel(env.getVBlock(env.getBlock(jumpTarget))))
     }
+
+    /**
+      * gets the successor of a jump. the first value is the
+      * target of an unconditional jump, but it can be None
+      * when it just falls through to the next block
+      * the second value is the target of a conditional jump,
+      * if any
+      */
+    override def getSuccessor() = (Some(newReturnBlockIdx),None)
   }
+
 
 }
