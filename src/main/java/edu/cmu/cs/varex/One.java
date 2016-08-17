@@ -113,4 +113,13 @@ public class One<T> implements V<T> {
         }
         return super.equals(obj);
     }
+
+    @Override
+    public boolean equalValue(Object o) {
+        if (o instanceof One) {
+            if (((One) o).value == null) return value == null;
+            return ((One) o).value.equals(value);
+        }
+        return super.equals(o);
+    }
 }

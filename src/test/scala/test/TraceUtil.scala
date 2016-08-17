@@ -5,12 +5,12 @@ import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory, SingleFeat
 import edu.cmu.cs.varex.{V, VHelper}
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, V_TYPE}
-import edu.cmu.cs.vbc.model.lang.{VInteger, VString}
+import edu.cmu.cs.vbc.model.lang.VInteger
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
 import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, VMethodEnv}
-import org.objectweb.asm.{MethodVisitor, Type}
 import org.objectweb.asm.Opcodes._
+import org.objectweb.asm.{MethodVisitor, Type}
 
 import scala.collection.JavaConversions._
 
@@ -107,29 +107,67 @@ case class TraceInstr_ConfigInit() extends Instruction {
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    for (field <- env.clazz.fields if !field.isStatic) {
-      if (field.hasConditionalAnnotation()) {
-        mv.visitVarInsn(ALOAD, 0)
-        mv.visitLdcInsn(field.name)
-        mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TraceConfig", "getVConfig", "(Ljava/lang/String;)Ledu/cmu/cs/varex/V;", false)
-        if (field.isStatic)
-          mv.visitFieldInsn(PUTSTATIC, env.clazz.name, field.name, "Ledu/cmu/cs/varex/V;")
-        else
-          mv.visitFieldInsn(PUTFIELD, env.clazz.name, field.name, "Ledu/cmu/cs/varex/V;")
+
+    def createOne(fDesc: String, mv: MethodVisitor): Unit = {
+      Type.getType(fDesc).getSort match {
+        case Type.INT => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+        case Type.OBJECT => mv.visitInsn(ACONST_NULL)
+        //          case Type.BOOLEAN => mv.visitIntInsn(BIPUSH, 0); mv.visitMethodInsn(INVOKESTATIC, vBoolean, "valueOf", s"(Z)$vBooleanType", false)
+        case Type.BOOLEAN => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+        case _ => ???
       }
-      else {
-        // Init all UNCONDITIONAL fields to be One(null)
-        mv.visitVarInsn(ALOAD, 0)
-        Type.getType(field.desc).getSort match {
-          case Type.INT => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
-          case Type.OBJECT => mv.visitInsn(ACONST_NULL)
-          case Type.BOOLEAN => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
-          case _ => ???
-        }
-        callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
-        mv.visitFieldInsn(PUTFIELD, env.clazz.name, field.name, vclasstype)
-      }
+      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
+
+    val inClinit = env.method.name == "___clinit___"
+    if (inClinit) {
+      env.clazz.fields.filter(f => f.isStatic && f.hasConditionalAnnotation()).foreach(f => {
+        mv.visitLdcInsn(f.name)
+        mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TraceConfig", "getVConfig", "(Ljava/lang/String;)Ledu/cmu/cs/varex/V;", false)
+        mv.visitFieldInsn(PUTSTATIC, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
+      })
+      env.clazz.fields.filter(f => f.isStatic && !f.hasConditionalAnnotation()).foreach(f => {
+        createOne(f.desc, mv);
+        mv.visitFieldInsn(PUTSTATIC, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
+      })
+    }
+    else {
+      env.clazz.fields.filter(f => !f.isStatic && f.hasConditionalAnnotation()).foreach(f => {
+        mv.visitVarInsn(ALOAD, 0)
+        mv.visitLdcInsn(f.name)
+        mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TraceConfig", "getVConfig", "(Ljava/lang/String;)Ledu/cmu/cs/varex/V;", false)
+        mv.visitFieldInsn(PUTFIELD, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
+      })
+      env.clazz.fields.filter(f => !f.isStatic && !f.hasConditionalAnnotation()).foreach(f => {
+        mv.visitVarInsn(ALOAD, 0)
+        createOne(f.desc, mv)
+        mv.visitFieldInsn(PUTFIELD, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
+      })
+    }
+
+    //    for (field <- env.clazz.fields if !field.isStatic) {
+    //      if (field.hasConditionalAnnotation()) {
+    //        mv.visitVarInsn(ALOAD, 0)
+    //        mv.visitLdcInsn(field.name)
+    //        mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TraceConfig", "getVConfig", "(Ljava/lang/String;)Ledu/cmu/cs/varex/V;", false)
+    //        if (field.isStatic)
+    //          mv.visitFieldInsn(PUTSTATIC, env.clazz.name, field.name, "Ledu/cmu/cs/varex/V;")
+    //        else
+    //          mv.visitFieldInsn(PUTFIELD, env.clazz.name, field.name, "Ledu/cmu/cs/varex/V;")
+    //      }
+    //      else {
+    //        // Init all UNCONDITIONAL fields to be One(null)
+    //        mv.visitVarInsn(ALOAD, 0)
+    //        Type.getType(field.desc).getSort match {
+    //          case Type.INT => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+    //          case Type.OBJECT => mv.visitInsn(ACONST_NULL)
+    //          case Type.BOOLEAN => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+    //          case _ => ???
+    //        }
+    //        callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+    //        mv.visitFieldInsn(PUTFIELD, env.clazz.name, field.name, vclasstype)
+    //      }
+    //    }
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set())

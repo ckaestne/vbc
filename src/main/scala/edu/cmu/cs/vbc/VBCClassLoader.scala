@@ -2,8 +2,7 @@ package edu.cmu.cs.vbc
 
 import java.io._
 
-import edu.cmu.cs.vbc.loader.{JavaLibClassModifier, Loader}
-import edu.cmu.cs.vbc.utils.LiftingFilter
+import edu.cmu.cs.vbc.loader.Loader
 import edu.cmu.cs.vbc.vbytecode.{VBCClassNode, VBCMethodNode}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.tree.ClassNode

@@ -45,7 +45,7 @@ class Loader {
 
 
   def adaptMethod(owner: String, m: MethodNode): VBCMethodNode = {
-    println("\tMethod: " + m.name)
+    //    println("\tMethod: " + m.name)
     val methodAnalyzer = new MethodAnalyzer(owner, m)
     methodAnalyzer.analyze()
     methodAnalyzer.validate()

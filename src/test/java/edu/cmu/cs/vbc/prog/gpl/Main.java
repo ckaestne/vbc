@@ -88,15 +88,17 @@ public class Main {
             }
 
             // Executes the selected features
+        if (valid()) {
             Graph.startProfile();
             splPrint___("arg1: {" + args1 + "}");
-            Vertex rootVertex = g.findsVertex( args1.trim() );
+            Vertex rootVertex = g.findsVertex(args1.trim());
             g.run(rootVertex);
             Graph.stopProfile();
-            splPrint___( "******************************************" );
+            splPrint___("******************************************");
             splPrint___("<BASE___ graph>");
             g.display();
             Graph.resumeProfile();
+        }
 
             // End profiling
             Graph.endProfile();

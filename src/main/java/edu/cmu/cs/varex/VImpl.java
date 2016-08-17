@@ -238,6 +238,12 @@ class VImpl<T> implements V<T> {
         }
         return super.equals(obj);
     }
+
+    @Override
+    public boolean equalValue(Object o) {
+        return equals(o);
+    }
+
 }
 
 

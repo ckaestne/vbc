@@ -238,4 +238,11 @@ public interface V<T> {
             return VImpl.choice(condition, a, b);
     }
 
+    /**
+     * Compares equality of the wrapped value.
+     *
+     * @param o V to be compared.
+     * @return If the wrapped values are equal.
+     */
+    boolean equalValue(Object o);
 }

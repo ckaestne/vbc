@@ -104,7 +104,7 @@ case class InstrLINENUMBER(line: Int) extends EmptyInstruction {
 
 
 /**
-  * Helper instruciton for initializing conditional fields
+  * Helper instruction for initializing conditional fields
   */
 case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
 
@@ -113,34 +113,53 @@ case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    for (field <- env.clazz.fields if !field.isStatic) {
-      import LiftUtils._
-      if (field.hasConditionalAnnotation()) {
-        mv.visitVarInsn(ALOAD, 0)
-        mv.visitLdcInsn(field.name)
-        mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "createDefinedExternal", "(Ljava/lang/String;)Lde/fosd/typechef/featureexpr/SingleFeatureExpr;", false)
-        mv.visitInsn(ICONST_1)
-        mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
-        callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
-        mv.visitInsn(ICONST_0)
-        mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
-        callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
-        callVCreateChoice(mv)
-        mv.visitFieldInsn(PUTFIELD, env.clazz.name, field.name, "Ledu/cmu/cs/varex/V;")
+
+    import LiftUtils._
+    def createChoice(fName: String, mv: MethodVisitor): Unit = {
+      mv.visitLdcInsn(fName)
+      mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "createDefinedExternal", "(Ljava/lang/String;)Lde/fosd/typechef/featureexpr/SingleFeatureExpr;", false)
+      mv.visitInsn(ICONST_1)
+      mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+      mv.visitInsn(ICONST_0)
+      mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+      callVCreateChoice(mv)
+    }
+
+    def createOne(fDesc: String, mv: MethodVisitor): Unit = {
+      Type.getType(fDesc).getSort match {
+        case Type.INT => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+        case Type.OBJECT => mv.visitInsn(ACONST_NULL)
+        //          case Type.BOOLEAN => mv.visitIntInsn(BIPUSH, 0); mv.visitMethodInsn(INVOKESTATIC, vBoolean, "valueOf", s"(Z)$vBooleanType", false)
+        case Type.BOOLEAN => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+        case _ => ???
       }
-      else {
-        // Init all UNCONDITIONAL fields to be One(null)
+      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+    }
+
+    def inClinit = env.method.name == "___clinit___"
+    if (inClinit) {
+      env.clazz.fields.filter(f => f.isStatic && f.hasConditionalAnnotation()).foreach(f => {
+        createChoice(f.name, mv);
+        mv.visitFieldInsn(PUTSTATIC, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
+      })
+      env.clazz.fields.filter(f => f.isStatic && !f.hasConditionalAnnotation()).foreach(f => {
+        createOne(f.desc, mv);
+        mv.visitFieldInsn(PUTSTATIC, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
+      })
+    }
+    else {
+      env.clazz.fields.filter(f => !f.isStatic && f.hasConditionalAnnotation()).foreach(f => {
         mv.visitVarInsn(ALOAD, 0)
-        Type.getType(field.desc).getSort match {
-          case Type.INT => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
-          case Type.OBJECT => mv.visitInsn(ACONST_NULL)
-//          case Type.BOOLEAN => mv.visitIntInsn(BIPUSH, 0); mv.visitMethodInsn(INVOKESTATIC, vBoolean, "valueOf", s"(Z)$vBooleanType", false)
-          case Type.BOOLEAN => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
-          case _ => ???
-        }
-        callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
-        mv.visitFieldInsn(PUTFIELD, env.clazz.name, field.name, "Ledu/cmu/cs/varex/V;")
-      }
+        createChoice(f.name, mv)
+        mv.visitFieldInsn(PUTFIELD, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
+      })
+      env.clazz.fields.filter(f => !f.isStatic && !f.hasConditionalAnnotation()).foreach(f => {
+        mv.visitVarInsn(ALOAD, 0)
+        createOne(f.desc, mv)
+        mv.visitFieldInsn(PUTFIELD, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
+      })
     }
   }
 

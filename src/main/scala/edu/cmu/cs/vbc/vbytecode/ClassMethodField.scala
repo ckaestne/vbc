@@ -1,6 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode
 
 import edu.cmu.cs.vbc.utils.LiftUtils
+import edu.cmu.cs.vbc.vbytecode.instructions.{InstrINIT_CONDITIONAL_FIELDS, InstrINVOKESTATIC, InstrRETURN, Instruction}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm._
 import org.objectweb.asm.tree._
@@ -211,7 +212,7 @@ case class VBCClassNode(
     if (methods.exists(_.isMain))
       createUnliftedMain(cv)
     // create <clinit> method
-    if (hasStaticConditionalFields) createCLINIT(cv)
+    if (hasStaticConditionalFields) createCLINIT(cv, rewriter)
     // Write lambda methods
     // Lambda methods might be generated while generating other lambda methods (e.g. nested invokedynamic see InvokeDynamicUtils),
     // so we need this while to ensure that all lambda methods are generated
@@ -230,26 +231,36 @@ case class VBCClassNode(
 
   lazy val hasCLINIT = methods.exists(_.name == "<clinit>")
 
-  def createCLINIT(cv: ClassVisitor) = {
+  /**
+    * Creates our own clinit methods.
+    *
+    * Original clinit method is renamed to ______clinit______. Our own clinit simply calls
+    * ___clinit___, which does initialization of conditional fields and then call ______clinit______.
+    *
+    * @todo remove ___clinit___
+    * @param cv
+    * @param rewriter
+    */
+  def createCLINIT(cv: ClassVisitor, rewriter: VBCMethodNode => VBCMethodNode = a => a) = {
+    val instrs: Array[Instruction] =
+      if (hasCLINIT)
+        Array(InstrINIT_CONDITIONAL_FIELDS(), InstrINVOKESTATIC(name, "______clinit______", "()V", false), InstrRETURN())
+      else
+        Array(InstrINIT_CONDITIONAL_FIELDS(), InstrRETURN())
+    val vbcMtd = VBCMethodNode(
+      ACC_STATIC,
+      "___clinit___",
+      "()V",
+      None,
+      List.empty,
+      CFG(List(Block(instrs: _*)))
+    )
+    rewriter(Rewrite.rewriteV(vbcMtd)).toVByteCode(cv, this)
+
     val mv = cv.visitMethod(ACC_STATIC, "<clinit>", "()V", null, Array.empty)
     mv.visitCode()
-    for (conditionalField <- fields
-         if conditionalField.hasConditionalAnnotation; if conditionalField.isStatic) {
-      mv.visitLdcInsn(conditionalField.name)
-      mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "createDefinedExternal", "(Ljava/lang/String;)Lde/fosd/typechef/featureexpr/SingleFeatureExpr;", false)
-      mv.visitInsn(ICONST_1)
-      mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
-      callVCreateOne(mv, (m) => pushConstantTRUE(m))
-      mv.visitInsn(ICONST_0)
-      mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
-      callVCreateOne(mv, (m) => pushConstantTRUE(m))
-      callVCreateChoice(mv)
-      mv.visitFieldInsn(PUTSTATIC, name, conditionalField.name, "Ledu/cmu/cs/varex/V;")
-    }
-    if (hasCLINIT) {
-      pushConstantTRUE(mv)
-      mv.visitMethodInsn(INVOKESTATIC, name, "______clinit______", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
-    }
+    pushConstantTRUE(mv)
+    mv.visitMethodInsn(INVOKESTATIC, name, "___clinit___", s"($fexprclasstype)V", false)
     mv.visitInsn(RETURN)
     mv.visitMaxs(10, 10)
     mv.visitEnd()

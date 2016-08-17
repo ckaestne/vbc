@@ -76,6 +76,11 @@ public class VEmpty<T> implements V<T> {
     }
 
     @Override
+    public boolean equalValue(Object o) {
+        return equals(o);
+    }
+
+    @Override
     public int hashCode() {
         return 17;
     }

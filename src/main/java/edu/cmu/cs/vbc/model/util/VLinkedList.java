@@ -24,14 +24,21 @@ import java.util.LinkedList;
  */
 public class VLinkedList {
 
-    V<LinkedList> actual;
+    class IdentityLinkedList extends LinkedList {
+        @Override
+        public boolean equals(Object o) {
+            return this == o;
+        }
+    }
+
+    V<IdentityLinkedList> actual;
 
     public VLinkedList(FeatureExpr ctx) {
-        actual = V.one(ctx, new LinkedList());
+        actual = V.one(ctx, new IdentityLinkedList());
     }
 
     public void split(FeatureExpr ctx) {
-        if (actual.select(ctx) == actual.select(ctx.not())) {
+        if (actual.select(ctx).equalValue(actual.select(ctx.not()))) {
             // need to split
             V cloned = actual.smap(ctx.not(), x -> {
                 return x.clone();
