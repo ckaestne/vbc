@@ -180,8 +180,8 @@ class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
 
   ignore("unbalanced non-V value") {
     method(
-      Block(InstrNEW("java/lang/Integer"), InstrDUP(), InstrICONST(3), InstrINVOKESPECIAL("java/lang/Integer", "<init>", "(I)V", false)),
-      Block(InstrINVOKEVIRTUAL("java/lang/Integer", "toString", "()Ljava/lang/String;", false)),
+      Block(InstrNEW("java/lang/Integer"), InstrDUP(), InstrICONST(3), InstrINVOKESPECIAL(Owner("java/lang/Integer"), MethodName("<init>"), MethodDesc("(I)V"), false)),
+      Block(InstrINVOKEVIRTUAL(Owner("java/lang/Integer"), MethodName("toString"), MethodDesc("()Ljava/lang/String;"), false)),
       Block(InstrDBGStrPrint()),
       Block(InstrRETURN())
     )
@@ -189,8 +189,8 @@ class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
 
   test("unbalanced non-V value with GOTOs") {
     method(
-      Block(InstrNEW("java/lang/Integer"), InstrDUP(), InstrICONST(3), InstrINVOKESPECIAL("java/lang/Integer", "<init>", "(I)V", false), InstrGOTO(1)),
-      Block(InstrINVOKEVIRTUAL("java/lang/Integer", "toString", "()Ljava/lang/String;", false), InstrGOTO(2)),
+      Block(InstrNEW("java/lang/Integer"), InstrDUP(), InstrICONST(3), InstrINVOKESPECIAL(Owner("java/lang/Integer"), MethodName("<init>"), MethodDesc("(I)V"), false), InstrGOTO(1)),
+      Block(InstrINVOKEVIRTUAL(Owner("java/lang/Integer"), MethodName("toString"), MethodDesc("()Ljava/lang/String;"), false), InstrGOTO(2)),
       Block(InstrDBGStrPrint(), InstrRETURN())
     )
   }
@@ -198,7 +198,7 @@ class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
   test("IFNONNULL") {
     val variable = new LocalVar("v", "R")
     method(
-      Block(InstrICONST(1), InstrINVOKESTATIC("java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", itf = false), InstrASTORE(variable)),
+      Block(InstrICONST(1), InstrINVOKESTATIC(Owner("java/lang/Integer"), MethodName("valueOf"), MethodDesc("(I)Ljava/lang/Integer;"), itf = false), InstrASTORE(variable)),
       Block(InstrLoadConfig("A"), InstrIFGE(3)),
       Block(InstrACONST_NULL(), InstrGOTO(4)),
       Block(InstrALOAD(variable), InstrGOTO(4)),
@@ -230,7 +230,7 @@ class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
   ignore("NEW reference left on stack") {
     method(
       Block(InstrLoadConfig("A"), InstrIFEQ(2)),
-      Block(InstrNEW("java/lang/Integer"), InstrDUP(), InstrINVOKESPECIAL("java/lang/Integer", "<init>", "()V", itf = false), InstrGOTO(3)),
+      Block(InstrNEW("java/lang/Integer"), InstrDUP(), InstrINVOKESPECIAL(Owner("java/lang/Integer"), MethodName("<init>"), MethodDesc("()V"), itf = false), InstrGOTO(3)),
       Block(InstrNEW("java/lang/Integer")),
       Block(InstrPOP(), InstrRETURN())
     )

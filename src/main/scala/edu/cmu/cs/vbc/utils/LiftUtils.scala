@@ -164,7 +164,7 @@ object LiftUtils {
   //////////////////////////////////////////////////
   // Model class related utils
   //////////////////////////////////////////////////
-  def liftClsType(desc: String): String = {
+  def liftClsType(desc: TypeDesc): TypeDesc = {
     val t: Type = Type.getType(desc)
     t.getSort match {
       case Type.OBJECT =>
@@ -173,19 +173,19 @@ object LiftUtils {
             val lastSlashIdx = desc.lastIndexOf('/')
             val javaIdx = desc.indexOf("java")
             assert(lastSlashIdx != -1 && javaIdx != -1)
-            desc.substring(0, javaIdx) + "edu/cmu/cs/vbc/model/" + desc.substring(javaIdx + 5, lastSlashIdx) + "/V" + desc.substring(lastSlashIdx + 1)
+            TypeDesc(desc.substring(0, javaIdx) + "edu/cmu/cs/vbc/model/" + desc.substring(javaIdx + 5, lastSlashIdx) + "/V" + desc.substring(lastSlashIdx + 1))
           case _ => desc
         }
       case _ => desc
     }
   }
 
-  def liftCls(owner: String): String = {
+  def liftCls(owner: Owner): Owner = {
     owner match {
       case s if s.startsWith("java") =>
         val lastSlash = owner.lastIndexOf('/')
         val vClsName = "/V" + owner.substring(lastSlash + 1)
-        "edu/cmu/cs/vbc/model/" + owner.substring(5, lastSlash) + vClsName
+        Owner("edu/cmu/cs/vbc/model/" + owner.substring(5, lastSlash) + vClsName)
       case _ => owner
     }
   }
@@ -207,10 +207,9 @@ object LiftUtils {
     * Scan and replace java library classes with model classes
     */
   private def replaceLibCls(desc: String): String = {
-    val liftType = (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else liftClsType(t.toString)
+    val liftType: Type => String =
+      (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else liftClsType(TypeDesc(t.toString))
     val mtype = Type.getMethodType(desc)
-    "(" +
-      mtype.getArgumentTypes.map(liftType).mkString("", "", ")") +
-      liftType(mtype.getReturnType)
+    mtype.getArgumentTypes.map(liftType).mkString("(", "", ")") + liftType(mtype.getReturnType)
   }
 }

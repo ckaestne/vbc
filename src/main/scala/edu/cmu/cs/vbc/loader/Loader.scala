@@ -325,35 +325,35 @@ class Loader {
       case RETURN => InstrRETURN()
       case GETSTATIC => {
         val i = inst.asInstanceOf[FieldInsnNode]
-        InstrGETSTATIC(i.owner, i.name, i.desc)
+        InstrGETSTATIC(Owner(i.owner), FieldName(i.name), TypeDesc(i.desc))
       }
       case PUTSTATIC => {
         val i = inst.asInstanceOf[FieldInsnNode]
-        InstrPUTSTATIC(i.owner, i.name, i.desc)
+        InstrPUTSTATIC(Owner(i.owner), FieldName(i.name), TypeDesc(i.desc))
       }
       case GETFIELD => {
         val i = inst.asInstanceOf[FieldInsnNode]
-        InstrGETFIELD(i.owner, i.name, i.desc)
+        InstrGETFIELD(Owner(i.owner), FieldName(i.name), TypeDesc(i.desc))
       }
       case PUTFIELD => {
         val i = inst.asInstanceOf[FieldInsnNode]
-        InstrPUTFIELD(i.owner, i.name, i.desc)
+        InstrPUTFIELD(Owner(i.owner), FieldName(i.name), TypeDesc(i.desc))
       }
       case INVOKEVIRTUAL => {
         val i = inst.asInstanceOf[MethodInsnNode]
-        InstrINVOKEVIRTUAL(i.owner, i.name, i.desc, i.itf)
+        InstrINVOKEVIRTUAL(Owner(i.owner), MethodName(i.name), MethodDesc(i.desc), i.itf)
       }
       case INVOKESPECIAL => {
         val i = inst.asInstanceOf[MethodInsnNode]
-        InstrINVOKESPECIAL(i.owner, i.name, i.desc, i.itf)
+        InstrINVOKESPECIAL(Owner(i.owner), MethodName(i.name), MethodDesc(i.desc), i.itf)
       }
       case INVOKESTATIC => {
         val i = inst.asInstanceOf[MethodInsnNode]
-        InstrINVOKESTATIC(i.owner, i.name, i.desc, i.itf)
+        InstrINVOKESTATIC(Owner(i.owner), MethodName(i.name), MethodDesc(i.desc), i.itf)
       }
       case INVOKEINTERFACE => {
         val i = inst.asInstanceOf[MethodInsnNode]
-        InstrINVOKEINTERFACE(i.owner, i.name, i.desc, i.itf)
+        InstrINVOKEINTERFACE(Owner(i.owner), MethodName(i.name), MethodDesc(i.desc), i.itf)
       }
       case INVOKEDYNAMIC => UNKNOWN(INVOKEDYNAMIC)
       case NEW => {
@@ -372,7 +372,7 @@ class Loader {
       case ATHROW => UNKNOWN(ATHROW)
       case CHECKCAST => {
         val i = inst.asInstanceOf[TypeInsnNode]
-        InstrCHECKCAST(i.desc)
+        InstrCHECKCAST(Owner(i.desc))
       }
       case INSTANCEOF => UNKNOWN(INSTANCEOF)
       case MONITORENTER => UNKNOWN(MONITORENTER)

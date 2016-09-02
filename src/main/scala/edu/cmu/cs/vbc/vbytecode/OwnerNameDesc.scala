@@ -15,27 +15,71 @@ import javax.lang.model.SourceVersion
   * @author chupanw
   */
 case class Owner(name: String) {
-  require(SourceVersion.isName(name), "Invalid class name")
+  require(!name.contains('.'), s"Invalid internal class name: $name")
+  require(SourceVersion.isName(name.replace('/', '.')), "Invalid internal class name")
+
+  override def equals(obj: scala.Any): Boolean = name == obj
 }
 
-/** Wrapper for method name */
+/** Store implicit conversion to String, avoid changing too much existing code. */
+object Owner {
+  implicit def ownerToString(owner: Owner): String = owner.name
+}
+
+
+/**
+  * Wrapper for method name
+  */
 case class MethodName(name: String) {
-  require(SourceVersion.isIdentifier(name), "Invalid method name")
+  require(name == "<init>" || name == "<clinit>" || SourceVersion.isIdentifier(name), s"Invalid method name: $name")
+
+  override def equals(obj: scala.Any): Boolean = name == obj
 }
 
-/** Wrapper for field name */
+object MethodName {
+  implicit def methodNameToString(m: MethodName): String = m.name
+}
+
+
+/**
+  * Wrapper for field name
+  */
 case class FieldName(name: String) {
-  require(SourceVersion.isIdentifier(name), "Invalid field name")
+  require(SourceVersion.isIdentifier(name), s"Invalid field name: $name")
+
+  override def equals(obj: scala.Any): Boolean = name == obj
 }
 
-/** Wrapper for method description */
+object FieldName {
+  implicit def fieldNameToString(f: FieldName): String = f.name
+}
+
+
+/**
+  * Wrapper for method descriptor
+  */
 case class MethodDesc(desc: String) extends TypeVerifier {
-  require(isValidMethod(desc), "Invalid method descriptor")
+  require(isValidMethod(desc), s"Invalid method descriptor: $desc")
+
+  override def equals(obj: scala.Any): Boolean = desc == obj
 }
 
-/** Wrapper for field description */
-case class FieldDesc(desc: String) extends TypeVerifier {
-  require(isValidType(desc), "Invalid field descriptor")
+object MethodDesc {
+  implicit def methodDescToString(md: MethodDesc): String = md.desc
+}
+
+
+/**
+  * Wrapper for field descriptor
+  */
+case class TypeDesc(desc: String) extends TypeVerifier {
+  require(isValidType(desc), s"Invalid field descriptor: $desc")
+
+  override def equals(obj: scala.Any): Boolean = desc == obj
+}
+
+object TypeDesc {
+  implicit def typeDescToString(td: TypeDesc): String = td.desc
 }
 
 trait TypeVerifier {

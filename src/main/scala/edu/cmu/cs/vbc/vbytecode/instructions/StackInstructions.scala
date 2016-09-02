@@ -93,7 +93,7 @@ case class InstrSIPUSH(value: Int) extends Instruction {
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
       mv.visitIntInsn(SIPUSH, value)
-      mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", genSign("I", liftClsType(primitiveToObjectType("I"))), false)
+      mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", genSign("I", liftClsType(TypeDesc("Ljava/lang/Integer;"))), false)
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
     else

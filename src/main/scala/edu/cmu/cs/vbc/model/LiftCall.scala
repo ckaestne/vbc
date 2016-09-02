@@ -2,6 +2,7 @@ package edu.cmu.cs.vbc.model
 
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.utils.LiftingPolicy
+import edu.cmu.cs.vbc.vbytecode.{MethodDesc, MethodName, Owner, TypeDesc}
 import org.objectweb.asm.Type
 
 /**
@@ -22,7 +23,7 @@ object LiftCall {
     *         String -> lifted method description
     *
     */
-  def liftCall(hasVArgs: Boolean, owner: String, name: String, desc: String): (String, String, String) = {
+  def liftCall(hasVArgs: Boolean, owner: Owner, name: MethodName, desc: MethodDesc): (Owner, MethodName, MethodDesc) = {
     val shouldLiftMethod = LiftingPolicy.shouldLiftMethodCall(owner, name, desc)
     if (shouldLiftMethod) {
       /*
@@ -61,29 +62,33 @@ object LiftCall {
   /**
     * Scan and replace java library classes with model classes
     */
-  private def replaceLibCls(desc: String): String = {
-    val liftType = (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else liftClsType(t.toString)
+  private def replaceLibCls(desc: MethodDesc): MethodDesc = {
+    val liftType: Type => String =
+      (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else liftClsType(TypeDesc(t.toString))
     val mtype = Type.getMethodType(desc)
-    "(" +
-      (mtype.getArgumentTypes.map(liftType) :+ "Lde/fosd/typechef/featureexpr/FeatureExpr;").mkString("", "", ")") +
+    MethodDesc(
+      (mtype.getArgumentTypes.map(liftType) :+ "Lde/fosd/typechef/featureexpr/FeatureExpr;").mkString("(", "", ")") +
       liftType(Type.getType(primitiveToObjectType(mtype.getReturnType.toString)))
+    )
   }
 
   /**
     * Replace all the none-void parameter types with V types, also add FE to the end of parameter list
     */
-  private def replaceWithVs(desc: String): String = {
-    val liftType = (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else "Ledu/cmu/cs/varex/V;"
+  private def replaceWithVs(desc: MethodDesc): MethodDesc = {
+    val liftType: Type => String =
+      (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else "Ledu/cmu/cs/varex/V;"
     val mtype = Type.getMethodType(desc)
-    "(" +
-      (mtype.getArgumentTypes.map(liftType) :+ "Lde/fosd/typechef/featureexpr/FeatureExpr;").mkString("", "", ")") +
+    MethodDesc(
+      (mtype.getArgumentTypes.map(liftType) :+ "Lde/fosd/typechef/featureexpr/FeatureExpr;").mkString("(", "", ")") +
       liftType(mtype.getReturnType)
+    )
   }
 
-  def encodeTypeInName(name: String, desc: String): String = {
-    name match {
-      case "<init>" => name
-      case _ => name + desc.replace('/', '_').replace('(', '$').replace(')', '$').replace(";", "").replace("[", "Array_")
+  def encodeTypeInName(mn: MethodName, desc: MethodDesc): MethodName = {
+    mn.name match {
+      case "<init>" => mn
+      case _ => MethodName(mn.name + desc.replace('/', '_').replace('(', '$').replace(')', '$').replace(";", "").replace("[", "Array_"))
     }
   }
 

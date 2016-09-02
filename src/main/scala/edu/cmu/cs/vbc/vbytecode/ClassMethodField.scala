@@ -193,7 +193,7 @@ case class VBCClassNode(
   }
 
 
-  def liftSuperName(superName: String) = {
+  def liftSuperName(superName: Owner): Owner = {
     // Super class of interface must be java/lang/Object, could not be VObject
     if ((access & ACC_INTERFACE) == 0)
       liftCls(superName)
@@ -202,7 +202,7 @@ case class VBCClassNode(
   }
 
   def toVByteCode(cv: ClassVisitor, rewriter: VBCMethodNode => VBCMethodNode = a => a) = {
-    val liftedSuperName = liftSuperName(superName)
+    val liftedSuperName = liftSuperName(Owner(superName))
     cv.visit(version, access, name, signature.getOrElse(null), liftedSuperName, interfaces.toArray)
     commonToByteCode(cv)
     //        innerClasses.foreach(_.toVByteCode(cv))
@@ -244,7 +244,11 @@ case class VBCClassNode(
   def createCLINIT(cv: ClassVisitor, rewriter: VBCMethodNode => VBCMethodNode = a => a) = {
     val instrs: Array[Instruction] =
       if (hasCLINIT)
-        Array(InstrINIT_CONDITIONAL_FIELDS(), InstrINVOKESTATIC(name, "______clinit______", "()V", false), InstrRETURN())
+        Array(
+          InstrINIT_CONDITIONAL_FIELDS(),
+          InstrINVOKESTATIC(Owner(name), MethodName("______clinit______"), MethodDesc("()V"), false),
+          InstrRETURN()
+        )
       else
         Array(InstrINIT_CONDITIONAL_FIELDS(), InstrRETURN())
     val vbcMtd = VBCMethodNode(

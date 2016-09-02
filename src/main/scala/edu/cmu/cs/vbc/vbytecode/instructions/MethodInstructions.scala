@@ -17,7 +17,7 @@ import org.objectweb.asm.{MethodVisitor, Type}
 
 trait MethodInstruction extends Instruction {
 
-  def invokeDynamic(owner: String, name: String, desc: String, itf: Boolean, mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+  def invokeDynamic(owner: Owner, name: MethodName, desc: MethodDesc, itf: Boolean, mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     val nArgs = Type.getArgumentTypes(desc).length
     val hasVArgs = nArgs > 0
     val (nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc)
@@ -53,9 +53,9 @@ trait MethodInstruction extends Instruction {
   def updateStack(
                    s: VBCFrame,
                    env: VMethodEnv,
-                   owner: String,
-                   name: String,
-                   desc: String
+                   owner: Owner,
+                   name: MethodName,
+                   desc: MethodDesc
                  ): UpdatedFrame = {
     val shouldLift = LiftingPolicy.shouldLiftMethodCall(owner, name, desc)
     val nArg = Type.getArgumentTypes(desc).length
@@ -140,7 +140,7 @@ trait MethodInstruction extends Instruction {
   * @param desc
   * @param itf
   */
-case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Boolean) extends MethodInstruction {
+case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, itf: Boolean) extends MethodInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitMethodInsn(INVOKESPECIAL, owner, name, desc, itf)
   }
@@ -165,10 +165,10 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
       val (nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc)
 
       loadCurrentCtx(mv, env, block)
-      if (name == "<init>" && hasVArgs && !LiftingPolicy.shouldLiftMethodCall(owner, name, desc)) {
+      if (name.contentEquals("<init>") && hasVArgs && !LiftingPolicy.shouldLiftMethodCall(owner, name, desc)) {
         // Use a special init method to do initialization
-        val newDesc = nDesc.init + vclasstype
-        val newName = LiftCall.encodeTypeInName("Vinit", desc)
+        val newDesc = nDesc.substring(0, nDesc.length - 1) + vclasstype
+        val newName = LiftCall.encodeTypeInName(MethodName("Vinit"), desc)
         mv.visitMethodInsn(INVOKESTATIC, nOwner, newName, newDesc, false)
         // pop the useless uninitialized references
         mv.visitInsn(SWAP)
@@ -191,7 +191,7 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
     * @see [[Rewrite.rewrite()]]
     */
   override def isINVOKESPECIAL_OBJECT_INIT: Boolean =
-    owner == "java/lang/Object" && name == "<init>" && desc == "()V" && !itf
+  owner.contentEquals("java/lang/Object") && name.contentEquals("<init>") && desc.contentEquals("()V") && !itf
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame =
     updateStack(s, env, owner, name, desc)
@@ -206,7 +206,7 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
   * @param desc
   * @param itf
   */
-case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Boolean) extends MethodInstruction {
+case class InstrINVOKEVIRTUAL(owner: Owner, name: MethodName, desc: MethodDesc, itf: Boolean) extends MethodInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitMethodInsn(INVOKEVIRTUAL, owner, name, desc, itf)
   }
@@ -256,7 +256,7 @@ case class InstrINVOKEVIRTUAL(owner: String, name: String, desc: String, itf: Bo
   * @param desc
   * @param itf
   */
-case class InstrINVOKESTATIC(owner: String, name: String, desc: String, itf: Boolean) extends MethodInstruction {
+case class InstrINVOKESTATIC(owner: Owner, name: MethodName, desc: MethodDesc, itf: Boolean) extends MethodInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitMethodInsn(INVOKESTATIC, owner, name, desc, itf)
   }
@@ -275,7 +275,7 @@ case class InstrINVOKESTATIC(owner: String, name: String, desc: String, itf: Boo
     updateStack(s, env, owner, name, desc)
 }
 
-case class InstrINVOKEINTERFACE(owner: String, name: String, desc: String, itf: Boolean) extends MethodInstruction {
+case class InstrINVOKEINTERFACE(owner: Owner, name: MethodName, desc: MethodDesc, itf: Boolean) extends MethodInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitMethodInsn(INVOKEINTERFACE, owner, name, desc, itf)
   }

@@ -8,8 +8,16 @@ import org.scalatest.FlatSpec
   */
 class OwnerNameDescTest extends FlatSpec {
 
-  "Owner" should "be a valid class name" in {
-    Owner("java.lang.Object")
+  def expectString(s: String) {}
+
+  "Owner" should "be a valid internal name" in {
+    Owner("java/lang/Object")
+  }
+
+  it should "contain '/' instead of '.'" in {
+    assertThrows[IllegalArgumentException] {
+      Owner("java.lang.Object")
+    }
   }
 
   it should "throw exception if it starts with number" in {
@@ -24,6 +32,10 @@ class OwnerNameDescTest extends FlatSpec {
     }
   }
 
+  it can "be implicitly converted to String" in {
+    expectString(Owner("java/lang/Object"))
+  }
+
   "MethodName" should "be a valid Java identifier" in {
     MethodName("hello")
   }
@@ -32,6 +44,15 @@ class OwnerNameDescTest extends FlatSpec {
     assertThrows[IllegalArgumentException] {
       MethodName("hello&")
     }
+  }
+
+  it can "be <init> or <clinit>" in {
+    MethodName("<init>")
+    MethodName("<clinit>")
+  }
+
+  it can "be implicitly converted to String" in {
+    expectString(MethodName("<init>"))
   }
 
   "FieldName" should "be a valid Java identifier" in {
@@ -44,38 +65,52 @@ class OwnerNameDescTest extends FlatSpec {
     }
   }
 
-  "FieldDesc" can "be one of the eight primitive types" in {
-    FieldDesc("Z") // boolean
-    FieldDesc("C") // char
-    FieldDesc("B") // byte
-    FieldDesc("S") // short
-    FieldDesc("I") // int
-    FieldDesc("F") // float
-    FieldDesc("J") // long
-    FieldDesc("D") // double
+  it can "be implicitly converted to String" in {
+    expectString(FieldName("hello"))
+  }
+
+  "TypeDesc" can "be one of the eight primitive types" in {
+    TypeDesc("Z") // boolean
+    TypeDesc("C") // char
+    TypeDesc("B") // byte
+    TypeDesc("S") // short
+    TypeDesc("I") // int
+    TypeDesc("F") // float
+    TypeDesc("J") // long
+    TypeDesc("D") // double
 
     assertThrows[IllegalArgumentException] {
-      FieldDesc("A")
+      TypeDesc("A")
     }
   }
 
   it can "be a valid class type" in {
-    FieldDesc("Ljava/lang/Object;")
+    TypeDesc("Ljava/lang/Object;")
     assertThrows[IllegalArgumentException] {
-      FieldDesc("Ljava/lang/Object")
-      FieldDesc("java/lang/Object;")
-      FieldDesc("java/lang/Object")
-      FieldDesc("java.lang.Object")
+      TypeDesc("Ljava/lang/Object")
+      TypeDesc("java/lang/Object;")
+      TypeDesc("java/lang/Object")
+      TypeDesc("java.lang.Object")
     }
   }
 
   it can "be array" in {
-    FieldDesc("[I")
-    FieldDesc("[Ljava/lang/Object;")
+    TypeDesc("[I")
+    TypeDesc("[Ljava/lang/Object;")
     assertThrows[IllegalArgumentException] {
-      FieldDesc("]I")
-      FieldDesc("[A")
+      TypeDesc("]I")
+      TypeDesc("[A")
     }
+  }
+
+  it can "not be void" in {
+    assertThrows[IllegalArgumentException] {
+      TypeDesc("V")
+    }
+  }
+
+  it can "be implicitly converted to String" in {
+    expectString(TypeDesc("I"))
   }
 
   "MethodDesc" should "has a list of type descriptors inside () followed by the return type" in {
@@ -83,12 +118,19 @@ class OwnerNameDescTest extends FlatSpec {
     MethodDesc("(Ljava/lang/Object;)I") // int m(Object o)
     MethodDesc("(ILjava/lang/String;)[I") // int[] m(int i, String s)
     MethodDesc("([I)Ljava/lang/Object;") // Object m(int[] i)
-    MethodDesc("()V") // void m()
 
     assertThrows[IllegalArgumentException] {
       MethodDesc("IF)V") // parenthesis mismatch
       MethodDesc("(IFV") // parenthesis mismatch
       MethodDesc("(IF)A") // A is not a valid type
     }
+  }
+
+  it can "have empty parameter list and void return type" in {
+    MethodDesc("()V") // void m()
+  }
+
+  it can "be implicitly converted to String" in {
+    expectString(MethodDesc("()V"))
   }
 }

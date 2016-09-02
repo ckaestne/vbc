@@ -1,5 +1,7 @@
 package edu.cmu.cs.vbc.utils
 
+import edu.cmu.cs.vbc.vbytecode._
+
 /**
   * Define lifting policy for methods and fields.
   *
@@ -17,7 +19,7 @@ object LiftingPolicy {
     *
     * @todo return the actual model class name if we decided to lift this method call.
     */
-  def shouldLiftMethodCall(owner: String, name: String, desc: String): Boolean = {
+  def shouldLiftMethodCall(owner: Owner, name: MethodName, desc: MethodDesc): Boolean = {
     owner match {
       case container if owner.startsWith("java.util.Collections") => true
       case java if owner.startsWith("java") => !isImmutableCls(LiftUtils.liftCls(owner).replace('/', '.'))
@@ -30,7 +32,7 @@ object LiftingPolicy {
     *
     * @todo return the actual model class name if we decided to lift this method call.
     */
-  def shouldLiftField(owner: String, name: String, desc: String): Boolean = {
+  def shouldLiftField(owner: Owner, name: FieldName, desc: TypeDesc): Boolean = {
     owner match {
       case java if owner.startsWith("java") => !isImmutableCls(LiftUtils.liftCls(owner).replace('/', '.'))
       case _ => true

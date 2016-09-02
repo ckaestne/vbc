@@ -45,9 +45,9 @@ class VBCInstrTest extends FunSuite with DiffMethodTestInfrastructure {
   test("CHECKCAST") {
     simpleMethod(
       InstrICONST(1),
-      InstrINVOKESTATIC("java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", itf = false),
-      InstrCHECKCAST("java/lang/Integer"),
-      InstrINVOKEVIRTUAL("java/lang/Integer", "toString", "()Ljava/lang/String;", itf = false),
+      InstrINVOKESTATIC(Owner("java/lang/Integer"), MethodName("valueOf"), MethodDesc("(I)Ljava/lang/Integer;"), itf = false),
+      InstrCHECKCAST(Owner("java/lang/Integer")),
+      InstrINVOKEVIRTUAL(Owner("java/lang/Integer"), MethodName("toString"), MethodDesc("()Ljava/lang/String;"), itf = false),
       InstrDBGStrPrint(),
       InstrRETURN()
     )

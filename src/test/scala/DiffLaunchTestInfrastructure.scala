@@ -21,10 +21,10 @@ trait DiffLaunchTestInfrastructure {
   def instrumentBlock(block: Block): Block =
     Block((
       for (instr <- block.instr) yield instr match {
-        case InstrINVOKEVIRTUAL("java/io/PrintStream", "println", "(Ljava/lang/String;)V", _) => List(TraceInstr_Print(), instr)
-        case InstrINVOKEVIRTUAL("java/io/PrintStream", "println", "(Ljava/lang/Object;)V", _) => List(TraceInstr_Print(), instr)
+        case InstrINVOKEVIRTUAL(Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(Ljava/lang/String;)V"), _) => List(TraceInstr_Print(), instr)
+        case InstrINVOKEVIRTUAL(Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(Ljava/lang/Object;)V"), _) => List(TraceInstr_Print(), instr)
         case InstrINVOKEVIRTUAL(owner, name, desc, _) => List(TraceInstr_S("INVK_VIRT: " + owner + ";" + name + ";" + desc), instr)
-        case InstrGETFIELD(owner, name, desc) if (desc == "I" || desc == "Z") => List(instr, TraceInstr_GetField("GETFIELD: " + owner + ";" + name + ";" + desc, desc))
+        case InstrGETFIELD(owner, name, desc) if desc.contentEquals("I") || desc.contentEquals("Z") => List(instr, TraceInstr_GetField("GETFIELD: " + owner + ";" + name + ";" + desc, desc))
         case InstrRETURN() => List(TraceInstr_S("RETURN"), instr)
         case InstrIRETURN() => List(TraceInstr_S("IRETURN"), instr)
         case instr => List(instr)

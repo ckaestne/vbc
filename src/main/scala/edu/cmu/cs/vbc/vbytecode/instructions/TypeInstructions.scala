@@ -4,8 +4,8 @@ import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis._
 import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftUtils}
 import edu.cmu.cs.vbc.vbytecode._
+import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
-import org.objectweb.asm.{MethodVisitor, Type}
 
 /**
   * @author chupanw
@@ -17,7 +17,7 @@ case class InstrNEW(t: String) extends Instruction {
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    mv.visitTypeInsn(NEW, LiftUtils.liftCls(t))
+    mv.visitTypeInsn(NEW, LiftUtils.liftCls(Owner(t)))
   }
 
   /**
@@ -54,9 +54,9 @@ case class InstrNEW(t: String) extends Instruction {
   *
   * Operand stack: ..., objref -> ..., objref
   */
-case class InstrCHECKCAST(desc: String) extends Instruction {
+case class InstrCHECKCAST(clsName: Owner) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitTypeInsn(CHECKCAST, desc)
+    mv.visitTypeInsn(CHECKCAST, clsName)
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
@@ -75,13 +75,13 @@ case class InstrCHECKCAST(desc: String) extends Instruction {
       InvokeDynamicUtils.invoke("smap", mv, env, block, "checkcast", "Ljava/lang/Object;()Ljava/lang/Object;") {
         (visitor: MethodVisitor) => {
           visitor.visitVarInsn(ALOAD, 1)  // ref
-          visitor.visitTypeInsn(CHECKCAST, LiftUtils.liftCls(desc))
+          visitor.visitTypeInsn(CHECKCAST, LiftUtils.liftCls(clsName))
           visitor.visitInsn(ARETURN)
         }
       }
     }
     else {
-      mv.visitTypeInsn(CHECKCAST, LiftUtils.liftCls(desc))
+      mv.visitTypeInsn(CHECKCAST, LiftUtils.liftCls(clsName))
     }
   }
 }

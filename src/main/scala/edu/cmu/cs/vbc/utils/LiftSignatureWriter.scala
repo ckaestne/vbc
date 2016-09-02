@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.utils
 
+import edu.cmu.cs.vbc.vbytecode.{Owner, TypeDesc}
 import org.objectweb.asm.signature.{SignatureVisitor, SignatureWriter}
 
 /**
@@ -41,7 +42,9 @@ class LiftSignatureWriter() extends SignatureWriter() {
     if (descriptor == 'V') {
       super.visitBaseType(descriptor)
     } else {
-      visitClassType(liftClsType(liftCls(primitiveToObjectType("" + descriptor))).drop(1).dropRight(1))
+      val liftedClsType = liftClsType(TypeDesc(primitiveToObjectType("" + descriptor)))
+      val trimmed = liftedClsType.substring(1, liftedClsType.length - 1)
+      visitClassType(trimmed)
       visitEnd()
     }
   }
@@ -63,9 +66,9 @@ class LiftSignatureWriter() extends SignatureWriter() {
     super.visitTypeArgument('=')
   }
 
-  override def visitInnerClassType(name: String): Unit = super.visitInnerClassType(liftCls(name))
+  override def visitInnerClassType(name: String): Unit = super.visitInnerClassType(liftCls(Owner(name)))
 
-  override def visitClassType(name: String): Unit = super.visitClassType(liftCls(name))
+  override def visitClassType(name: String): Unit = super.visitClassType(liftCls(Owner(name)))
 
   def getSignature(): String =
     (this.toString + ">;").replace("Ledu/cmu/cs/varex/V<V>;", "V")
