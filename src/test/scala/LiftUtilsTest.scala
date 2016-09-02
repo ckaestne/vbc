@@ -1,9 +1,9 @@
 package edu.cmu.cs.vbc
 
-import org.scalatest.{FunSuite, ShouldMatchers}
+import org.scalatest.{FunSuite, Matchers}
 
 
-class LiftUtilsTest extends FunSuite with ShouldMatchers with DiffMethodTestInfrastructure {
+class LiftUtilsTest extends FunSuite with Matchers with DiffMethodTestInfrastructure {
 
   import edu.cmu.cs.vbc.utils.LiftUtils._
 

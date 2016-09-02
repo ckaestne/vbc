@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.model
 
 import edu.cmu.cs.vbc.utils.LiftUtils._
-import edu.cmu.cs.vbc.utils.LiftingFilter
+import edu.cmu.cs.vbc.utils.LiftingPolicy
 import org.objectweb.asm.Type
 
 /**
@@ -23,7 +23,7 @@ object LiftCall {
     *
     */
   def liftCall(hasVArgs: Boolean, owner: String, name: String, desc: String): (String, String, String) = {
-    val shouldLiftMethod = LiftingFilter.shouldLiftMethod(owner, name, desc)
+    val shouldLiftMethod = LiftingPolicy.shouldLiftMethodCall(owner, name, desc)
     if (shouldLiftMethod) {
       /*
        * VarexC is going to lift this method

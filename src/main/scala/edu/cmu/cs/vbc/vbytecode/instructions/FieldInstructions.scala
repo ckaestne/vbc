@@ -3,7 +3,7 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_TYPE}
 import edu.cmu.cs.vbc.utils.LiftUtils._
-import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftingFilter}
+import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftingPolicy}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm._
@@ -30,7 +30,7 @@ case class InstrGETSTATIC(owner: String, name: String, desc: String) extends Fie
     * Lifting means wrap it into a V
     */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    val shouldLiftField = LiftingFilter.shouldLiftField(owner, name, desc)
+    val shouldLiftField = LiftingPolicy.shouldLiftField(owner, name, desc)
     if (env.shouldLiftInstr(this)) {
       if (shouldLiftField) {
         // fields are lifted, the desc should be V
@@ -51,7 +51,7 @@ case class InstrGETSTATIC(owner: String, name: String, desc: String) extends Fie
     * Lifting means wrap it into a V
     */
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
-    if (LiftingFilter.shouldLiftField(owner, name, desc)) {
+    if (LiftingPolicy.shouldLiftField(owner, name, desc)) {
       // This field should be lifted (e.g. fields that are not from java.lang)
       env.setLift(this)
       (s.push(V_TYPE(), Set(this)), Set())

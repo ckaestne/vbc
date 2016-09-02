@@ -6,7 +6,7 @@ import edu.cmu.cs.vbc.analysis._
 import edu.cmu.cs.vbc.model.LiftCall
 import edu.cmu.cs.vbc.model.LiftCall._
 import edu.cmu.cs.vbc.utils.LiftUtils._
-import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftingFilter}
+import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftingPolicy}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.{MethodVisitor, Type}
@@ -41,7 +41,7 @@ trait MethodInstruction extends Instruction {
         0 until nArgs foreach { (i) => mv.visitVarInsn(ALOAD, i) } // arguments
         mv.visitVarInsn(ALOAD, nArgs) // ctx
         mv.visitMethodInsn(invokeType, nOwner, nName, nDesc, itf)
-        if (!LiftingFilter.shouldLiftMethod(owner, name, desc) && !hasVArgs && !isReturnVoid)
+        if (!LiftingPolicy.shouldLiftMethodCall(owner, name, desc) && !hasVArgs && !isReturnVoid)
           callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, nArgs))
         if (isReturnVoid) mv.visitInsn(RETURN) else mv.visitInsn(ARETURN)
       }
@@ -57,7 +57,7 @@ trait MethodInstruction extends Instruction {
                    name: String,
                    desc: String
                  ): UpdatedFrame = {
-    val shouldLift = LiftingFilter.shouldLiftMethod(owner, name, desc)
+    val shouldLift = LiftingPolicy.shouldLiftMethodCall(owner, name, desc)
     val nArg = Type.getArgumentTypes(desc).length
     val argList: List[(VBCType, Set[Instruction])] = s.stack.take(nArg)
     val hasVArgs = argList.exists(_._1 == V_TYPE())
@@ -165,7 +165,7 @@ case class InstrINVOKESPECIAL(owner: String, name: String, desc: String, itf: Bo
       val (nOwner, nName, nDesc) = liftCall(hasVArgs, owner, name, desc)
 
       loadCurrentCtx(mv, env, block)
-      if (name == "<init>" && hasVArgs && !LiftingFilter.shouldLiftMethod(owner, name, desc)) {
+      if (name == "<init>" && hasVArgs && !LiftingPolicy.shouldLiftMethodCall(owner, name, desc)) {
         // Use a special init method to do initialization
         val newDesc = nDesc.init + vclasstype
         val newName = LiftCall.encodeTypeInName("Vinit", desc)

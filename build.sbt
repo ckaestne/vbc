@@ -6,7 +6,7 @@ libraryDependencies += "de.fosd.typechef" % "featureexprlib_2.11" % "0.4.1"
 
 libraryDependencies += "de.fosd.typechef" % "conditionallib_2.11" % "0.4.1"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.6" % "test"
+libraryDependencies += "org.scalatest" % "scalatest_2.11" % "3.0.0" % "test"
 
 libraryDependencies += "com.storm-enroute" %% "scalameter" % "0.7" % "test"
 
