@@ -4,10 +4,9 @@ import java.io.PrintWriter
 
 import de.fosd.typechef.conditional.{ConditionalLib, Opt}
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
-import edu.cmu.cs.vbc.test.TestOutput.TOpt
-import edu.cmu.cs.vbc.test.{Config, InstrLoadConfig, TestOutput}
+import edu.cmu.cs.vbc.TestOutput.TOpt
 import edu.cmu.cs.vbc.vbytecode._
-import edu.cmu.cs.vbc.vbytecode.instructions.{InstrALOAD, InstrINVOKESPECIAL, InstrRETURN}
+import edu.cmu.cs.vbc.vbytecode.instructions.{InstrALOAD, InstrINVOKESPECIAL, InstrRETURN, Instruction}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.util.TraceClassVisitor
 import org.objectweb.asm.{ClassReader, ClassWriter}
@@ -53,6 +52,12 @@ trait DiffMethodTestInfrastructure {
     clazz.toByteCode(cw)
     val byte = cw.toByteArray
     val printer = new TraceClassVisitor(new PrintWriter(System.out))
+    println(
+      """
+        |  ------------------
+        | | Unlifted version |
+        |  ------------------
+      """.stripMargin)
     new ClassReader(byte).accept(printer, 0)
     val myClassLoader = new MyClassLoader
     myClassLoader.defineClass("Test", byte)
@@ -64,6 +69,12 @@ trait DiffMethodTestInfrastructure {
     val vbyte = vcw.toByteArray
 
     val printer = new TraceClassVisitor(new PrintWriter(System.out))
+    println(
+      """
+        |  ----------------
+        | | Lifted version |
+        |  ----------------
+      """.stripMargin)
     new ClassReader(vbyte).accept(printer, 0)
     val myVClassLoader = new MyClassLoader
     myVClassLoader.defineClass("Test", vbyte)
@@ -208,6 +219,12 @@ trait DiffMethodTestInfrastructure {
     println("Execution time: " + avgTime + bftimes.mkString(" (", ",", ")"))
     println("Slowdown: " + vtime.value / avgTime)
 
+  }
+
+  def simpleMethod(instrs: Instruction*) = {
+    FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
+    testMethod(new VBCMethodNode(ACC_PUBLIC, "test", "()V", Some("()V"), Nil,
+      CFG(List(Block(instrs: _*)))))
   }
 
 

@@ -366,7 +366,7 @@ class Loader {
       }
       case ANEWARRAY => {
         val i = inst.asInstanceOf[TypeInsnNode]
-        InstrANEWARRAY(i.desc)
+        InstrANEWARRAY(Owner(i.desc))
       }
       case ARRAYLENGTH => UNKNOWN(ARRAYLENGTH)
       case ATHROW => UNKNOWN(ATHROW)

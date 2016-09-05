@@ -5,20 +5,32 @@ import javax.lang.model.SourceVersion
 /**
   * Wrapper for method and field owner.
   *
-  * In ASM library, owner is a class name represented by a String. By declaring it as a class,
+  * In ASM library, owner is a class name (or array type) represented by a String. By declaring it as a class,
   * we can avoid messing up with the order of owner, name and desc in cases like:
   *
   * {{{mv.visitMethodInsn(INVOKESPECIAL, owner, name, desc, itf)}}}
   *
-  * We might also add some checking to ensure this is actually a valid class name.
+  * We might also add some checking to ensure this is actually a valid class name or valid array type.
   *
   * @author chupanw
   */
-case class Owner(name: String) {
-  require(!name.contains('.'), s"Invalid internal class name: $name")
-  require(SourceVersion.isName(name.replace('/', '.')), "Invalid internal class name")
+case class Owner(name: String) extends TypeVerifier {
+  require(isValidInternalName(name), s"Invalid Owner name: $name")
 
   override def equals(obj: scala.Any): Boolean = name == obj
+
+  def isValidInternalName(s: String): Boolean = {
+    if (s.startsWith("[")) {
+      // array type
+      isValidType(s.tail)
+    }
+    else {
+      // Not array type, then it should be class
+      // Should be a valid Java class name
+      // Fully qualified name should be separated by "/" instead of "."
+      !name.contains('.') && SourceVersion.isName(s.replace('/', '.'))
+    }
+  }
 }
 
 /** Store implicit conversion to String, avoid changing too much existing code. */
@@ -83,6 +95,7 @@ object TypeDesc {
 }
 
 trait TypeVerifier {
+
   def isValidType(s: String): Boolean = s.size match {
     case 1 => s == "Z" || s == "C" || s == "B" || s == "S" || s == "I" || s == "F" || s == "J" || s == "D"
     case o if s.startsWith("L") && s.endsWith(";") => SourceVersion.isName(s.init.tail.replace('/', '.'))

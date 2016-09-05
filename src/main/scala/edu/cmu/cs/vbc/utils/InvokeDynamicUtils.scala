@@ -16,7 +16,7 @@ import org.objectweb.asm.{ClassVisitor, Handle, MethodVisitor, Type}
   *
   * To do invokedynamic on V array reference, the desc parameter for [[InvokeDynamicUtils.invoke()]] method should be:
   *
-  * [edu/cmu/cs/varex/V;(Ljava/lang/Integer;Ledu/cmu/cs/varex/V;)V
+  * [Ledu/cmu/cs/varex/V;(Ljava/lang/Integer;Ledu/cmu/cs/varex/V;)V
   *
   * The type before parenthesis is the type of object that invokedynamic is performed on, the types inside parenthesis are
   * types of the arguments, and finally the type after parenthesis is the return type.

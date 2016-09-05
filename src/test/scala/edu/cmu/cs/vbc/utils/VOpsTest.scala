@@ -1,4 +1,4 @@
-package test
+package edu.cmu.cs.vbc.utils
 
 import de.fosd.typechef.featureexpr.FeatureExprFactory
 import edu.cmu.cs.varex.{V, VOps}

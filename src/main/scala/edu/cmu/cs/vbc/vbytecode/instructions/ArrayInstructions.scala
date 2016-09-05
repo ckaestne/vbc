@@ -4,7 +4,7 @@ import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{REF_TYPE, VBCFrame, V_TYPE}
 import edu.cmu.cs.vbc.utils.InvokeDynamicUtils
 import edu.cmu.cs.vbc.utils.LiftUtils._
-import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, VMethodEnv}
+import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, Owner, VMethodEnv}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm._
 
@@ -102,10 +102,10 @@ case class InstrNEWARRAY(atype: Int) extends ArrayInstructions {
   *
   * Operand Stack: ..., count -> ..., arrayref
   *
-  * @param desc
+  * @param owner
   */
-case class InstrANEWARRAY(desc: String) extends ArrayInstructions {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitTypeInsn(ANEWARRAY, desc)
+case class InstrANEWARRAY(owner: Owner) extends ArrayInstructions {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitTypeInsn(ANEWARRAY, owner)
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val (v, prev, f) = s.pop()

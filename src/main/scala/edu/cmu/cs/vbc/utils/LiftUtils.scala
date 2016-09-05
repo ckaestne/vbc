@@ -180,14 +180,21 @@ object LiftUtils {
     }
   }
 
+  @deprecated
+  def liftClsStr(owner: String): String = owner match {
+    case cls if cls.startsWith("java") =>
+      val lastSlash = owner.lastIndexOf('/')
+      val vClsName = "/V" + owner.substring(lastSlash + 1)
+      s"edu/cmu/cs/vbc/model/${owner.substring(5, lastSlash) + vClsName}"
+    case array if array.startsWith("[") =>
+      "[Ledu/cmu/cs/varex/V;"
+    //      s"[${liftClsStr(primitiveToObjectType(array.substring(1)))}"
+    case _ => owner
+  }
+
+  @deprecated
   def liftCls(owner: Owner): Owner = {
-    owner match {
-      case s if s.startsWith("java") =>
-        val lastSlash = owner.lastIndexOf('/')
-        val vClsName = "/V" + owner.substring(lastSlash + 1)
-        Owner("edu/cmu/cs/vbc/model/" + owner.substring(5, lastSlash) + vClsName)
-      case _ => owner
-    }
+    Owner(liftClsStr(owner))
   }
 
   def vCls(cls: String) = s"edu/cmu/cs/vbc/model/$cls"

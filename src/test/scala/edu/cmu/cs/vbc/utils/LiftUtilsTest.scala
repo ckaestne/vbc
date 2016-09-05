@@ -1,5 +1,6 @@
-package edu.cmu.cs.vbc
+package edu.cmu.cs.vbc.utils
 
+import edu.cmu.cs.vbc.DiffMethodTestInfrastructure
 import org.scalatest.{FunSuite, Matchers}
 
 

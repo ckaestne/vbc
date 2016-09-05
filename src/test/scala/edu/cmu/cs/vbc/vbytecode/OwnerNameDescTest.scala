@@ -1,6 +1,5 @@
-package vbytecode
+package edu.cmu.cs.vbc.vbytecode
 
-import edu.cmu.cs.vbc.vbytecode._
 import org.scalatest.FlatSpec
 
 /**
@@ -34,6 +33,24 @@ class OwnerNameDescTest extends FlatSpec {
 
   it can "be implicitly converted to String" in {
     expectString(Owner("java/lang/Object"))
+  }
+
+  it can "be primitive array" in {
+    Owner("[I")
+  }
+
+  it can "be object array" in {
+    Owner("[Ljava/lang/Integer;")
+  }
+
+  it can "be multidimensional primitive array" in {
+    Owner("[[I")
+    Owner("[[[I")
+  }
+
+  it can "be multidimensional object array" in {
+    Owner("[[Ljava/lang/Integer;")
+    Owner("[[[Ljava/lang/Integer;")
   }
 
   "MethodName" should "be a valid Java identifier" in {

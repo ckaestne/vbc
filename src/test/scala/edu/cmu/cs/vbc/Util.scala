@@ -1,5 +1,4 @@
-package edu.cmu.cs.vbc.test
-
+package edu.cmu.cs.vbc
 
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
 import edu.cmu.cs.varex.{V, VHelper}
@@ -72,11 +71,11 @@ object TestOutput {
 
 case class InstrLoadConfig(config: String) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/Config", config, "()I", false)
+    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/Config", config, "()I", false)
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit =
-    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/Config", "V" + config, "()Ledu/cmu/cs/varex/V;", false)
+    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/Config", "V" + config, "()Ledu/cmu/cs/varex/V;", false)
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     env.setLift(this)
@@ -87,12 +86,12 @@ case class InstrLoadConfig(config: String) extends Instruction {
 
 case class InstrDBGIPrint() extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printI", "(I)V", false)
+    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/TestOutput", "printI", "(I)V", false)
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     loadFExpr(mv, env, env.getBlockVar(block)) //ctx
-    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printVI", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
+    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/TestOutput", "printVI", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
@@ -107,12 +106,12 @@ case class InstrDBGIPrint() extends Instruction {
 
 case class InstrDBGStrPrint() extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printStr", "(Ljava/lang/String;)V", false)
+    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/TestOutput", "printStr", "(Ljava/lang/String;)V", false)
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     loadFExpr(mv, env, env.getBlockVar(block)) //ctx
-    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printVStr", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
+    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/TestOutput", "printVStr", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
@@ -133,7 +132,7 @@ case class InstrDBGCtx(name: String) extends Instruction {
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     mv.visitLdcInsn(name)
     loadFExpr(mv, env, env.getBlockVar(block)) //ctx
-    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Ljava/lang/String;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
+    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/TestOutput", "printFE", "(Ljava/lang/String;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set())

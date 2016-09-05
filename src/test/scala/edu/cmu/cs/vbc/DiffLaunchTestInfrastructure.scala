@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc
 
-import edu.cmu.cs.vbc.test._
+import edu.cmu.cs.vbc
 import edu.cmu.cs.vbc.vbytecode._
 import edu.cmu.cs.vbc.vbytecode.instructions._
 
@@ -21,12 +21,12 @@ trait DiffLaunchTestInfrastructure {
   def instrumentBlock(block: Block): Block =
     Block((
       for (instr <- block.instr) yield instr match {
-        case InstrINVOKEVIRTUAL(Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(Ljava/lang/String;)V"), _) => List(TraceInstr_Print(), instr)
-        case InstrINVOKEVIRTUAL(Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(Ljava/lang/Object;)V"), _) => List(TraceInstr_Print(), instr)
-        case InstrINVOKEVIRTUAL(owner, name, desc, _) => List(TraceInstr_S("INVK_VIRT: " + owner + ";" + name + ";" + desc), instr)
-        case InstrGETFIELD(owner, name, desc) if desc.contentEquals("I") || desc.contentEquals("Z") => List(instr, TraceInstr_GetField("GETFIELD: " + owner + ";" + name + ";" + desc, desc))
-        case InstrRETURN() => List(TraceInstr_S("RETURN"), instr)
-        case InstrIRETURN() => List(TraceInstr_S("IRETURN"), instr)
+        case InstrINVOKEVIRTUAL(Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(Ljava/lang/String;)V"), _) => List(vbc.TraceInstr_Print(), instr)
+        case InstrINVOKEVIRTUAL(Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(Ljava/lang/Object;)V"), _) => List(vbc.TraceInstr_Print(), instr)
+        case InstrINVOKEVIRTUAL(owner, name, desc, _) => List(vbc.TraceInstr_S("INVK_VIRT: " + owner + ";" + name + ";" + desc), instr)
+        case InstrGETFIELD(owner, name, desc) if desc.contentEquals("I") || desc.contentEquals("Z") => List(instr, vbc.TraceInstr_GetField("GETFIELD: " + owner + ";" + name + ";" + desc, desc))
+        case InstrRETURN() => List(vbc.TraceInstr_S("RETURN"), instr)
+        case InstrIRETURN() => List(vbc.TraceInstr_S("IRETURN"), instr)
         case instr => List(instr)
       }
       ).flatten: _*
@@ -39,7 +39,7 @@ trait DiffLaunchTestInfrastructure {
     Block(
       (for (instr <- block.instr) yield instr match {
         //replace initialization of conditional fields
-        case InstrINIT_CONDITIONAL_FIELDS() => TraceInstr_ConfigInit()
+        case InstrINIT_CONDITIONAL_FIELDS() => vbc.TraceInstr_ConfigInit()
         case instr => instr
       }): _*
     )
