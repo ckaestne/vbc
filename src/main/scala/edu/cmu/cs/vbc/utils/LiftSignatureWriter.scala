@@ -66,9 +66,9 @@ class LiftSignatureWriter() extends SignatureWriter() {
     super.visitTypeArgument('=')
   }
 
-  override def visitInnerClassType(name: String): Unit = super.visitInnerClassType(liftCls(Owner(name)))
+  override def visitInnerClassType(name: String): Unit = super.visitInnerClassType(LiftingPolicy.liftClassName(Owner(name)))
 
-  override def visitClassType(name: String): Unit = super.visitClassType(liftCls(Owner(name)))
+  override def visitClassType(name: String): Unit = super.visitClassType(LiftingPolicy.liftClassName(Owner(name)))
 
   def getSignature(): String =
     (this.toString + ">;").replace("Ledu/cmu/cs/varex/V<V>;", "V")

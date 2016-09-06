@@ -34,7 +34,7 @@ object LiftCall {
        * desc: needs to be replaced with V, because this is the way VarexC lifts method signature
        * todo: could have type erasure problem
        */
-      (liftCls(owner), name, replaceWithVs(desc))
+      (LiftingPolicy.liftClassName(owner), name, replaceWithVs(desc))
     }
     else if (hasVArgs) {
       /*
@@ -45,7 +45,7 @@ object LiftCall {
        * encode the type information into the method name
        * desc should be replaced by V type
        */
-      (liftCls(owner), encodeTypeInName(name, desc), replaceWithVs(desc))
+      (LiftingPolicy.liftClassName(owner), encodeTypeInName(name, desc), replaceWithVs(desc))
     }
     else {
       /*
@@ -55,7 +55,7 @@ object LiftCall {
        * name should be the same
        * desc should be updated with model classes
        */
-      (liftCls(owner), name, replaceLibCls(desc))
+      (LiftingPolicy.liftClassName(owner), name, replaceLibCls(desc))
     }
   }
 

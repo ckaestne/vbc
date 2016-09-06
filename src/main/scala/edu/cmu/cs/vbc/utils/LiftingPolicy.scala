@@ -22,7 +22,7 @@ object LiftingPolicy {
   def shouldLiftMethodCall(owner: Owner, name: MethodName, desc: MethodDesc): Boolean = {
     owner match {
       case container if owner.startsWith("java.util.Collections") => true
-      case java if owner.startsWith("java") => !isImmutableCls(LiftUtils.liftCls(owner).replace('/', '.'))
+      case java if owner.startsWith("java") => !isImmutableCls(liftClassName(owner).replace('/', '.'))
       case _ => true
     }
   }
@@ -34,7 +34,7 @@ object LiftingPolicy {
     */
   def shouldLiftField(owner: Owner, name: FieldName, desc: TypeDesc): Boolean = {
     owner match {
-      case java if owner.startsWith("java") => !isImmutableCls(LiftUtils.liftCls(owner).replace('/', '.'))
+      case java if owner.startsWith("java") => !isImmutableCls(liftClassName(owner).replace('/', '.'))
       case _ => true
     }
   }
@@ -45,11 +45,32 @@ object LiftingPolicy {
     * Classes marked with [[Immutable]] are easier to lift because internal data will not changed once
     * objects are created. In such case, VClass is just a wrapper for Class.
     *
-    * @deprecated
     */
+  @deprecated
   def isImmutableCls(name: String): Boolean = {
     // Use reflection to check @Immutable annotation
     val cls = Class.forName(name)
     cls.getAnnotations.exists(_.isInstanceOf[edu.cmu.cs.varex.annotation.Immutable])
   }
+
+  /** Lift the class name as specified in LiftingPolicy.
+    *
+    * If there is no need to lift this class, return original class name.
+    */
+  def liftClassName(owner: Owner): Owner = {
+
+    def liftClsStr(owner: String): String = owner match {
+      case cls if cls.startsWith("java") =>
+        val lastSlash = owner.lastIndexOf('/')
+        val vClsName = "/V" + owner.substring(lastSlash + 1)
+        s"edu/cmu/cs/vbc/model/${owner.substring(5, lastSlash) + vClsName}"
+      case array if array.startsWith("[") =>
+        "[Ledu/cmu/cs/varex/V;" // all arrays are created as V
+      //      s"[${liftClsStr(primitiveToObjectType(array.substring(1)))}"
+      case _ => owner
+    }
+
+    Owner(liftClsStr(owner))
+  }
+
 }

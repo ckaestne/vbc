@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode
 
-import edu.cmu.cs.vbc.utils.LiftUtils
+import edu.cmu.cs.vbc.utils.{LiftUtils, LiftingPolicy}
 import edu.cmu.cs.vbc.vbytecode.instructions._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
@@ -217,7 +217,13 @@ case class CFG(blocks: List[Block]) {
     // For <init> methods, the first two instructions should be ALOAD 0 and INVOKESPECIAL
     if (env.method.isInit) {
       mv.visitVarInsn(ALOAD, 0)
-      mv.visitMethodInsn(INVOKESPECIAL, liftCls(Owner("java/lang/Object")), MethodName("<init>"), MethodDesc("()V"), false)
+      mv.visitMethodInsn(
+        INVOKESPECIAL,
+        LiftingPolicy.liftClassName(Owner("java/lang/Object")),
+        MethodName("<init>"),
+        MethodDesc("()V"),
+        false
+      )
     }
 
 

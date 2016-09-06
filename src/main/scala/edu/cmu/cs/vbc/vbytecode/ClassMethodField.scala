@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode
 
-import edu.cmu.cs.vbc.utils.LiftUtils
+import edu.cmu.cs.vbc.utils.{LiftUtils, LiftingPolicy}
 import edu.cmu.cs.vbc.vbytecode.instructions.{InstrINIT_CONDITIONAL_FIELDS, InstrINVOKESTATIC, InstrRETURN, Instruction}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm._
@@ -196,7 +196,7 @@ case class VBCClassNode(
   def liftSuperName(superName: Owner): Owner = {
     // Super class of interface must be java/lang/Object, could not be VObject
     if ((access & ACC_INTERFACE) == 0)
-      liftCls(superName)
+      LiftingPolicy.liftClassName(superName)
     else
       superName
   }
