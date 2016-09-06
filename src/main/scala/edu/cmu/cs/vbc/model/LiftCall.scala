@@ -23,7 +23,7 @@ object LiftCall {
     *         String -> lifted method description
     *
     */
-  def liftCall(hasVArgs: Boolean, owner: Owner, name: MethodName, desc: MethodDesc): (Owner, MethodName, MethodDesc, Boolean) = {
+  def liftCall(hasVArgs: Boolean, owner: Owner, name: MethodName, desc: MethodDesc): LiftedCall = {
     val shouldLiftMethod = LiftingPolicy.shouldLiftMethodCall(owner, name, desc)
     if (shouldLiftMethod) {
       /*
@@ -34,7 +34,12 @@ object LiftCall {
        * desc: needs to be replaced with V, because this is the way VarexC lifts method signature
        * todo: could have type erasure problem
        */
-      (LiftingPolicy.liftClassName(owner), name, replaceWithVs(desc), true)
+      LiftedCall(
+        LiftingPolicy.liftClassName(owner),
+        name,
+        replaceWithVs(desc),
+        loadCtx = true
+      )
     }
     else if (hasVArgs) {
       /*
@@ -45,7 +50,12 @@ object LiftCall {
        * encode the type information into the method name
        * desc should be replaced by V type
        */
-      (LiftingPolicy.liftClassName(owner), encodeTypeInName(name, desc), replaceWithVs(desc), true)
+      LiftedCall(
+        LiftingPolicy.liftClassName(owner),
+        encodeTypeInName(name, desc),
+        replaceWithVs(desc),
+        loadCtx = true
+      )
     }
     else {
       /*
@@ -55,13 +65,16 @@ object LiftCall {
        * name should be the same
        * desc should be updated with model classes
        */
-      (LiftingPolicy.liftClassName(owner), name, replaceLibCls(desc), false)
+      LiftedCall(
+        LiftingPolicy.liftClassName(owner),
+        name,
+        replaceLibCls(desc),
+        loadCtx = false
+      )
     }
   }
 
-  /**
-    * Scan and replace java library classes with model classes
-    */
+  /** Scan and replace java library classes with model classes */
   private def replaceLibCls(desc: MethodDesc): MethodDesc = {
     val liftType: Type => String =
       (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else LiftingPolicy.liftClassType(TypeDesc(t.toString))
@@ -72,9 +85,7 @@ object LiftCall {
     )
   }
 
-  /**
-    * Replace all the none-void parameter types with V types, also add FE to the end of parameter list
-    */
+  /** Replace all the none-void parameter types with V types, also add FE to the end of parameter list */
   private def replaceWithVs(desc: MethodDesc): MethodDesc = {
     val liftType: Type => String =
       (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else "Ledu/cmu/cs/varex/V;"
@@ -88,8 +99,14 @@ object LiftCall {
   def encodeTypeInName(mn: MethodName, desc: MethodDesc): MethodName = {
     mn.name match {
       case "<init>" => mn
-      case _ => MethodName(mn.name + desc.replace('/', '_').replace('(', '$').replace(')', '$').replace(";", "").replace("[", "Array_"))
+      case _ => MethodName(mn.name + desc.replace('/', '_').
+        replace('(', '$').
+        replace(')', '$').
+        replace(";", "").
+        replace("[", "Array_"))
     }
   }
 
 }
+
+case class LiftedCall(owner: Owner, name: MethodName, desc: MethodDesc, loadCtx: Boolean)
