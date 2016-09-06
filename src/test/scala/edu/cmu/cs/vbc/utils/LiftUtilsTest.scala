@@ -21,10 +21,10 @@ class LiftUtilsTest extends FunSuite with Matchers with DiffMethodTestInfrastruc
     liftMethodSignature("", Some("()V")) should equal(Some("(" + fexprclasstype + ")V"))
     liftMethodSignature("", Some("()I")) should equal(Some("(" + fexprclasstype + ")L" + vclassname + s"<$IntType>;"))
     liftMethodSignature("(I)V", None) should equal(Some("(L" + vclassname + s"<$IntType>;" + fexprclasstype + ")V"))
-    liftMethodSignature("", Some("(Ljava/lang/Object;)V")) should equal(Some("(L" + vclassname + "<Ledu/cmu/cs/vbc/model/lang/VObject;>;" + fexprclasstype + ")V"))
-    liftMethodSignature("", Some("(Ljava/lang/Object;Ljava/lang/Object;)V")) should equal(Some("(L" + vclassname + "<Ledu/cmu/cs/vbc/model/lang/VObject;>;L" + vclassname + "<Ledu/cmu/cs/vbc/model/lang/VObject;>;" + fexprclasstype + ")V"))
-    liftMethodSignature("", Some("([Ljava/lang/Object;)V")) should equal(Some("(L" + vclassname + "<[Ledu/cmu/cs/vbc/model/lang/VObject;>;" + fexprclasstype + ")V"))
-    liftMethodSignature("", Some("(Ljava/util/List<Ljava/lang/Object;>;)V")) should equal(Some("(L" + vclassname + "<Ledu/cmu/cs/vbc/model/util/VList<Ledu/cmu/cs/vbc/model/lang/VObject;>;>;" + fexprclasstype + ")V"))
+    liftMethodSignature("", Some("(Ljava/lang/Object;)V")) should equal(Some("(L" + vclassname + "<Ljava/lang/Object;>;" + fexprclasstype + ")V"))
+    liftMethodSignature("", Some("(Ljava/lang/Object;Ljava/lang/Object;)V")) should equal(Some("(L" + vclassname + "<Ljava/lang/Object;>;L" + vclassname + "<Ljava/lang/Object;>;" + fexprclasstype + ")V"))
+    liftMethodSignature("", Some("([Ljava/lang/Object;)V")) should equal(Some("(L" + vclassname + "<[Ljava/lang/Object;>;" + fexprclasstype + ")V"))
+    liftMethodSignature("", Some("(Ljava/util/List<Ljava/lang/Object;>;)V")) should equal(Some("(L" + vclassname + "<Ljava/util/List<Ljava/lang/Object;>;>;" + fexprclasstype + ")V"))
     liftMethodSignature("(I)I", None) should equal(Some("(L" + vclassname + s"<$IntType>;" + fexprclasstype + ")L" + vclassname + s"<$IntType>;"))
   }
 

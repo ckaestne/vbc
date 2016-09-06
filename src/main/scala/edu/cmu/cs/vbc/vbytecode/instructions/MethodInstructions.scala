@@ -35,11 +35,11 @@ trait MethodInstruction extends Instruction {
       case _ => throw new UnsupportedOperationException("Unsupported invoke type")
     }
 
-    InvokeDynamicUtils.invoke(vCall, mv, env, block, OpcodePrint.print(invokeType) + "$" + name, s"$objType$argTypes$retType") {
+    InvokeDynamicUtils.invoke(vCall, mv, env, block, OpcodePrint.print(invokeType) + "$" + name.name, s"$objType$argTypes$retType") {
       (mv: MethodVisitor) => {
         mv.visitVarInsn(ALOAD, nArgs + 1) // objref
         0 until nArgs foreach { (i) => mv.visitVarInsn(ALOAD, i) } // arguments
-        mv.visitVarInsn(ALOAD, nArgs) // ctx
+        if (liftedCall.loadCtx) mv.visitVarInsn(ALOAD, nArgs) // ctx
         mv.visitMethodInsn(invokeType, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
         if (!LiftingPolicy.shouldLiftMethodCall(owner, name, desc) && !hasVArgs && !isReturnVoid)
           callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, nArgs))

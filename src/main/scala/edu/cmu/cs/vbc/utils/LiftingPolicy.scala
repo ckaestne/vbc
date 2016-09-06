@@ -23,6 +23,7 @@ object LiftingPolicy {
     (owner, name, desc) match {
       case (Owner("java/lang/Integer"), MethodName("valueOf"), _) => false
       case (Owner("java/lang/Integer"), MethodName("toString"), _) => false
+      case (Owner("java/lang/Integer"), MethodName("<init>"), _) => false
       case _ => true
     }
   }

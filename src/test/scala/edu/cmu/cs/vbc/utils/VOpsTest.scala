@@ -2,7 +2,6 @@ package edu.cmu.cs.vbc.utils
 
 import de.fosd.typechef.featureexpr.FeatureExprFactory
 import edu.cmu.cs.varex.{V, VOps}
-import edu.cmu.cs.vbc.model.lang.VInteger
 import org.scalatest.FunSuite
 
 /**
@@ -12,7 +11,7 @@ class VOpsTest extends FunSuite {
 
   def getConfig(n: String) = FeatureExprFactory.createDefinedExternal(n)
 
-  def getChoice(n: String, v1: java.lang.Integer, v2: java.lang.Integer) = V.choice(FeatureExprFactory.createDefinedExternal(n), new VInteger(v1), new VInteger(v2))
+  def getChoice(n: String, v1: java.lang.Integer, v2: java.lang.Integer) = V.choice(FeatureExprFactory.createDefinedExternal(n), v1, v2)
 
   test("whenEQ 1") {
     val v1 = getChoice("A", 1, 2)

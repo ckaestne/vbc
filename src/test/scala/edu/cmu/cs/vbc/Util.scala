@@ -4,7 +4,6 @@ import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
 import edu.cmu.cs.varex.{V, VHelper}
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, V_TYPE}
-import edu.cmu.cs.vbc.model.lang.VInteger
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
 import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, VMethodEnv}
@@ -31,8 +30,8 @@ object Config {
       throw new RuntimeException("Configuration value for `B` not set")
   }
 
-  val VA = V.choice(FeatureExprFactory.createDefinedExternal("A"), new VInteger(1), new VInteger(0))
-  val VB = V.choice(FeatureExprFactory.createDefinedExternal("B"), new VInteger(1), new VInteger(0))
+  val VA = V.choice(FeatureExprFactory.createDefinedExternal("A"), new Integer(1), new Integer(0))
+  val VB = V.choice(FeatureExprFactory.createDefinedExternal("B"), new Integer(1), new Integer(0))
 }
 
 object TestOutput {

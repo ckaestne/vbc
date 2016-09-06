@@ -4,7 +4,6 @@ import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory, SingleFeat
 import edu.cmu.cs.varex.{V, VHelper}
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, V_TYPE}
-import edu.cmu.cs.vbc.model.lang.VInteger
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
 import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, VMethodEnv}
@@ -81,7 +80,7 @@ object TraceConfig {
   }
 
 
-  def getVConfig(n: String) = V.choice(getOption(n), new VInteger(1), new VInteger(0))
+  def getVConfig(n: String) = V.choice(getOption(n), new Integer(1), new Integer(0))
 
   def getConfig(n: String) = {
     var c = config.get(n)
