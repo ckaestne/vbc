@@ -20,9 +20,9 @@ object LiftingPolicy {
     * @todo return the actual model class name if we decided to lift this method call.
     */
   def shouldLiftMethodCall(owner: Owner, name: MethodName, desc: MethodDesc): Boolean = {
-    owner match {
-      case container if owner.startsWith("java.util.Collections") => true
-      case java if owner.startsWith("java") => !isImmutableCls(liftClassName(owner).replace('/', '.'))
+    (owner, name, desc) match {
+      case (Owner("java/lang/Integer"), MethodName("valueOf"), _) => false
+      case (Owner("java/lang/Integer"), MethodName("toString"), _) => false
       case _ => true
     }
   }
@@ -33,10 +33,8 @@ object LiftingPolicy {
     * @todo return the actual model class name if we decided to lift this method call.
     */
   def shouldLiftField(owner: Owner, name: FieldName, desc: TypeDesc): Boolean = {
-    owner match {
-      case java if owner.startsWith("java") => !isImmutableCls(liftClassName(owner).replace('/', '.'))
-      case _ => true
-    }
+    // as of now, we are lifting everything.
+    true
   }
 
   /**
@@ -70,7 +68,29 @@ object LiftingPolicy {
       case _ => owner
     }
 
-    Owner(liftClsStr(owner))
+    //    Owner(liftClsStr(owner))
+    owner // as of now we don't want to use any model classes.
+  }
+
+  /** Lift the class type as specified in LiftingPolicy.
+    *
+    * If there is no need to lift this class, return original class type.
+    */
+  def liftClassType(desc: TypeDesc): TypeDesc = {
+    //    val t: Type = Type.getType(desc)
+    //    t.getSort match {
+    //      case Type.OBJECT =>
+    //        desc match {
+    //          case s if s.startsWith("Ljava") =>
+    //            val lastSlashIdx = desc.lastIndexOf('/')
+    //            val javaIdx = desc.indexOf("java")
+    //            assert(lastSlashIdx != -1 && javaIdx != -1)
+    //            TypeDesc(desc.substring(0, javaIdx) + "edu/cmu/cs/vbc/model/" + desc.substring(javaIdx + 5, lastSlashIdx) + "/V" + desc.substring(lastSlashIdx + 1))
+    //          case _ => desc
+    //        }
+    //      case _ => desc
+    //    }
+    desc // as of now we don't want to use any model classes.
   }
 
 }

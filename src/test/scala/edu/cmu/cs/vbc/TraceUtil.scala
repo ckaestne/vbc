@@ -109,10 +109,10 @@ case class TraceInstr_ConfigInit() extends Instruction {
 
     def createOne(fDesc: String, mv: MethodVisitor): Unit = {
       Type.getType(fDesc).getSort match {
-        case Type.INT => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+        case Type.INT => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
         case Type.OBJECT => mv.visitInsn(ACONST_NULL)
         //          case Type.BOOLEAN => mv.visitIntInsn(BIPUSH, 0); mv.visitMethodInsn(INVOKESTATIC, vBoolean, "valueOf", s"(Z)$vBooleanType", false)
-        case Type.BOOLEAN => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+        case Type.BOOLEAN => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
         case _ => ???
       }
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))

@@ -42,7 +42,7 @@ class LiftSignatureWriter() extends SignatureWriter() {
     if (descriptor == 'V') {
       super.visitBaseType(descriptor)
     } else {
-      val liftedClsType = liftClsType(TypeDesc(primitiveToObjectType("" + descriptor)))
+      val liftedClsType = LiftingPolicy.liftClassType(TypeDesc(primitiveToObjectType("" + descriptor)))
       val trimmed = liftedClsType.substring(1, liftedClsType.length - 1)
       visitClassType(trimmed)
       visitEnd()

@@ -24,7 +24,7 @@ case class InstrICONST(v: Int) extends Instruction {
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
       pushConstant(mv, v)
-      mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+      mv.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
     else {
@@ -53,7 +53,7 @@ case class InstrLDC(o: Object) extends Instruction {
       mv.visitLdcInsn(o)
       o match {
         case s: String => mv.visitMethodInsn(INVOKESTATIC, vString, "valueOf", s"(Ljava/lang/String;)$vStringType", false)
-        case i: Integer => mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+        case i: Integer => mv.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
         case _ => throw new UnsupportedOperationException("Unsupported LDC type")
       }
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, blockA))
@@ -62,7 +62,7 @@ case class InstrLDC(o: Object) extends Instruction {
       mv.visitLdcInsn(o)
       o match {
         case s: String => mv.visitMethodInsn(INVOKESTATIC, vString, "valueOf", s"(Ljava/lang/String;)$vStringType", false)
-        case i: Integer => mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+        case i: Integer => mv.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
         case _ => throw new UnsupportedOperationException("Unsupported LDC type")
       }
     }

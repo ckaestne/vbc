@@ -38,12 +38,12 @@ case class InstrGETSTATIC(owner: Owner, name: FieldName, desc: TypeDesc) extends
       }
       else {
         // fields are not lifted but we need a V, so we wrap it into a V
-        mv.visitFieldInsn(GETSTATIC, LiftingPolicy.liftClassName(owner), name, liftClsType(desc))
+        mv.visitFieldInsn(GETSTATIC, LiftingPolicy.liftClassName(owner), name, LiftingPolicy.liftClassType(desc))
         callVCreateOne(mv, (m) => loadCurrentCtx(mv, env, block))
       }
     }
     else {
-      mv.visitFieldInsn(GETSTATIC, LiftingPolicy.liftClassName(owner), name, liftClsType(desc))
+      mv.visitFieldInsn(GETSTATIC, LiftingPolicy.liftClassName(owner), name, LiftingPolicy.liftClassType(desc))
     }
   }
 

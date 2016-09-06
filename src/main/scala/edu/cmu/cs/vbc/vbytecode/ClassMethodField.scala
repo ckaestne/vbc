@@ -110,8 +110,8 @@ case class VBCMethodNode(access: Int,
       Type.getReturnType(desc).getSort match {
         case Type.INT =>
           mv.visitMethodInsn(INVOKEINTERFACE, vclassname, "getOne", "()Ljava/lang/Object;", true)
-          mv.visitTypeInsn(CHECKCAST, vInt)
-          mv.visitMethodInsn(INVOKEVIRTUAL, vInt, "intValue", "()I", false)
+          mv.visitTypeInsn(CHECKCAST, IntClass)
+          mv.visitMethodInsn(INVOKEVIRTUAL, IntClass, "intValue", "()I", false)
           mv.visitInsn(IRETURN)
         case Type.OBJECT =>
           mv.visitMethodInsn(INVOKEINTERFACE, vclassname, "getOne", "()Ljava/lang/Object;", true)

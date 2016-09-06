@@ -4,7 +4,7 @@ import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
 import edu.cmu.cs.varex.{V, VHelper}
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, V_TYPE}
-import edu.cmu.cs.vbc.model.lang.{VInteger, VString}
+import edu.cmu.cs.vbc.model.lang.VInteger
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
 import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, VMethodEnv}
@@ -45,7 +45,7 @@ object TestOutput {
     output ::= de.fosd.typechef.conditional.Opt(FeatureExprFactory.True, i.toString)
   }
 
-  def printVI(i: V[_ <: VInteger], ctx: FeatureExpr): Unit = {
+  def printVI(i: V[_ <: Integer], ctx: FeatureExpr): Unit = {
     //        println(i)
     for ((c, v) <- VHelper.explode(ctx, i))
       output ::= de.fosd.typechef.conditional.Opt(c, v.toString)
@@ -55,7 +55,7 @@ object TestOutput {
     output ::= de.fosd.typechef.conditional.Opt(FeatureExprFactory.True, s)
   }
 
-  def printVStr(vs: V[_ <: VString], ctx: FeatureExpr): Unit = {
+  def printVStr(vs: V[_ <: String], ctx: FeatureExpr): Unit = {
     for ((c, v) <- VHelper.explode(ctx, vs))
       output ::= de.fosd.typechef.conditional.Opt(c, v.toString)
   }

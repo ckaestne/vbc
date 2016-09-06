@@ -23,7 +23,7 @@ object LiftCall {
     *         String -> lifted method description
     *
     */
-  def liftCall(hasVArgs: Boolean, owner: Owner, name: MethodName, desc: MethodDesc): (Owner, MethodName, MethodDesc) = {
+  def liftCall(hasVArgs: Boolean, owner: Owner, name: MethodName, desc: MethodDesc): (Owner, MethodName, MethodDesc, Boolean) = {
     val shouldLiftMethod = LiftingPolicy.shouldLiftMethodCall(owner, name, desc)
     if (shouldLiftMethod) {
       /*
@@ -34,7 +34,7 @@ object LiftCall {
        * desc: needs to be replaced with V, because this is the way VarexC lifts method signature
        * todo: could have type erasure problem
        */
-      (LiftingPolicy.liftClassName(owner), name, replaceWithVs(desc))
+      (LiftingPolicy.liftClassName(owner), name, replaceWithVs(desc), true)
     }
     else if (hasVArgs) {
       /*
@@ -45,17 +45,17 @@ object LiftCall {
        * encode the type information into the method name
        * desc should be replaced by V type
        */
-      (LiftingPolicy.liftClassName(owner), encodeTypeInName(name, desc), replaceWithVs(desc))
+      (LiftingPolicy.liftClassName(owner), encodeTypeInName(name, desc), replaceWithVs(desc), true)
     }
     else {
       /*
-       * Now we are calling library methods that we could not lift, so we are going to use model classes
+       * Most likely, we are calling library methods that we shouldn't lift.
        *
        * owner should be updated with model classes
        * name should be the same
        * desc should be updated with model classes
        */
-      (LiftingPolicy.liftClassName(owner), name, replaceLibCls(desc))
+      (LiftingPolicy.liftClassName(owner), name, replaceLibCls(desc), false)
     }
   }
 
@@ -64,10 +64,10 @@ object LiftCall {
     */
   private def replaceLibCls(desc: MethodDesc): MethodDesc = {
     val liftType: Type => String =
-      (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else liftClsType(TypeDesc(t.toString))
+      (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else LiftingPolicy.liftClassType(TypeDesc(t.toString))
     val mtype = Type.getMethodType(desc)
     MethodDesc(
-      (mtype.getArgumentTypes.map(liftType) :+ "Lde/fosd/typechef/featureexpr/FeatureExpr;").mkString("(", "", ")") +
+      mtype.getArgumentTypes.map(liftType).mkString("(", "", ")") +
       liftType(Type.getType(primitiveToObjectType(mtype.getReturnType.toString)))
     )
   }

@@ -3,6 +3,7 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{INT_TYPE, VBCFrame, V_TYPE}
 import edu.cmu.cs.vbc.utils.LiftUtils._
+import edu.cmu.cs.vbc.utils.LiftingPolicy
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
@@ -62,7 +63,7 @@ case class InstrBIPUSH(value: Int) extends Instruction {
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
       pushConstant(mv, value)
-      mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", s"(I)$vIntType", false)
+      mv.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
     else
@@ -93,7 +94,13 @@ case class InstrSIPUSH(value: Int) extends Instruction {
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
       mv.visitIntInsn(SIPUSH, value)
-      mv.visitMethodInsn(INVOKESTATIC, vInt, "valueOf", genSign("I", liftClsType(TypeDesc("Ljava/lang/Integer;"))), false)
+      mv.visitMethodInsn(
+        INVOKESTATIC,
+        IntClass,
+        "valueOf",
+        genSign("I", LiftingPolicy.liftClassType(TypeDesc("Ljava/lang/Integer;"))),
+        false
+      )
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
     else

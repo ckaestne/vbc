@@ -164,28 +164,13 @@ object LiftUtils {
   //////////////////////////////////////////////////
   // Model class related utils
   //////////////////////////////////////////////////
-  def liftClsType(desc: TypeDesc): TypeDesc = {
-    val t: Type = Type.getType(desc)
-    t.getSort match {
-      case Type.OBJECT =>
-        desc match {
-          case s if s.startsWith("Ljava") =>
-            val lastSlashIdx = desc.lastIndexOf('/')
-            val javaIdx = desc.indexOf("java")
-            assert(lastSlashIdx != -1 && javaIdx != -1)
-            TypeDesc(desc.substring(0, javaIdx) + "edu/cmu/cs/vbc/model/" + desc.substring(javaIdx + 5, lastSlashIdx) + "/V" + desc.substring(lastSlashIdx + 1))
-          case _ => desc
-        }
-      case _ => desc
-    }
-  }
 
   def vCls(cls: String) = s"edu/cmu/cs/vbc/model/$cls"
 
   def vClsType(cls: String) = s"Ledu/cmu/cs/vbc/model/$cls;"
 
-  val vInt = "edu/cmu/cs/vbc/model/lang/VInteger"
-  val vIntType = "Ledu/cmu/cs/vbc/model/lang/VInteger;"
+  val IntClass = "java/lang/Integer"
+  val IntType = "Ljava/lang/Integer;"
   val vBoolean = "edu/cmu/cs/vbc/model/lang/VBoolean"
   val vBooleanType = "Ledu/cmu/cs/vbc/model/lang/VBoolean;"
   val vString = "edu/cmu/cs/vbc/model/lang/VString"
@@ -198,7 +183,7 @@ object LiftUtils {
     */
   private def replaceLibCls(desc: String): String = {
     val liftType: Type => String =
-      (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else liftClsType(TypeDesc(t.toString))
+      (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else LiftingPolicy.liftClassType(TypeDesc(t.toString))
     val mtype = Type.getMethodType(desc)
     mtype.getArgumentTypes.map(liftType).mkString("(", "", ")") + liftType(mtype.getReturnType)
   }
