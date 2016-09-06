@@ -171,12 +171,12 @@ object LiftUtils {
 
   val IntClass = "java/lang/Integer"
   val IntType = "Ljava/lang/Integer;"
-  val vBoolean = "edu/cmu/cs/vbc/model/lang/VBoolean"
-  val vBooleanType = "Ledu/cmu/cs/vbc/model/lang/VBoolean;"
-  val vString = "edu/cmu/cs/vbc/model/lang/VString"
-  val vStringType = "Ledu/cmu/cs/vbc/model/lang/VString;"
-  val vObject = "edu/cmu/cs/vbc/model/lang/VObject"
-  val vObjectType = "Ledu/cmu/cs/vbc/model/lang/VObject;"
+  val BooleanClass = "java/lang/Boolean"
+  val BooleanType = "Ljava/lang/Boolean;"
+  val StringClass = "java/lang/String"
+  val StringType = "Ljava/lang/String;"
+  val ObjectClass = "java/lang/Object"
+  val ObjectType = "Ljava/lang/Object;"
 
   /**
     * Scan and replace java library classes with model classes
