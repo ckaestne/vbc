@@ -14,6 +14,12 @@ import edu.cmu.cs.vbc.vbytecode._
   */
 object LiftingPolicy {
 
+  def shouldLiftClass(owner: Owner): Boolean = owner.name match {
+    case x if x.startsWith("edu/cmu/cs/vbc/") => true
+    case "java/util/LinkedList" => true
+    case _ => false
+  }
+
   /**
     * Return true if we want to life this method call
     *
@@ -21,9 +27,8 @@ object LiftingPolicy {
     */
   def shouldLiftMethodCall(owner: Owner, name: MethodName, desc: MethodDesc): Boolean = {
     (owner, name, desc) match {
-      case (Owner("java/lang/Integer"), MethodName("valueOf"), _) => false
-      case (Owner("java/lang/Integer"), MethodName("toString"), _) => false
-      case (Owner("java/lang/Integer"), MethodName("<init>"), _) => false
+      case (Owner("java/lang/Integer"), _, _) => false
+      case (Owner("java/io/PrintStream"), MethodName("println"), _) => false
       case _ => true
     }
   }
@@ -34,8 +39,10 @@ object LiftingPolicy {
     * @todo return the actual model class name if we decided to lift this method call.
     */
   def shouldLiftField(owner: Owner, name: FieldName, desc: TypeDesc): Boolean = {
-    // as of now, we are lifting everything.
-    true
+    (owner, name, desc) match {
+      case (Owner("java/lang/System"), FieldName("out"), _) => false
+      case _ => true
+    }
   }
 
   /**

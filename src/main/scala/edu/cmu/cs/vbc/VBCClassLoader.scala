@@ -3,7 +3,8 @@ package edu.cmu.cs.vbc
 import java.io._
 
 import edu.cmu.cs.vbc.loader.Loader
-import edu.cmu.cs.vbc.vbytecode.{VBCClassNode, VBCMethodNode}
+import edu.cmu.cs.vbc.utils.LiftingPolicy
+import edu.cmu.cs.vbc.vbytecode.{Owner, VBCClassNode, VBCMethodNode}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.util.{CheckClassAdapter, TraceClassVisitor}
@@ -25,7 +26,7 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
   val loader = new Loader()
 
   override def loadClass(name: String): Class[_] = {
-    if (filterByName(name)) super.loadClass(name) else findClass(name)
+    if (shouldLift(name)) findClass(name) else super.loadClass(name)
   }
 
   override def findClass(name: String): Class[_] = {
@@ -62,17 +63,12 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
 
   def getCheckClassAdapter(next: ClassVisitor): ClassVisitor = new CheckClassAdapter(next)
 
-  /**
-    * Filter classes to modify by their names
+  /** Filter classes to lift
     *
-    * @param name (partial) name of the class that SHOULD be modified
-    * @return false if the class needs to be modified
+    * @param name (partial) name of the class
+    * @return true if the class needs to be lifted
     */
-  private def filterByName(name: String): Boolean = name match {
-    case s: String if s.startsWith("edu.cmu.cs.vbc.prog") => false
-//    case s: String if s.startsWith("edu.cmu.cs.vbc.model") => LiftingFilter.isImmutableCls(name)
-    case _ => true
-  }
+  private def shouldLift(name: String): Boolean = LiftingPolicy.shouldLiftClass(Owner(name.replace('.', '/')))
 
 
   def toFile(name: String, cw: ClassWriter) = {

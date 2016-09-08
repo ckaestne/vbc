@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.loader
 
+import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.tree.analysis.{Analyzer, BasicInterpreter, BasicValue, Frame}
 import org.objectweb.asm.tree.{JumpInsnNode, LabelNode, MethodNode}
 
@@ -26,10 +27,14 @@ class MethodAnalyzer(owner: String, mn: MethodNode) extends Analyzer[BasicValue]
   override protected def newControlFlowEdge(insn: Int, successor: Int): Unit = {
     if (blocks.isEmpty)
       blocks = blocks + insn // first instruction
-    //        else if (successor != insn + 1) {
-    else if (successor != insn + 1 || mn.instructions.get(insn).isInstanceOf[JumpInsnNode]) {
-      blocks = blocks + (insn + 1) // the instruction after the jump
-      blocks = blocks + successor // there is a jump
+    else {
+      mn.instructions.get(insn) match {
+        case jump: JumpInsnNode =>
+          blocks = blocks + successor
+          if (jump.getOpcode != GOTO)
+            blocks = blocks + (insn + 1) // the instruction after the jump
+        case _ => // do nothing
+      }
     }
   }
 

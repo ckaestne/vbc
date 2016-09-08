@@ -37,7 +37,7 @@ object LiftCall {
       LiftedCall(
         LiftingPolicy.liftClassName(owner),
         name,
-        replaceWithVs(desc),
+        replaceWithVs(desc, addFE = true),
         loadCtx = true
       )
     }
@@ -52,9 +52,15 @@ object LiftCall {
        */
       LiftedCall(
         LiftingPolicy.liftClassName(owner),
-        encodeTypeInName(name, desc),
-        replaceWithVs(desc),
-        loadCtx = true
+        name,
+        // TODO: too ad-hoc
+        if (owner.contentEquals("java/io/PrintStream") && name.contentEquals("println"))
+          MethodDesc("(Ljava/lang/Object;)V")
+        else if (owner.contentEquals("java/lang/Integer") && name.contentEquals("compareTo"))
+          MethodDesc("(Ljava/lang/Integer;)Ljava/lang/Integer;")
+        else
+          replaceWithVs(desc, addFE = false),
+        loadCtx = false
       )
     }
     else {
@@ -86,13 +92,13 @@ object LiftCall {
   }
 
   /** Replace all the none-void parameter types with V types, also add FE to the end of parameter list */
-  private def replaceWithVs(desc: MethodDesc): MethodDesc = {
+  private def replaceWithVs(desc: MethodDesc, addFE: Boolean): MethodDesc = {
     val liftType: Type => String =
       (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else "Ledu/cmu/cs/varex/V;"
     val mtype = Type.getMethodType(desc)
     MethodDesc(
-      (mtype.getArgumentTypes.map(liftType) :+ "Lde/fosd/typechef/featureexpr/FeatureExpr;").mkString("(", "", ")") +
-      liftType(mtype.getReturnType)
+      (mtype.getArgumentTypes.map(liftType) :+ s"${if (addFE) "Lde/fosd/typechef/featureexpr/FeatureExpr;" else ""}").
+        mkString("(", "", ")") + liftType(mtype.getReturnType)
     )
   }
 

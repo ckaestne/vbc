@@ -52,7 +52,7 @@ case class InstrLDC(o: Object) extends Instruction {
     if (env.shouldLiftInstr(this)) {
       mv.visitLdcInsn(o)
       o match {
-        case s: String => //do nothing
+        case s: String => // do nothing
         case i: Integer => mv.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
         case _ => throw new UnsupportedOperationException("Unsupported LDC type")
       }
@@ -61,7 +61,7 @@ case class InstrLDC(o: Object) extends Instruction {
     else {
       mv.visitLdcInsn(o)
       o match {
-        case s: String => mv.visitMethodInsn(INVOKESTATIC, StringClass, "valueOf", s"(Ljava/lang/String;)$StringType", false)
+        case s: String => // do nothing
         case i: Integer => mv.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
         case _ => throw new UnsupportedOperationException("Unsupported LDC type")
       }
