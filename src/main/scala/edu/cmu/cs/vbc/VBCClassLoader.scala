@@ -2,6 +2,7 @@ package edu.cmu.cs.vbc
 
 import java.io._
 
+import com.typesafe.scalalogging.LazyLogging
 import edu.cmu.cs.vbc.loader.Loader
 import edu.cmu.cs.vbc.utils.LiftingPolicy
 import edu.cmu.cs.vbc.vbytecode.{Owner, VBCClassNode, VBCMethodNode}
@@ -21,7 +22,7 @@ import org.objectweb.asm.{ClassReader, ClassVisitor, ClassWriter}
 class VBCClassLoader(parentClassLoader: ClassLoader,
                      isLift: Boolean = true,
                      rewriter: VBCMethodNode => VBCMethodNode = a => a,
-                     toFileDebugging: Boolean = true) extends ClassLoader(parentClassLoader) {
+                     toFileDebugging: Boolean = true) extends ClassLoader(parentClassLoader) with LazyLogging {
 
   val loader = new Loader()
 
@@ -30,7 +31,7 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
   }
 
   override def findClass(name: String): Class[_] = {
-    println(s"lifting $name")
+    logger.info(s"lifting $name")
     val resource: String = name.replace('.', '/') + ".class"
     val is: InputStream = getResourceAsStream(resource)
     assert(is != null, s"class $name not found")

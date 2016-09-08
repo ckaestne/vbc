@@ -15,7 +15,7 @@ import edu.cmu.cs.vbc.vbytecode._
 object LiftingPolicy {
 
   def shouldLiftClass(owner: Owner): Boolean = owner.name match {
-    case x if x.startsWith("edu/cmu/cs/vbc/") => true
+    case x if x.startsWith("edu/cmu/cs/vbc/prog/") => true
     case "java/util/LinkedList" => true
     case _ => false
   }
