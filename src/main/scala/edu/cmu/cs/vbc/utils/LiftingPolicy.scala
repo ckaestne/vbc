@@ -26,10 +26,14 @@ object LiftingPolicy {
     * @todo return the actual model class name if we decided to lift this method call.
     */
   def shouldLiftMethodCall(owner: Owner, name: MethodName, desc: MethodDesc): Boolean = {
-    (owner, name, desc) match {
-      case (Owner("java/lang/Integer"), _, _) => false
-      case (Owner("java/io/PrintStream"), MethodName("println"), _) => false
-      case _ => true
+    if (shouldLiftClass(owner)) true
+    else {
+      (owner, name, desc) match {
+        case (Owner("java/lang/Integer"), _, _) => false
+        case (Owner("java/lang/String"), _, _) => false
+        case (Owner("java/io/PrintStream"), MethodName("println"), _) => false
+        case _ => true
+      }
     }
   }
 

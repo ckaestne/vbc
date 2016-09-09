@@ -36,6 +36,23 @@ class InvokeDynamicUtilsTest extends FlatSpec with DiffMethodTestInfrastructure 
     Nil
   }
 
+  /** Helper function to create a variational String. */
+  def createVString(startBlockIdx: Int, tValue: String, fValue: String, localVar: Option[LocalVar] = None, config: String = "A"): List[Block] = {
+    Block(InstrLoadConfig(config), InstrIFEQ(startBlockIdx + 2)) ::
+      Block(
+        InstrLDC(tValue),
+        if (localVar.isDefined) InstrASTORE(localVar.get) else InstrNOP(),
+        InstrGOTO(startBlockIdx + 3)
+      ) ::
+      Block(
+        InstrLDC(fValue),
+        if (localVar.isDefined) InstrASTORE(localVar.get) else InstrNOP(),
+        // To handle unbalanced stack, current VBCAnalyzer requires the last instruction to be a jump instruction.
+        InstrGOTO(startBlockIdx + 3)
+      ) ::
+      Nil
+  }
+
   /** Create a variational Integer and call toString
     *
     * V object, no arguments
@@ -90,6 +107,32 @@ class InvokeDynamicUtilsTest extends FlatSpec with DiffMethodTestInfrastructure 
         InstrDBGIPrint(), InstrRETURN()
       ) ::
       Nil
+    )
+  }
+
+  /** Create one variational String, and then call replaceAll()
+    *
+    * V object, two V arguments.
+    */
+  it can "invoke methods on V object with two V arguments" in {
+    val obj = new LocalVar("obj", "Ljava/lang/String;")
+    val regex = new LocalVar("regex", "Ljava/lang/String;")
+    val rep = new LocalVar("rep", "Ljava/lang/String;")
+    methodWithBlocks(
+      createVString(0, tValue = "apple and peach are friends", fValue = "apple and pear are friends", Some(obj)) :::
+        createVString(3, tValue = "friends", fValue = "are", Some(regex)) :::
+        createVString(6, tValue = "enemies", fValue = "are not", Some(rep), config = "B") :::
+        Block(
+          InstrALOAD(obj), InstrALOAD(regex), InstrALOAD(rep),
+          InstrINVOKEVIRTUAL(
+            Owner("java/lang/String"),
+            MethodName("replaceAll"),
+            MethodDesc("(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;"),
+            itf = false
+          ),
+          InstrDBGStrPrint(), InstrRETURN()
+        ) ::
+        Nil
     )
   }
 }
