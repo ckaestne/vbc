@@ -36,8 +36,11 @@ class InvokeDynamicUtilsTest extends FlatSpec with DiffMethodTestInfrastructure 
     Nil
   }
 
-  /** Create a variational Integer and call toString */
-  "InvokeDynamicUtils" can "invoke methods on V object" in {
+  /** Create a variational Integer and call toString
+    *
+    * V object, no arguments
+    */
+  "InvokeDynamicUtils" can "invoke methods on V object without arguments" in {
     methodWithBlocks(
       createVInteger(0, tValue = 0, fValue = 1) :::
       Block(
@@ -48,7 +51,27 @@ class InvokeDynamicUtilsTest extends FlatSpec with DiffMethodTestInfrastructure 
     )
   }
 
-  /** Create two variational Integers and then call compareTo. */
+  /** Create a variational Integer and a normal Integer, then call compareTo()
+    *
+    * V object, non-V argument
+    */
+  it can "invoke methods on V object with non-V argument" in {
+    methodWithBlocks(
+      createVInteger(0, tValue = 0, fValue = 2) :::
+      Block(
+        InstrICONST(1),
+        InstrINVOKESTATIC(Owner("java/lang/Integer"), MethodName("valueOf"), MethodDesc("(I)Ljava/lang/Integer;"), itf = false),
+        InstrINVOKEVIRTUAL(Owner("java/lang/Integer"), MethodName("compareTo"), MethodDesc("(Ljava/lang/Integer;)I"), itf = false),
+        InstrDBGIPrint(), InstrRETURN()
+      ) ::
+      Nil
+    )
+  }
+
+  /** Create two variational Integers and then call compareTo.
+    *
+    * V object, one V argument
+    */
   it can "invoke methods on V object with one V argument" in {
     val v1 = new LocalVar("v1", "Ljava/lang/Integer;")
     val v2 = new LocalVar("v2", "Ljava/lang/Integer;")
