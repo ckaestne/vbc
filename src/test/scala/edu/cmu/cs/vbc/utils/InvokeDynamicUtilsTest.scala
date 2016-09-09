@@ -57,7 +57,7 @@ class InvokeDynamicUtilsTest extends FlatSpec with DiffMethodTestInfrastructure 
     *
     * V object, no arguments
     */
-  "InvokeDynamicUtils" can "invoke methods on V object without arguments" in {
+  "InvokeDynamicUtils" can "invoke method on V object without arguments" in {
     methodWithBlocks(
       createVInteger(0, tValue = 0, fValue = 1) :::
       Block(
@@ -72,7 +72,7 @@ class InvokeDynamicUtilsTest extends FlatSpec with DiffMethodTestInfrastructure 
     *
     * V object, non-V argument
     */
-  it can "invoke methods on V object with non-V argument" in {
+  it can "invoke method on V object with non-V argument" in {
     methodWithBlocks(
       createVInteger(0, tValue = 0, fValue = 2) :::
       Block(
@@ -89,7 +89,7 @@ class InvokeDynamicUtilsTest extends FlatSpec with DiffMethodTestInfrastructure 
     *
     * V object, one V argument
     */
-  it can "invoke methods on V object with one V argument" in {
+  it can "invoke method on V object with one V argument" in {
     val v1 = new LocalVar("v1", "Ljava/lang/Integer;")
     val v2 = new LocalVar("v2", "Ljava/lang/Integer;")
     methodWithBlocks(
@@ -114,7 +114,7 @@ class InvokeDynamicUtilsTest extends FlatSpec with DiffMethodTestInfrastructure 
     *
     * V object, two V arguments.
     */
-  it can "invoke methods on V object with two V arguments" in {
+  it can "invoke method on V object with two V arguments" in {
     val obj = new LocalVar("obj", "Ljava/lang/String;")
     val regex = new LocalVar("regex", "Ljava/lang/String;")
     val rep = new LocalVar("rep", "Ljava/lang/String;")
@@ -133,6 +133,41 @@ class InvokeDynamicUtilsTest extends FlatSpec with DiffMethodTestInfrastructure 
           InstrDBGStrPrint(), InstrRETURN()
         ) ::
         Nil
+    )
+  }
+
+  /** Create one normal Integer, and then call toString()
+    *
+    * non-V object, no arguments
+    */
+  it can "invoke method on non-V object without arguments" in {
+    methodWithBlocks(
+      Block(
+        InstrICONST(1),
+        InstrINVOKESTATIC(Owner("java/lang/Integer"), MethodName("valueOf"), MethodDesc("(I)Ljava/lang/Integer;"), itf = false),
+        InstrINVOKEVIRTUAL(Owner("java/lang/Integer"), MethodName("toString"), MethodDesc("()Ljava/lang/String;"), itf = false),
+        InstrDBGStrPrint(), InstrRETURN()
+      ) ::
+        Nil
+    )
+  }
+
+  /** Create three normal String, and then call replaceAll()
+    *
+    * non-V object, two non-V arguments
+    */
+  it can "invoke method on non-V object with non-V arguments" in {
+    methodWithBlocks(
+      Block(
+        InstrLDC("apple is delicious"), InstrLDC("is"), InstrLDC("is not"),
+        InstrINVOKEVIRTUAL(
+          Owner("java/lang/String"),
+          MethodName("replaceAll"),
+          MethodDesc("(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;"),
+          itf = false
+        ),
+        InstrDBGStrPrint(), InstrRETURN()
+      ) :: Nil
     )
   }
 }
