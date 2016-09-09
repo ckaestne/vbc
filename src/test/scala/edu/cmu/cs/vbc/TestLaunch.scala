@@ -1,6 +1,7 @@
 package edu.cmu.cs.vbc
 
 import de.fosd.typechef.featureexpr.FeatureExprFactory
+import edu.cmu.cs.vbc.prog.LinkedListExample
 import org.scalatest.FunSuite
 
 
@@ -74,6 +75,6 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
 
   ignore("LinkedList") {
     //    testMain(classOf[edu.cmu.cs.vbc.prog.LinkedListTest]) //todo
-    testMain(classOf[edu.cmu.cs.vbc.prog.LinkedListTest], compareTraceAgainstBruteForce = false)
+    testMain(classOf[LinkedListExample], compareTraceAgainstBruteForce = false)
   }
 }

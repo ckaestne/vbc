@@ -227,5 +227,11 @@ trait DiffMethodTestInfrastructure {
       CFG(List(Block(instrs: _*)))))
   }
 
+  def methodWithBlocks(blocks: List[Block]) = {
+    FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
+    testMethod(new VBCMethodNode(ACC_PUBLIC, "test", "()V", Some("()V"), Nil,
+      CFG(blocks)))
+  }
+
 
 }

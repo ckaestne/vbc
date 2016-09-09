@@ -45,20 +45,6 @@ object LiftingPolicy {
     }
   }
 
-  /**
-    * Return true if current JDK class is marked as [[Immutable]].
-    *
-    * Classes marked with [[Immutable]] are easier to lift because internal data will not changed once
-    * objects are created. In such case, VClass is just a wrapper for Class.
-    *
-    */
-  @deprecated
-  def isImmutableCls(name: String): Boolean = {
-    // Use reflection to check @Immutable annotation
-    val cls = Class.forName(name)
-    cls.getAnnotations.exists(_.isInstanceOf[edu.cmu.cs.varex.annotation.Immutable])
-  }
-
   /** Lift the class name as specified in LiftingPolicy.
     *
     * If there is no need to lift this class, return original class name.

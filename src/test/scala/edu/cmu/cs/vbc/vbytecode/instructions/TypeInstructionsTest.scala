@@ -73,7 +73,7 @@ class TypeInstructionsTest extends FlatSpec with DiffMethodTestInfrastructure {
     val caught = intercept[InvocationTargetException] {
       simpleMethod(
         InstrBIPUSH(10), InstrANEWARRAY(Owner("java/lang/Integer")),
-        InstrCHECKCAST(Owner("[Ljava/lang/Integer;")),
+        InstrCHECKCAST(Owner("[Ljava/lang/Boolean;")),
         InstrPOP(), InstrRETURN()
       )
     }

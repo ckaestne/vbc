@@ -22,7 +22,7 @@ trait MethodInstruction extends Instruction {
     val hasVArgs = nArgs > 0
     val liftedCall = liftCall(hasVArgs, owner, name, desc)
     val objType = Type.getObjectType(liftedCall.owner).toString
-    val argTypes = "(" + vclasstype * nArgs + ")"
+    val argTypes: String = liftedCall.desc.descString.takeWhile(_ != ')') + ")"
 
     val isReturnVoid = Type.getReturnType(desc) == Type.VOID_TYPE
     val retType = if (isReturnVoid) "V" else vclasstype
@@ -35,13 +35,34 @@ trait MethodInstruction extends Instruction {
       case _ => throw new UnsupportedOperationException("Unsupported invoke type")
     }
 
-    InvokeDynamicUtils.invoke(vCall, mv, env, block, OpcodePrint.print(invokeType) + "$" + name.name, s"$objType$argTypes$retType") {
+    InvokeDynamicUtils.invoke(
+      vCall,
+      mv,
+      env,
+      block,
+      OpcodePrint.print(invokeType) + "$" + name.name,
+      s"$objType$argTypes$retType",
+      nExplodeArgs = liftedCall.nVArgs
+    ) {
       (mv: MethodVisitor) => {
-        mv.visitVarInsn(ALOAD, nArgs + 1) // objref
-        0 until nArgs foreach { (i) => mv.visitVarInsn(ALOAD, i) } // arguments
+        if (hasVArgs) {
+          mv.visitVarInsn(ALOAD, 0) // objref
+          1 until nArgs foreach {(i) => mv.visitVarInsn(ALOAD, i)}  // first nArgs -1 arguments
+          mv.visitVarInsn(ALOAD, nArgs + 1) // last argument
+        } else {
+          mv.visitVarInsn(ALOAD, nArgs + 1) // objref
+          0 until nArgs foreach { (i) => mv.visitVarInsn(ALOAD, i) } // arguments
+        }
         if (liftedCall.loadCtx) mv.visitVarInsn(ALOAD, nArgs) // ctx
         mv.visitMethodInsn(invokeType, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
-        if (!LiftingPolicy.shouldLiftMethodCall(owner, name, desc) && !hasVArgs && !isReturnVoid)
+        // Box primitive type
+        Type.getMethodType(liftedCall.desc).getReturnType.getSort match {
+          case Type.INT =>
+            mv.visitMethodInsn(INVOKESTATIC, Owner("java/lang/Integer"), MethodName("valueOf"), MethodDesc("(I)Ljava/lang/Integer;"), false)
+          case Type.OBJECT => // do nothing
+          case _ => ???
+        }
+        if (!LiftingPolicy.shouldLiftMethodCall(owner, name, desc) && !isReturnVoid)
           callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, nArgs))
         if (isReturnVoid) mv.visitInsn(RETURN) else mv.visitInsn(ARETURN)
       }

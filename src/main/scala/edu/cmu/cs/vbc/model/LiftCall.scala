@@ -41,47 +41,27 @@ object LiftCall {
         loadCtx = true
       )
     }
-    else if (hasVArgs) {
-      /*
-       * Calling V methods from model classes, all arguments should be V, and type information will be
-       * encoded into the method name to avoid type erasure.
-       *
-       * owner needs to be lifted in case we are calling methods from jre
-       * encode the type information into the method name
-       * desc should be replaced by V type
-       */
-      LiftedCall(
-        LiftingPolicy.liftClassName(owner),
-        name,
-        // TODO: too ad-hoc
-        if (owner.contentEquals("java/io/PrintStream") && name.contentEquals("println"))
-          MethodDesc("(Ljava/lang/Object;)V")
-        else if (owner.contentEquals("java/lang/Integer") && name.contentEquals("compareTo"))
-          MethodDesc("(Ljava/lang/Integer;)Ljava/lang/Integer;")
-        else
-          replaceWithVs(desc, addFE = false),
-        loadCtx = false
-      )
-    }
     else {
       /*
-       * Most likely, we are calling library methods that we shouldn't lift.
-       *
-       * owner should be updated with model classes
-       * name should be the same
-       * desc should be updated with model classes
+      Methods that we shouldn't lift. For example, Integer.compareTo().
+      There are two options at this point:
+      1. if all arguments are non-V, we can just make the method call.
+      2. if all arguments are V, we return the count of V arguments, and then use [[InvokeDynamicUtils]]
+      to explode them. (Current design make sure that if there are V arguments, all arguments should be V)
        */
+      val numVArgs = if (hasVArgs) Type.getMethodType(desc).getArgumentTypes.size else 0
       LiftedCall(
         LiftingPolicy.liftClassName(owner),
         name,
-        replaceLibCls(desc),
-        loadCtx = false
+        desc,
+        loadCtx = false,
+        nVArgs = numVArgs
       )
     }
   }
 
   /** Scan and replace java library classes with model classes */
-  private def replaceLibCls(desc: MethodDesc): MethodDesc = {
+  private def replaceWithModel(desc: MethodDesc): MethodDesc = {
     val liftType: Type => String =
       (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else LiftingPolicy.liftClassType(TypeDesc(t.toString))
     val mtype = Type.getMethodType(desc)
@@ -115,4 +95,4 @@ object LiftCall {
 
 }
 
-case class LiftedCall(owner: Owner, name: MethodName, desc: MethodDesc, loadCtx: Boolean)
+case class LiftedCall(owner: Owner, name: MethodName, desc: MethodDesc, loadCtx: Boolean, nVArgs: Int = 0)

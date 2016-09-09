@@ -11,13 +11,13 @@ import java.util.LinkedList;
  *
  * @author chupanw
  */
-public class LinkedListTest {
+public class LinkedListExample {
     @VConditional
     public static boolean A;
 
     private LinkedList<Integer> list;
 
-    public LinkedListTest() {
+    public LinkedListExample() {
         list = new LinkedList<>();
         if (A) {
             list.add(2);
@@ -30,7 +30,7 @@ public class LinkedListTest {
     }
 
     public static void main(String[] args) {
-        LinkedListTest test = new LinkedListTest();
+        LinkedListExample test = new LinkedListExample();
         test.printSize();
         test.printElements();
         test.binarySearch();

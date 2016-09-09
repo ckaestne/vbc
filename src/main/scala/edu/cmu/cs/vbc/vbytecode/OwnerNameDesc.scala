@@ -70,14 +70,14 @@ object FieldName {
 /**
   * Wrapper for method descriptor
   */
-case class MethodDesc(desc: String) extends TypeVerifier {
-  require(isValidMethod(desc), s"Invalid method descriptor: $desc")
+case class MethodDesc(descString: String) extends TypeVerifier {
+  require(isValidMethod(descString), s"Invalid method descriptor: $descString")
 
-  override def equals(obj: scala.Any): Boolean = desc == obj
+  override def equals(obj: scala.Any): Boolean = descString == obj
 }
 
 object MethodDesc {
-  implicit def methodDescToString(md: MethodDesc): String = md.desc
+  implicit def methodDescToString(md: MethodDesc): String = md.descString
 }
 
 
