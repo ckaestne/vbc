@@ -14,7 +14,7 @@ import org.objectweb.asm._
   */
 trait ArrayInstructions extends Instruction {
   def createVArray(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    InvokeDynamicUtils.invoke("smap", mv, env, block, "anewarray", s"$IntType()[$vclasstype") {
+    InvokeDynamicUtils.invoke("smap", mv, env, loadCurrentCtx(_, env, block), "anewarray", s"$IntType()[$vclasstype") {
       (visitor: MethodVisitor) => {
         visitor.visitVarInsn(ALOAD, 1)
         visitor.visitMethodInsn(INVOKEVIRTUAL, IntClass, "intValue", "()I", false) // JVM specification requires an int
@@ -25,7 +25,7 @@ trait ArrayInstructions extends Instruction {
   }
 
   def storeOperation(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    InvokeDynamicUtils.invoke("sforeach", mv, env, block, "aastore", s"[$vclasstype($IntType$vclasstype)V", nExplodeArgs = 1) {
+    InvokeDynamicUtils.invoke("sforeach", mv, env, loadCurrentCtx(_, env, block), "aastore", s"[$vclasstype($IntType$vclasstype)V", nExplodeArgs = 1) {
       (visitor: MethodVisitor) => {
         visitor.visitVarInsn(ALOAD, 1) //array ref
         visitor.visitVarInsn(ALOAD, 3) //index
@@ -38,7 +38,7 @@ trait ArrayInstructions extends Instruction {
   }
 
   def loadOperation(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    InvokeDynamicUtils.invoke("sflatMap", mv, env, block, "aaload", s"[$vclasstype($IntType)$vclasstype", nExplodeArgs = 1) {
+    InvokeDynamicUtils.invoke("sflatMap", mv, env, loadCurrentCtx(_, env, block), "aaload", s"[$vclasstype($IntType)$vclasstype", nExplodeArgs = 1) {
       (visitor: MethodVisitor) => {
         visitor.visitVarInsn(ALOAD, 0) // array ref
         visitor.visitVarInsn(ALOAD, 2) // index

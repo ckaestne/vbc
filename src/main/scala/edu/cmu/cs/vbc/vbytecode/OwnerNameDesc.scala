@@ -2,6 +2,8 @@ package edu.cmu.cs.vbc.vbytecode
 
 import javax.lang.model.SourceVersion
 
+import org.objectweb.asm.Type
+
 /**
   * Wrapper for method and field owner.
   *
@@ -17,7 +19,10 @@ import javax.lang.model.SourceVersion
 case class Owner(name: String) extends TypeVerifier {
   require(isValidInternalName(name), s"Invalid Owner name: $name")
 
-  override def equals(obj: scala.Any): Boolean = name == obj
+  override def equals(obj: scala.Any): Boolean = obj match {
+    case o: Owner => name == o.name
+    case _ => false
+  }
 
   def isValidInternalName(s: String): Boolean = {
     if (s.startsWith("[")) {
@@ -31,6 +36,8 @@ case class Owner(name: String) extends TypeVerifier {
       !name.contains('.') && SourceVersion.isName(s.replace('/', '.'))
     }
   }
+
+  def getTypeDesc: TypeDesc = TypeDesc(Type.getObjectType(name).getDescriptor)
 }
 
 /** Store implicit conversion to String, avoid changing too much existing code. */
@@ -45,7 +52,10 @@ object Owner {
 case class MethodName(name: String) {
   require(name == "<init>" || name == "<clinit>" || SourceVersion.isIdentifier(name), s"Invalid method name: $name")
 
-  override def equals(obj: scala.Any): Boolean = name == obj
+  override def equals(obj: scala.Any): Boolean = obj match {
+    case MethodName(s) => s == name
+    case _ => false
+  }
 }
 
 object MethodName {
@@ -59,7 +69,10 @@ object MethodName {
 case class FieldName(name: String) {
   require(SourceVersion.isIdentifier(name), s"Invalid field name: $name")
 
-  override def equals(obj: scala.Any): Boolean = name == obj
+  override def equals(obj: scala.Any): Boolean = obj match {
+    case FieldName(f) => f == name
+    case _ => false
+  }
 }
 
 object FieldName {
@@ -73,7 +86,23 @@ object FieldName {
 case class MethodDesc(descString: String) extends TypeVerifier {
   require(isValidMethod(descString), s"Invalid method descriptor: $descString")
 
-  override def equals(obj: scala.Any): Boolean = descString == obj
+  val mt = Type.getMethodType(descString)
+
+  override def equals(obj: scala.Any): Boolean = obj match {
+    case MethodDesc(md) => md == descString
+    case _ => false
+  }
+
+  def getArgCount: Int = mt.getArgumentTypes.size
+
+  /** Return the return type in String format.
+    *
+    * Sometimes return type could be void, but void is not a valid TypeDesc.
+    * For this reason, we return [[String]] instead of [[TypeDesc]]
+    */
+  def getReturnTypeString: String = mt.getReturnType().getDescriptor
+
+  def isReturnVoid: Boolean = getReturnTypeString == "V"
 }
 
 object MethodDesc {
@@ -87,7 +116,10 @@ object MethodDesc {
 case class TypeDesc(desc: String) extends TypeVerifier {
   require(isValidType(desc), s"Invalid field descriptor: $desc")
 
-  override def equals(obj: scala.Any): Boolean = desc == obj
+  override def equals(obj: scala.Any): Boolean = obj match {
+    case t: TypeDesc => desc == t.desc
+    case _ => false
+  }
 }
 
 object TypeDesc {

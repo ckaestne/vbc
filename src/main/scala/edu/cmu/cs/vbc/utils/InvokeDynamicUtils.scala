@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.utils
 
 import edu.cmu.cs.vbc.utils.LiftUtils._
-import edu.cmu.cs.vbc.vbytecode.{Block, VMethodEnv}
+import edu.cmu.cs.vbc.vbytecode.VMethodEnv
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.{ClassVisitor, Handle, MethodVisitor, Type}
 
@@ -41,21 +41,29 @@ object InvokeDynamicUtils {
   /**
     * Perform the sMap operation
     *
-    * @param vCallName    method of V interface to be called
-    * @param mv           current method visitor
-    * @param env          current method environment
-    * @param block        current block
-    * @param lambdaName   key word for the purpose of this lambda method, mostly for debugging purpose
-    * @param desc         Format: typeA(typeB*)typeC
-    *                     typeA describe the V object on which operations are performed
-    *                     typeB* describe the arguments passed to lambda function
-    *                     typeC is the return type of lambda function
-    * @param nExplodeArgs number of arguments to explode, arguments to be exploded should be the
-    *                     first $nExplodeArgs values in the argument list
-    * @param isExploding  whether we are generating lambda methods to explode arguments
-    * @param lambdaOp     lambda method body
+    * @param vCallName      method of V interface to be called
+    * @param mv             current method visitor
+    * @param env            current method environment
+    * @param defaultLoadCtx default way of loading context
+    * @param lambdaName     key word for the purpose of this lambda method, mostly for debugging purpose
+    * @param desc           Format: typeA(typeB*)typeC
+    *                       typeA describe the V object on which operations are performed
+    *                       typeB* describe the arguments passed to lambda function
+    *                       typeC is the return type of lambda function
+    * @param nExplodeArgs   number of arguments to explode, arguments to be exploded should be the
+    *                       first $nExplodeArgs values in the argument list
+    * @param isExploding    whether we are generating lambda methods to explode arguments
+    * @param lambdaOp       lambda method body
     */
-  def invoke(vCallName: String, mv: MethodVisitor, env: VMethodEnv, block: Block, lambdaName: String, desc: String, nExplodeArgs: Int = 0, isExploding: Boolean = false)
+  def invoke(
+              vCallName: String,
+              mv: MethodVisitor,
+              env: VMethodEnv,
+              defaultLoadCtx: MethodVisitor => Unit,
+              lambdaName: String,
+              desc: String,
+              nExplodeArgs: Int = 0,
+              isExploding: Boolean = false)
             (lambdaOp: MethodVisitor => Unit): Unit = {
 
     //////////////////////////////////////////////////
@@ -97,10 +105,10 @@ object InvokeDynamicUtils {
       Type.getType(s"($fexprclasstype$invokeObjectDesc)$returnDesc")
     )
     if (isExploding) {
-      loadCtx(mv, env, block, Some(lambdaDesc))
+      loadFE(mv, defaultLoadCtx, Some(lambdaDesc))
     }
     else {
-      loadCtx(mv, env, block, None)
+      loadFE(mv, defaultLoadCtx, None)
     }
     mv.visitMethodInsn(INVOKEINTERFACE, vclassname, vCallName, vCallDesc, true)
 
@@ -123,7 +131,7 @@ object InvokeDynamicUtils {
         for (i <- 1 until nArg) mv.visitVarInsn(ALOAD, i)
         mv.visitVarInsn(ALOAD, nArg + 1) // last argument of lambda method, the V that just got exploded
 
-        invoke(vCallName, mv, env, block, "explodeArg", shiftDesc(desc), nExplodeArgs - 1, isExploding = true)(lambdaOp)
+        invoke(vCallName, mv, env, defaultLoadCtx, "explodeArg", shiftDesc(desc), nExplodeArgs - 1, isExploding = true)(lambdaOp)
 
         if (isReturnVoid) mv.visitInsn(RETURN) else mv.visitInsn(ARETURN)
         mv.visitMaxs(10, 10)
@@ -183,7 +191,7 @@ object InvokeDynamicUtils {
     *
     * The way of loading current ctx depends on whether we are inside lambda methods
     */
-  def loadCtx(mv: MethodVisitor, env: VMethodEnv, block: Block, argsDesc: Option[String]): Unit = {
+  def loadFE(mv: MethodVisitor, defaultLoadFE: MethodVisitor => Unit, argsDesc: Option[String]): Unit = {
     if (argsDesc.isDefined) {
       val argTypes: Array[Type] = Type.getArgumentTypes(argsDesc.get)
       val feIdx = argTypes.indexOf(Type.getType(fexprclasstype))
@@ -191,7 +199,7 @@ object InvokeDynamicUtils {
       mv.visitVarInsn(ALOAD, feIdx)
     }
     else {
-      loadCurrentCtx(mv, env, block)
+      defaultLoadFE(mv)
     }
   }
 }

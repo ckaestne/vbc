@@ -53,6 +53,10 @@ class OwnerNameDescTest extends FlatSpec {
     Owner("[[[Ljava/lang/Integer;")
   }
 
+  it can "be transformed to a valid TypeDesc" in {
+    assert(Owner("java/lang/Object").getTypeDesc == TypeDesc("Ljava/lang/Object;"))
+  }
+
   "MethodName" should "be a valid Java identifier" in {
     MethodName("hello")
   }
@@ -149,5 +153,19 @@ class OwnerNameDescTest extends FlatSpec {
 
   it can "be implicitly converted to String" in {
     expectString(MethodDesc("()V"))
+  }
+
+  it can "return the number of arguments" in {
+    assert(MethodDesc("(IF)V").getArgCount == 2)
+    assert(MethodDesc("(Ljava/lang/Object;)I").getArgCount == 1)
+    assert(MethodDesc("(ILjava/lang/String;)[I").getArgCount == 2)
+    assert(MethodDesc("([I)Ljava/lang/Object;").getArgCount == 1)
+  }
+
+  it can "return the return type in String format" in {
+    assert(MethodDesc("(IF)V").getReturnTypeString == "V")
+    assert(MethodDesc("(Ljava/lang/Object;)I").getReturnTypeString == "I")
+    assert(MethodDesc("(ILjava/lang/String;)[I").getReturnTypeString == "[I")
+    assert(MethodDesc("([I)Ljava/lang/Object;").getReturnTypeString == "Ljava/lang/Object;")
   }
 }

@@ -170,4 +170,48 @@ class InvokeDynamicUtilsTest extends FlatSpec with DiffMethodTestInfrastructure 
       ) :: Nil
     )
   }
+
+  /** Create one normal Integer and one variational Integer, then call compareTo
+    *
+    * non-V object, one V arguments
+    */
+  it can "invoke method on non-V object with one V argument" in {
+    val b = new LocalVar("b", TypeDesc("Ljava/lang/Integer;"))
+    methodWithBlocks(
+      createVInteger(0, tValue = 0, fValue = 2, Some(b)) :::
+        Block(
+          InstrICONST(1),
+          InstrINVOKESTATIC(Owner("java/lang/Integer"), MethodName("valueOf"), MethodDesc("(I)Ljava/lang/Integer;"), itf = false),
+          InstrALOAD(b),
+          InstrINVOKEVIRTUAL(Owner("java/lang/Integer"), MethodName("compareTo"), MethodDesc("(Ljava/lang/Integer;)I"), itf = false),
+          InstrDBGIPrint(), InstrRETURN()
+        ) ::
+        Nil
+    )
+  }
+
+  /** Create one normal String and two variational Strings, then call replaceAll
+    *
+    * non-V object, two V arguments
+    */
+  it can "invoke method on non-V object with two V arguments" in {
+    val a = new LocalVar("a", TypeDesc("Ljava/lang/String;"))
+    val b = new LocalVar("b", TypeDesc("Ljava/lang/String;"))
+    methodWithBlocks(
+      createVString(0, tValue = "pear", fValue = "are", Some(a), config = "A") :::
+        createVString(3, tValue = "peach", fValue = "aren't", Some(b), config = "B") :::
+        Block(
+          InstrLDC("apple and pear are friends"),
+          InstrALOAD(a), InstrALOAD(b),
+          InstrINVOKEVIRTUAL(
+            Owner("java/lang/String"),
+            MethodName("replaceAll"),
+            MethodDesc("(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;"),
+            itf = false
+          ),
+          InstrDBGStrPrint(), InstrRETURN()
+        ) ::
+        Nil
+    )
+  }
 }

@@ -122,7 +122,7 @@ case class InstrINEG() extends Instruction {
     */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
-      InvokeDynamicUtils.invoke("smap", mv, env, block, "INEG", s"$IntType()$IntType") {
+      InvokeDynamicUtils.invoke("smap", mv, env, loadCurrentCtx(_, env, block), "INEG", s"$IntType()$IntType") {
         (visitor: MethodVisitor) => {
           visitor.visitVarInsn(ALOAD, 1)
           visitor.visitMethodInsn(INVOKEVIRTUAL, IntClass, "intValue", "()I", false)

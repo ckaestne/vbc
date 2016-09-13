@@ -9,7 +9,7 @@ import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftingPolicy}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
-import org.objectweb.asm.{MethodVisitor, Type}
+import org.objectweb.asm.{ClassVisitor, MethodVisitor, Type}
 
 /**
   * @author chupanw
@@ -17,7 +17,15 @@ import org.objectweb.asm.{MethodVisitor, Type}
 
 trait MethodInstruction extends Instruction {
 
-  def invokeDynamic(owner: Owner, name: MethodName, desc: MethodDesc, itf: Boolean, mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+  def invokeDynamic(
+                     owner: Owner,
+                     name: MethodName,
+                     desc: MethodDesc,
+                     itf: Boolean,
+                     mv: MethodVisitor,
+                     env: VMethodEnv,
+                     defaultLoadCtx: MethodVisitor => Unit
+                   ): Unit = {
     val nArgs = Type.getArgumentTypes(desc).length
     val hasVArgs = nArgs > 0
     val liftedCall = liftCall(hasVArgs, owner, name, desc)
@@ -39,7 +47,7 @@ trait MethodInstruction extends Instruction {
       vCall,
       mv,
       env,
-      block,
+      defaultLoadCtx,
       OpcodePrint.print(invokeType) + "$" + name.name,
       s"$objType$argTypes$retType",
       nExplodeArgs = liftedCall.nVArgs
@@ -67,6 +75,38 @@ trait MethodInstruction extends Instruction {
         if (isReturnVoid) mv.visitInsn(RETURN) else mv.visitInsn(ARETURN)
       }
     }
+  }
+
+  /** Invoke methods on nonV object with V arguments
+    *
+    * [[edu.cmu.cs.vbc.analysis.VBCAnalyzer]] ensures that all V arguments will be Vs.
+    * Call a helper static method instead of making the original call. Inside the helper method,
+    * argument order will be tweaked so that we can call [[InvokeDynamicUtils.invoke()]]
+    */
+  def invokeOnNonV(owner: Owner, name: MethodName, desc: MethodDesc, itf: Boolean, mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    val helperName = "helper$invokeOnNonV$" + env.clazz.lambdaMethods.size
+    val helperDesc: String =
+      "(" + owner.getTypeDesc.desc + vclasstype * desc.getArgCount + fexprclasstype + ")" +
+        (if (desc.isReturnVoid) "V" else vclasstype)
+    val helper = (cv: ClassVisitor) => {
+      val m: MethodVisitor = cv.visitMethod(
+        ACC_PRIVATE | ACC_STATIC | ACC_SYNTHETIC,
+        helperName, // method name
+        helperDesc, // descriptor
+        helperDesc, // signature
+        Array[String]() // exception
+      )
+      m.visitCode()
+      m.visitVarInsn(ALOAD, 0) // objref
+      callVCreateOne(m, (m) => m.visitVarInsn(ALOAD, desc.getArgCount + 1))
+      1 to desc.getArgCount foreach { (i) => m.visitVarInsn(ALOAD, i) } // arguments
+      invokeDynamic(owner, name, desc, itf, m, env, defaultLoadCtx = (m) => m.visitVarInsn(ALOAD, desc.getArgCount + 1))
+      m.visitInsn(ARETURN)
+      m.visitMaxs(10, 10)
+      m.visitEnd()
+    }
+    env.clazz.lambdaMethods += (helperName -> helper)
+    mv.visitMethodInsn(INVOKESTATIC, Owner(env.clazz.name), MethodName(helperName), MethodDesc(helperDesc), false)
   }
 
   override def doBacktrack(env: VMethodEnv): Unit = env.setTag(this, env.TAG_NEED_V)
@@ -179,7 +219,7 @@ case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, 
     */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
-      invokeDynamic(owner, name, desc, itf, mv, env, block)
+      invokeDynamic(owner, name, desc, itf, mv, env, loadCurrentCtx(_, env, block))
     }
     else {
       val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
@@ -251,16 +291,21 @@ case class InstrINVOKEVIRTUAL(owner: Owner, name: MethodName, desc: MethodDesc, 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
 
     if (env.shouldLiftInstr(this)) {
-      invokeDynamic(owner, name, desc, itf, mv, env, block)
+      invokeDynamic(owner, name, desc, itf, mv, env, loadCurrentCtx(_, env, block))
     }
     else {
       val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
       val liftedCall = liftCall(hasVArgs, owner, name, desc)
 
-      if (liftedCall.loadCtx) loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(INVOKEVIRTUAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
-
-      if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+      if (hasVArgs) {
+        loadCurrentCtx(mv, env, block)
+        invokeOnNonV(owner, name, desc, itf, mv, env, block)
+      }
+      else {
+        if (liftedCall.loadCtx) loadCurrentCtx(mv, env, block)
+        mv.visitMethodInsn(INVOKEVIRTUAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+        if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+      }
     }
   }
 
@@ -308,7 +353,7 @@ case class InstrINVOKEINTERFACE(owner: Owner, name: MethodName, desc: MethodDesc
     */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
-      invokeDynamic(owner, name, desc, itf, mv, env, block)
+      invokeDynamic(owner, name, desc, itf, mv, env, loadCurrentCtx(_, env, block))
     }
     else {
       val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)

@@ -39,7 +39,7 @@ case class InstrGETSTATIC(owner: Owner, name: FieldName, desc: TypeDesc) extends
       else {
         // fields are not lifted but we need a V, so we wrap it into a V
         mv.visitFieldInsn(GETSTATIC, LiftingPolicy.liftClassName(owner), name, LiftingPolicy.liftClassType(desc))
-        callVCreateOne(mv, (m) => loadCurrentCtx(mv, env, block))
+        callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
       }
     }
     else {
@@ -140,7 +140,7 @@ case class InstrGETFIELD(owner: Owner, name: FieldName, desc: TypeDesc) extends 
 
   def getFieldFromV(mv: MethodVisitor, env: VMethodEnv, block: Block, owner: String, name: String, desc: String): Unit = {
     val ownerType = Type.getObjectType(owner)
-    InvokeDynamicUtils.invoke("sflatMap", mv, env, block, "getfield", s"$ownerType()$vclasstype") {
+    InvokeDynamicUtils.invoke("sflatMap", mv, env, loadCurrentCtx(_, env, block), "getfield", s"$ownerType()$vclasstype") {
       (visitor: MethodVisitor) => {
         val label = new Label()
         visitor.visitVarInsn(ALOAD, 1) //obj ref
