@@ -68,6 +68,7 @@ trait MethodInstruction extends Instruction {
           case Type.INT =>
             mv.visitMethodInsn(INVOKESTATIC, Owner("java/lang/Integer"), MethodName("valueOf"), MethodDesc("(I)Ljava/lang/Integer;"), false)
           case Type.OBJECT => // do nothing
+          case Type.VOID => // do nothing
           case _ => ???
         }
         if (!LiftingPolicy.shouldLiftMethodCall(owner, name, desc) && !isReturnVoid)
@@ -101,7 +102,7 @@ trait MethodInstruction extends Instruction {
       callVCreateOne(m, (m) => m.visitVarInsn(ALOAD, desc.getArgCount + 1))
       1 to desc.getArgCount foreach { (i) => m.visitVarInsn(ALOAD, i) } // arguments
       invokeDynamic(owner, name, desc, itf, m, env, defaultLoadCtx = (m) => m.visitVarInsn(ALOAD, desc.getArgCount + 1))
-      m.visitInsn(ARETURN)
+      if (desc.isReturnVoid) m.visitInsn(RETURN) else m.visitInsn(ARETURN)
       m.visitMaxs(10, 10)
       m.visitEnd()
     }
