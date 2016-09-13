@@ -21,6 +21,7 @@ case class Owner(name: String) extends TypeVerifier {
 
   override def equals(obj: scala.Any): Boolean = obj match {
     case o: Owner => name == o.name
+    case s: String => name == s
     case _ => false
   }
 
@@ -54,6 +55,7 @@ case class MethodName(name: String) {
 
   override def equals(obj: scala.Any): Boolean = obj match {
     case MethodName(s) => s == name
+    case s: String => s == name
     case _ => false
   }
 }
@@ -71,6 +73,7 @@ case class FieldName(name: String) {
 
   override def equals(obj: scala.Any): Boolean = obj match {
     case FieldName(f) => f == name
+    case s: String => name == s
     case _ => false
   }
 }
@@ -90,6 +93,7 @@ case class MethodDesc(descString: String) extends TypeVerifier {
 
   override def equals(obj: scala.Any): Boolean = obj match {
     case MethodDesc(md) => md == descString
+    case s: String => descString == s
     case _ => false
   }
 
@@ -103,6 +107,8 @@ case class MethodDesc(descString: String) extends TypeVerifier {
   def getReturnTypeString: String = mt.getReturnType().getDescriptor
 
   def isReturnVoid: Boolean = getReturnTypeString == "V"
+
+  def getArgs: Array[TypeDesc] = Type.getMethodType(descString).getArgumentTypes.map(t => TypeDesc(t.getDescriptor))
 }
 
 object MethodDesc {
@@ -118,6 +124,7 @@ case class TypeDesc(desc: String) extends TypeVerifier {
 
   override def equals(obj: scala.Any): Boolean = obj match {
     case t: TypeDesc => desc == t.desc
+    case s: String => desc == s
     case _ => false
   }
 }

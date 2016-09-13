@@ -214,4 +214,88 @@ class InvokeDynamicUtilsTest extends FlatSpec with DiffMethodTestInfrastructure 
         Nil
     )
   }
+
+  /** Create one String and one Integer, then call [[Integer.getInteger()]]
+    *
+    * static method, non-V arguments
+    */
+  it can "invoke static method with non-V arguments" in {
+    methodWithBlocks(
+      Block(
+        InstrLDC("java.home"), InstrICONST(1),
+        InstrINVOKESTATIC(Owner("java/lang/Integer"), MethodName("valueOf"), MethodDesc("(I)Ljava/lang/Integer;"), itf = false),
+        InstrINVOKESTATIC(
+          Owner("java/lang/Integer"),
+          MethodName("getInteger"),
+          MethodDesc("(Ljava/lang/String;Ljava/lang/Integer;)Ljava/lang/Integer;"),
+          itf = false
+        ),
+        InstrINVOKEVIRTUAL(
+          Owner("java/lang/Integer"),
+          MethodName("toString"),
+          MethodDesc("()Ljava/lang/String;"),
+          itf = false
+        ),
+        InstrDBGStrPrint(), InstrRETURN()
+      ) ::
+        Nil
+    )
+  }
+
+  /** Create one variational String and call [[Integer.decode()]]
+    *
+    * static method, one V argument
+    */
+  it can "invoke static method with one V argument" in {
+    methodWithBlocks(
+      createVString(0, tValue = "0xFF", fValue = "007") :::
+        Block(
+          InstrINVOKESTATIC(
+            Owner("java/lang/Integer"),
+            MethodName("decode"),
+            MethodDesc("(Ljava/lang/String;)Ljava/lang/Integer;"),
+            itf = false
+          ),
+          InstrINVOKEVIRTUAL(
+            Owner("java/lang/Integer"),
+            MethodName("toString"),
+            MethodDesc("()Ljava/lang/String;"),
+            itf = false
+          ),
+          InstrDBGStrPrint(), InstrRETURN()
+        ) ::
+        Nil
+    )
+  }
+
+  /** Create one variational String and one variational Integer, then call [[Integer.getInteger()]]
+    *
+    * static method, two V arguments
+    */
+  it can "invoke static method with two V arguments" in {
+    val string = new LocalVar("string", TypeDesc("Ljava/lang/String;"))
+    val integer = new LocalVar("integer", TypeDesc("Ljava/lang/Integer;"))
+
+    methodWithBlocks(
+      createVString(0, tValue = "java.version", fValue = "java.home", config = "B", localVar = Some(string)) :::
+        createVInteger(3, tValue = 1, fValue = 3, localVar = Some(integer)) :::
+        Block(
+          InstrALOAD(string), InstrALOAD(integer),
+          InstrINVOKESTATIC(
+            Owner("java/lang/Integer"),
+            MethodName("getInteger"),
+            MethodDesc("(Ljava/lang/String;Ljava/lang/Integer;)Ljava/lang/Integer;"),
+            itf = false
+          ),
+          InstrINVOKEVIRTUAL(
+            Owner("java/lang/Integer"),
+            MethodName("toString"),
+            MethodDesc("()Ljava/lang/String;"),
+            itf = false
+          ),
+          InstrDBGStrPrint(), InstrRETURN()
+        ) ::
+        Nil
+    )
+  }
 }

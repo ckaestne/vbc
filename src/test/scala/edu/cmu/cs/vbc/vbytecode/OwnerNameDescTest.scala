@@ -168,4 +168,16 @@ class OwnerNameDescTest extends FlatSpec {
     assert(MethodDesc("(ILjava/lang/String;)[I").getReturnTypeString == "[I")
     assert(MethodDesc("([I)Ljava/lang/Object;").getReturnTypeString == "Ljava/lang/Object;")
   }
+
+  it can "return the argument list as an array" in {
+    val args: Array[TypeDesc] = MethodDesc("(IF)V").getArgs
+    assert(args.size == 2)
+    assert(args(0) == TypeDesc("I"))
+    assert(args(1) == TypeDesc("F"))
+
+    val args2: Array[TypeDesc] = MethodDesc("(ILjava/lang/String;)[I").getArgs
+    assert(args2.size == 2)
+    assert(args2(0) == TypeDesc("I"))
+    assert(args2(1) == TypeDesc("Ljava/lang/String;"))
+  }
 }

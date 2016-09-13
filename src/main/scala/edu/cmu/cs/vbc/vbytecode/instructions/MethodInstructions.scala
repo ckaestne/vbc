@@ -28,7 +28,7 @@ trait MethodInstruction extends Instruction {
                    ): Unit = {
     val nArgs = Type.getArgumentTypes(desc).length
     val hasVArgs = nArgs > 0
-    val liftedCall = liftCall(hasVArgs, owner, name, desc)
+    val liftedCall = liftCall(owner, name, desc)
     val objType = Type.getObjectType(liftedCall.owner).toString
     val argTypes: String = liftedCall.desc.descString.takeWhile(_ != ')') + ")"
 
@@ -50,7 +50,7 @@ trait MethodInstruction extends Instruction {
       defaultLoadCtx,
       OpcodePrint.print(invokeType) + "$" + name.name,
       s"$objType$argTypes$retType",
-      nExplodeArgs = liftedCall.nVArgs
+      nExplodeArgs = liftedCall.desc.getArgCount
     ) {
       (mv: MethodVisitor) => {
         if (hasVArgs) {
@@ -61,7 +61,7 @@ trait MethodInstruction extends Instruction {
           mv.visitVarInsn(ALOAD, nArgs + 1) // objref
           0 until nArgs foreach { (i) => mv.visitVarInsn(ALOAD, i) } // arguments
         }
-        if (liftedCall.loadCtx) mv.visitVarInsn(ALOAD, nArgs) // ctx
+        if (liftedCall.isLifting) mv.visitVarInsn(ALOAD, nArgs) // ctx
         mv.visitMethodInsn(invokeType, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
         // Box primitive type
         Type.getMethodType(liftedCall.desc).getReturnType.getSort match {
@@ -223,9 +223,9 @@ case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, 
     }
     else {
       val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
-      val liftedCall = liftCall(hasVArgs, owner, name, desc)
+      val liftedCall = liftCall(owner, name, desc)
 
-      if (liftedCall.loadCtx) loadCurrentCtx(mv, env, block)
+      if (liftedCall.isLifting) loadCurrentCtx(mv, env, block)
       if (name.contentEquals("<init>") && hasVArgs && !LiftingPolicy.shouldLiftMethodCall(owner, name, desc)) {
         // Use a special init method to do initialization
         val newDesc = liftedCall.desc.substring(0, liftedCall.desc.length - 1) + vclasstype
@@ -295,14 +295,14 @@ case class InstrINVOKEVIRTUAL(owner: Owner, name: MethodName, desc: MethodDesc, 
     }
     else {
       val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
-      val liftedCall = liftCall(hasVArgs, owner, name, desc)
+      val liftedCall = liftCall(owner, name, desc)
 
-      if (hasVArgs) {
+      if (!liftedCall.isLifting && hasVArgs) {
         loadCurrentCtx(mv, env, block)
         invokeOnNonV(owner, name, desc, itf, mv, env, block)
       }
       else {
-        if (liftedCall.loadCtx) loadCurrentCtx(mv, env, block)
+        if (liftedCall.isLifting) loadCurrentCtx(mv, env, block)
         mv.visitMethodInsn(INVOKEVIRTUAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
         if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
       }
@@ -329,12 +329,32 @@ case class InstrINVOKESTATIC(owner: Owner, name: MethodName, desc: MethodDesc, i
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
-    val liftedCall = liftCall(hasVArgs, owner, name, desc)
+    val liftedCall = liftCall(owner, name, desc)
 
-    if (liftedCall.loadCtx) loadCurrentCtx(mv, env, block)
-    mv.visitMethodInsn(INVOKESTATIC, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
-
-    if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+    if (!liftedCall.isLifting && hasVArgs) {
+      val vCall = if (liftedCall.desc.isReturnVoid) "sforeach" else "sflatMap"
+      val lambdaName = "helper$invokestaticWithVs$" + env.clazz.lambdaMethods.size
+      val args = liftedCall.desc.getArgs
+      val invokeDesc = args.head.desc + s"(${args.tail.map(_.desc).mkString("")})" + (if (liftedCall.desc.isReturnVoid) "V" else vclasstype)
+      InvokeDynamicUtils.invoke(vCall, mv, env, loadCurrentCtx(_, env, block), lambdaName, invokeDesc, nExplodeArgs = args.size - 1) {
+        (m: MethodVisitor) => {
+          0 to args.length - 2 foreach { i => m.visitVarInsn(ALOAD, i) } // first args.size - 1 arguments
+          m.visitVarInsn(ALOAD, args.size) // last argument
+          m.visitMethodInsn(INVOKESTATIC, liftedCall.owner, liftedCall.name, liftedCall.desc, false)
+          if (liftedCall.desc.isReturnVoid) {
+            m.visitInsn(RETURN)
+          }
+          else {
+            callVCreateOne(m, mm => mm.visitVarInsn(ALOAD, args.size - 1))
+            m.visitInsn(ARETURN)
+          }
+        }
+      }
+    } else {
+      if (liftedCall.isLifting) loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(INVOKESTATIC, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+      if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+    }
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame =
@@ -356,10 +376,9 @@ case class InstrINVOKEINTERFACE(owner: Owner, name: MethodName, desc: MethodDesc
       invokeDynamic(owner, name, desc, itf, mv, env, loadCurrentCtx(_, env, block))
     }
     else {
-      val hasVArgs = env.getTag(this, env.TAG_HAS_VARG)
-      val liftedCall = liftCall(hasVArgs, owner, name, desc)
+      val liftedCall = liftCall(owner, name, desc)
 
-      if (liftedCall.loadCtx) loadCurrentCtx(mv, env, block)
+      if (liftedCall.isLifting) loadCurrentCtx(mv, env, block)
       mv.visitMethodInsn(INVOKEINTERFACE, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
 
       if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))

@@ -23,7 +23,11 @@ object LiftCall {
     *         String -> lifted method description
     *
     */
-  def liftCall(hasVArgs: Boolean, owner: Owner, name: MethodName, desc: MethodDesc): LiftedCall = {
+  def liftCall(
+                owner: Owner,
+                name: MethodName,
+                desc: MethodDesc
+              ): LiftedCall = {
     val shouldLiftMethod = LiftingPolicy.shouldLiftMethodCall(owner, name, desc)
     if (shouldLiftMethod) {
       /*
@@ -38,7 +42,7 @@ object LiftCall {
         LiftingPolicy.liftClassName(owner),
         name,
         replaceWithVs(desc, addFE = true),
-        loadCtx = true
+        isLifting = true
       )
     }
     else {
@@ -49,13 +53,11 @@ object LiftCall {
       2. if all arguments are V, we return the count of V arguments, and then use [[InvokeDynamicUtils]]
       to explode them. (Current design make sure that if there are V arguments, all arguments should be V)
        */
-      val numVArgs = if (hasVArgs) Type.getMethodType(desc).getArgumentTypes.size else 0
       LiftedCall(
         LiftingPolicy.liftClassName(owner),
         name,
         desc,
-        loadCtx = false,
-        nVArgs = numVArgs
+        isLifting = false
       )
     }
   }
@@ -95,4 +97,9 @@ object LiftCall {
 
 }
 
-case class LiftedCall(owner: Owner, name: MethodName, desc: MethodDesc, loadCtx: Boolean, nVArgs: Int = 0)
+case class LiftedCall(
+                       owner: Owner,
+                       name: MethodName,
+                       desc: MethodDesc,
+                       isLifting: Boolean
+                     )
