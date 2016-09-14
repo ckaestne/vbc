@@ -30,7 +30,7 @@ trait MethodInstruction extends Instruction {
     val hasVArgs = nArgs > 0
     val liftedCall = liftCall(owner, name, desc)
     val objType = Type.getObjectType(liftedCall.owner).toString
-    val argTypes: String = liftedCall.desc.descString.takeWhile(_ != ')') + ")"
+    val argTypes: String = liftedCall.desc.getArgs.map(_.toObject).map(_.desc).mkString("(", "", ")")
 
     val isReturnVoid = Type.getReturnType(desc) == Type.VOID_TYPE
     val retType = if (isReturnVoid) "V" else vclasstype
@@ -55,26 +55,46 @@ trait MethodInstruction extends Instruction {
       (mv: MethodVisitor) => {
         if (hasVArgs) {
           mv.visitVarInsn(ALOAD, 0) // objref
-          1 until nArgs foreach {(i) => mv.visitVarInsn(ALOAD, i)}  // first nArgs -1 arguments
-          mv.visitVarInsn(ALOAD, nArgs + 1) // last argument
+          1 until nArgs foreach { (i) => loadVar(i, liftedCall.desc, i - 1, mv) } // first nArgs -1 arguments
+          loadVar(nArgs + 1, liftedCall.desc, nArgs - 1, mv) // last argument
         } else {
           mv.visitVarInsn(ALOAD, nArgs + 1) // objref
-          0 until nArgs foreach { (i) => mv.visitVarInsn(ALOAD, i) } // arguments
+          0 until nArgs foreach { (i) => loadVar(i, liftedCall.desc, i, mv) } // arguments
         }
         if (liftedCall.isLifting) mv.visitVarInsn(ALOAD, nArgs) // ctx
         mv.visitMethodInsn(invokeType, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
         // Box primitive type
-        Type.getMethodType(liftedCall.desc).getReturnType.getSort match {
-          case Type.INT =>
-            mv.visitMethodInsn(INVOKESTATIC, Owner("java/lang/Integer"), MethodName("valueOf"), MethodDesc("(I)Ljava/lang/Integer;"), false)
-          case Type.OBJECT => // do nothing
-          case Type.VOID => // do nothing
-          case _ => ???
-        }
+        boxReturnValue(liftedCall.desc, mv)
         if (!LiftingPolicy.shouldLiftMethodCall(owner, name, desc) && !isReturnVoid)
           callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, nArgs))
         if (isReturnVoid) mv.visitInsn(RETURN) else mv.visitInsn(ARETURN)
       }
+    }
+  }
+
+  def boxReturnValue(desc: MethodDesc, mv: MethodVisitor): Unit = {
+    desc.getReturnTypeSort match {
+      case Type.INT =>
+        mv.visitMethodInsn(INVOKESTATIC, Owner("java/lang/Integer"), MethodName("valueOf"), MethodDesc("(I)Ljava/lang/Integer;"), false)
+      case Type.OBJECT => // do nothing
+      case Type.VOID => // do nothing
+      case _ => ???
+    }
+  }
+
+  def loadVar(index: Int, desc: MethodDesc, indexInDesc: Int, mv: MethodVisitor): Unit = {
+    mv.visitVarInsn(ALOAD, index)
+    val args = desc.getArgs
+    args(indexInDesc) match {
+      case TypeDesc("Z") => mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getBoolean, MethodName("booleanValue"), MethodDesc("()Z"), false)
+      case TypeDesc("C") => ???
+      case TypeDesc("B") => ???
+      case TypeDesc("S") => ???
+      case TypeDesc("I") => mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getInt, MethodName("intValue"), MethodDesc("()I"), false)
+      case TypeDesc("F") => ???
+      case TypeDesc("J") => ???
+      case TypeDesc("D") => ???
+      case _ => // nothing
     }
   }
 
@@ -335,13 +355,14 @@ case class InstrINVOKESTATIC(owner: Owner, name: MethodName, desc: MethodDesc, i
     if (!liftedCall.isLifting && hasVArgs) {
       val vCall = if (liftedCall.desc.isReturnVoid) "sforeach" else "sflatMap"
       val lambdaName = "helper$invokestaticWithVs$" + env.clazz.lambdaMethods.size
-      val args = liftedCall.desc.getArgs
+      val args = liftedCall.desc.getArgs.map(_.toObject)
       val invokeDesc = args.head.desc + s"(${args.tail.map(_.desc).mkString("")})" + (if (liftedCall.desc.isReturnVoid) "V" else vclasstype)
       InvokeDynamicUtils.invoke(vCall, mv, env, loadCurrentCtx(_, env, block), lambdaName, invokeDesc, nExplodeArgs = args.size - 1) {
         (m: MethodVisitor) => {
-          0 to args.length - 2 foreach { i => m.visitVarInsn(ALOAD, i) } // first args.size - 1 arguments
-          m.visitVarInsn(ALOAD, args.size) // last argument
+          0 to args.length - 2 foreach { i => loadVar(i, liftedCall.desc, i, m) } // first args.size - 1 arguments
+          loadVar(args.size, liftedCall.desc, args.size - 1, m) // last argument
           m.visitMethodInsn(INVOKESTATIC, liftedCall.owner, liftedCall.name, liftedCall.desc, false)
+          boxReturnValue(liftedCall.desc, m)
           if (liftedCall.desc.isReturnVoid) {
             m.visitInsn(RETURN)
           }

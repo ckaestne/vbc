@@ -2,56 +2,13 @@ package edu.cmu.cs.vbc.utils
 
 import edu.cmu.cs.vbc.vbytecode._
 import edu.cmu.cs.vbc.vbytecode.instructions._
-import edu.cmu.cs.vbc.{DiffMethodTestInfrastructure, InstrDBGIPrint, InstrDBGStrPrint, InstrLoadConfig}
+import edu.cmu.cs.vbc.{DiffMethodTestInfrastructure, InstrDBGIPrint, InstrDBGStrPrint}
 import org.scalatest.FlatSpec
 
 /**
   * @author chupanw
   */
 class InvokeDynamicUtilsTest extends FlatSpec with DiffMethodTestInfrastructure {
-
-  /** Helper function to create a variational Integer.
-    *
-    * @param startBlockIdx  the index of starting block, used to jump between blocks
-    * @param tValue         int value if condition is true
-    * @param fValue         int value if condition is false
-    * @param localVar       store the new variational Integer to this local variable, otherwise leave it on stack
-    * @return               A list of bytecode blocks
-    */
-  def createVInteger(startBlockIdx: Int, tValue: Int, fValue: Int, localVar: Option[LocalVar] = None): List[Block] = {
-    Block(InstrLoadConfig("A"), InstrIFEQ(startBlockIdx + 2)) ::
-    Block(
-      InstrICONST(tValue),
-      InstrINVOKESTATIC(Owner("java/lang/Integer"), MethodName("valueOf"), MethodDesc("(I)Ljava/lang/Integer;"), itf = false),
-      if (localVar.isDefined) InstrASTORE(localVar.get) else InstrNOP(),
-      InstrGOTO(startBlockIdx + 3)
-    ) ::
-    Block(
-      InstrICONST(fValue),
-      InstrINVOKESTATIC(Owner("java/lang/Integer"), MethodName("valueOf"), MethodDesc("(I)Ljava/lang/Integer;"), itf = false),
-      if (localVar.isDefined) InstrASTORE(localVar.get) else InstrNOP(),
-      // To handle unbalanced stack, current VBCAnalyzer requires the last instruction to be a jump instruction.
-      InstrGOTO(startBlockIdx + 3)
-    ) ::
-    Nil
-  }
-
-  /** Helper function to create a variational String. */
-  def createVString(startBlockIdx: Int, tValue: String, fValue: String, localVar: Option[LocalVar] = None, config: String = "A"): List[Block] = {
-    Block(InstrLoadConfig(config), InstrIFEQ(startBlockIdx + 2)) ::
-      Block(
-        InstrLDC(tValue),
-        if (localVar.isDefined) InstrASTORE(localVar.get) else InstrNOP(),
-        InstrGOTO(startBlockIdx + 3)
-      ) ::
-      Block(
-        InstrLDC(fValue),
-        if (localVar.isDefined) InstrASTORE(localVar.get) else InstrNOP(),
-        // To handle unbalanced stack, current VBCAnalyzer requires the last instruction to be a jump instruction.
-        InstrGOTO(startBlockIdx + 3)
-      ) ::
-      Nil
-  }
 
   /** Create a variational Integer and call toString
     *

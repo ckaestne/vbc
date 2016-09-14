@@ -6,7 +6,7 @@ import de.fosd.typechef.conditional.{ConditionalLib, Opt}
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
 import edu.cmu.cs.vbc.TestOutput.TOpt
 import edu.cmu.cs.vbc.vbytecode._
-import edu.cmu.cs.vbc.vbytecode.instructions.{InstrALOAD, InstrINVOKESPECIAL, InstrRETURN, Instruction}
+import edu.cmu.cs.vbc.vbytecode.instructions._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.util.TraceClassVisitor
 import org.objectweb.asm.{ClassReader, ClassWriter}
@@ -233,5 +233,47 @@ trait DiffMethodTestInfrastructure {
       CFG(blocks)))
   }
 
+  /** Helper function to create a variational Integer.
+    *
+    * @param startBlockIdx the index of starting block, used to jump between blocks
+    * @param tValue        int value if condition is true
+    * @param fValue        int value if condition is false
+    * @param localVar      store the new variational Integer to this local variable, otherwise leave it on stack
+    * @return A list of bytecode blocks
+    */
+  def createVInteger(startBlockIdx: Int, tValue: Int, fValue: Int, localVar: Option[LocalVar] = None, config: String = "A"): List[Block] = {
+    Block(InstrLoadConfig(config), InstrIFEQ(startBlockIdx + 2)) ::
+      Block(
+        InstrICONST(tValue),
+        InstrINVOKESTATIC(Owner("java/lang/Integer"), MethodName("valueOf"), MethodDesc("(I)Ljava/lang/Integer;"), itf = false),
+        if (localVar.isDefined) InstrASTORE(localVar.get) else InstrNOP(),
+        InstrGOTO(startBlockIdx + 3)
+      ) ::
+      Block(
+        InstrICONST(fValue),
+        InstrINVOKESTATIC(Owner("java/lang/Integer"), MethodName("valueOf"), MethodDesc("(I)Ljava/lang/Integer;"), itf = false),
+        if (localVar.isDefined) InstrASTORE(localVar.get) else InstrNOP(),
+        // To handle unbalanced stack, current VBCAnalyzer requires the last instruction to be a jump instruction.
+        InstrGOTO(startBlockIdx + 3)
+      ) ::
+      Nil
+  }
+
+  /** Helper function to create a variational String. */
+  def createVString(startBlockIdx: Int, tValue: String, fValue: String, localVar: Option[LocalVar] = None, config: String = "A"): List[Block] = {
+    Block(InstrLoadConfig(config), InstrIFEQ(startBlockIdx + 2)) ::
+      Block(
+        InstrLDC(tValue),
+        if (localVar.isDefined) InstrASTORE(localVar.get) else InstrNOP(),
+        InstrGOTO(startBlockIdx + 3)
+      ) ::
+      Block(
+        InstrLDC(fValue),
+        if (localVar.isDefined) InstrASTORE(localVar.get) else InstrNOP(),
+        // To handle unbalanced stack, current VBCAnalyzer requires the last instruction to be a jump instruction.
+        InstrGOTO(startBlockIdx + 3)
+      ) ::
+      Nil
+  }
 
 }

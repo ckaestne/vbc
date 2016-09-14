@@ -44,6 +44,12 @@ case class Owner(name: String) extends TypeVerifier {
 /** Store implicit conversion to String, avoid changing too much existing code. */
 object Owner {
   implicit def ownerToString(owner: Owner): String = owner.name
+
+  def getInt = Owner("java/lang/Integer")
+
+  def getBoolean = Owner("java/lang/Boolean")
+
+  def getString = Owner("java/lang/String")
 }
 
 
@@ -106,6 +112,8 @@ case class MethodDesc(descString: String) extends TypeVerifier {
     */
   def getReturnTypeString: String = mt.getReturnType().getDescriptor
 
+  def getReturnTypeSort: Int = mt.getReturnType.getSort
+
   def isReturnVoid: Boolean = getReturnTypeString == "V"
 
   def getArgs: Array[TypeDesc] = Type.getMethodType(descString).getArgumentTypes.map(t => TypeDesc(t.getDescriptor))
@@ -127,10 +135,29 @@ case class TypeDesc(desc: String) extends TypeVerifier {
     case s: String => desc == s
     case _ => false
   }
+
+  def isPrimitive: Boolean = desc == "Z" || desc == "C" || desc == "B" || desc == "S" || desc == "I" || desc == "F" ||
+    desc == "J" || desc == "D"
+
+  def toObject: TypeDesc = desc match {
+    case "Z" => TypeDesc("Ljava/lang/Boolean;")
+    case "C" => TypeDesc("Ljava/lang/Char;")
+    case "B" => TypeDesc("Ljava/lang/Byte;")
+    case "S" => TypeDesc("Ljava/lang/Short;")
+    case "I" => TypeDesc("Ljava/lang/Integer;")
+    case "F" => TypeDesc("Ljava/lang/Float;")
+    case "J" => TypeDesc("Ljava/lang/Long;")
+    case "D" => TypeDesc("Ljava/lang/Double;")
+    case _ => this
+  }
 }
 
 object TypeDesc {
   implicit def typeDescToString(td: TypeDesc): String = td.desc
+
+  def getInt: TypeDesc = TypeDesc("Ljava/lang/Integer;")
+
+  def getString: TypeDesc = TypeDesc("Ljava/lang/String;")
 }
 
 trait TypeVerifier {
