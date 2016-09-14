@@ -47,8 +47,10 @@ object Owner {
 
   def getInt = Owner("java/lang/Integer")
 
-  def getBoolean = Owner("java/lang/Boolean")
+  def getShort = Owner("java/lang/Short")
 
+  def getByte = Owner("java/lang/Byte")
+  def getBoolean = Owner("java/lang/Boolean")
   def getString = Owner("java/lang/String")
 }
 
@@ -148,6 +150,14 @@ case class TypeDesc(desc: String) extends TypeVerifier {
     case "F" => TypeDesc("Ljava/lang/Float;")
     case "J" => TypeDesc("Ljava/lang/Long;")
     case "D" => TypeDesc("Ljava/lang/Double;")
+    case _ => this
+  }
+
+  def castInt: TypeDesc = this match {
+    case TypeDesc("Ljava/lang/Boolean;") => TypeDesc.getInt
+    case TypeDesc("Ljava/lang/Char;") => TypeDesc.getInt
+    case TypeDesc("Ljava/lang/Short;") => TypeDesc.getInt
+    case TypeDesc("Ljava/lang/Byte;") => TypeDesc.getInt
     case _ => this
   }
 }

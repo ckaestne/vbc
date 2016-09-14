@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.vbytecode._
-import edu.cmu.cs.vbc.{DiffMethodTestInfrastructure, InstrDBGIPrint, InstrDBGStrPrint}
+import edu.cmu.cs.vbc.{DiffMethodTestInfrastructure, InstrDBGIPrint, InstrDBGStrPrint, InstrLoadConfig}
 import org.scalatest.FlatSpec
 
 /**
@@ -57,6 +57,71 @@ class MethodInstructionsTest extends FlatSpec with DiffMethodTestInfrastructure 
     )
   }
 
+  it can "invoke method that takes an integer argument" in {
+    methodWithBlocks(
+      Block(InstrLoadConfig("A"), InstrIFEQ(2)) ::
+        Block(InstrICONST(1), InstrGOTO(3)) ::
+        Block(InstrICONST(2), InstrGOTO(3)) ::
+        Block(
+          InstrINVOKESTATIC(Owner.getString, MethodName("valueOf"), MethodDesc("(I)Ljava/lang/String;"), itf = false),
+          InstrDBGStrPrint(), InstrRETURN()
+        ) ::
+        Nil
+    )
+  }
+
+  it can "invoke method that takes a boolean argument" in {
+    methodWithBlocks(
+      Block(InstrLoadConfig("A"), InstrIFEQ(2)) ::
+        Block(InstrICONST(0), InstrGOTO(3)) ::
+        Block(InstrICONST(1), InstrGOTO(3)) ::
+        Block(
+          InstrINVOKESTATIC(Owner.getString, MethodName("valueOf"), MethodDesc("(Z)Ljava/lang/String;"), itf = false),
+          InstrDBGStrPrint(), InstrRETURN()
+        ) ::
+        Nil
+    )
+  }
+
+  it can "invoke method that takes a char argument" in {
+    methodWithBlocks(
+      Block(InstrLoadConfig("A"), InstrIFEQ(2)) ::
+        Block(InstrICONST(0), InstrGOTO(3)) ::
+        Block(InstrICONST(1), InstrGOTO(3)) ::
+        Block(
+          InstrINVOKESTATIC(Owner.getString, MethodName("valueOf"), MethodDesc("(C)Ljava/lang/String;"), itf = false),
+          InstrDBGStrPrint(), InstrRETURN()
+        ) ::
+        Nil
+    )
+  }
+
+  it can "invoke method that takes a short argument" in {
+    methodWithBlocks(
+      Block(InstrLoadConfig("A"), InstrIFEQ(2)) ::
+        Block(InstrICONST(0), InstrGOTO(3)) ::
+        Block(InstrICONST(1), InstrGOTO(3)) ::
+        Block(
+          InstrINVOKESTATIC(Owner.getShort, MethodName("toString"), MethodDesc("(S)Ljava/lang/String;"), itf = false),
+          InstrDBGStrPrint(), InstrRETURN()
+        ) ::
+        Nil
+    )
+  }
+
+  it can "invoke method that takes a byte argument" in {
+    methodWithBlocks(
+      Block(InstrLoadConfig("A"), InstrIFEQ(2)) ::
+        Block(InstrICONST(0), InstrGOTO(3)) ::
+        Block(InstrICONST(1), InstrGOTO(3)) ::
+        Block(
+          InstrINVOKESTATIC(Owner.getByte, MethodName("toString"), MethodDesc("(B)Ljava/lang/String;"), itf = false),
+          InstrDBGStrPrint(), InstrRETURN()
+        ) ::
+        Nil
+    )
+  }
+
   "INVOKEVIRTUAL" can "invoke unlifed method with one primitive argument" in {
     val a = new LocalVar("a", TypeDesc.getString)
     val b = new LocalVar("b", TypeDesc.getInt)
@@ -87,6 +152,38 @@ class MethodInstructionsTest extends FlatSpec with DiffMethodTestInfrastructure 
           InstrALOAD(end), InstrINVOKEVIRTUAL(Owner.getInt, MethodName("intValue"), MethodDesc("()I"), itf = false),
           InstrINVOKEVIRTUAL(Owner.getString, MethodName("substring"), MethodDesc("(II)Ljava/lang/String;"), itf = false),
           InstrDBGStrPrint(), InstrRETURN()
+        ) ::
+        Nil
+    )
+  }
+
+  it can "invoke method that takes a boolean argument" in {
+    methodWithBlocks(
+      Block(
+        InstrGETSTATIC(Owner("java/lang/System"), FieldName("out"), TypeDesc("Ljava/io/PrintStream;")),
+        InstrLoadConfig("A"), InstrIFEQ(2)
+      ) ::
+        Block(InstrICONST(0), InstrGOTO(3)) ::
+        Block(InstrICONST(1), InstrGOTO(3)) ::
+        Block(
+          InstrINVOKEVIRTUAL(Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(Z)V"), itf = false),
+          InstrRETURN()
+        ) ::
+        Nil
+    )
+  }
+
+  it can "invoke method that takes a char argument" in {
+    methodWithBlocks(
+      Block(
+        InstrGETSTATIC(Owner("java/lang/System"), FieldName("out"), TypeDesc("Ljava/io/PrintStream;")),
+        InstrLoadConfig("A"), InstrIFEQ(2)
+      ) ::
+        Block(InstrICONST(0), InstrGOTO(3)) ::
+        Block(InstrICONST(1), InstrGOTO(3)) ::
+        Block(
+          InstrINVOKEVIRTUAL(Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(C)V"), itf = false),
+          InstrRETURN()
         ) ::
         Nil
     )

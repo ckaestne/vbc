@@ -30,7 +30,7 @@ trait MethodInstruction extends Instruction {
     val hasVArgs = nArgs > 0
     val liftedCall = liftCall(owner, name, desc)
     val objType = Type.getObjectType(liftedCall.owner).toString
-    val argTypes: String = liftedCall.desc.getArgs.map(_.toObject).map(_.desc).mkString("(", "", ")")
+    val argTypes: String = liftedCall.desc.getArgs.map(_.toObject).map(_.castInt).map(_.desc).mkString("(", "", ")")
 
     val isReturnVoid = Type.getReturnType(desc) == Type.VOID_TYPE
     val retType = if (isReturnVoid) "V" else vclasstype
@@ -86,10 +86,10 @@ trait MethodInstruction extends Instruction {
     mv.visitVarInsn(ALOAD, index)
     val args = desc.getArgs
     args(indexInDesc) match {
-      case TypeDesc("Z") => mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getBoolean, MethodName("booleanValue"), MethodDesc("()Z"), false)
-      case TypeDesc("C") => ???
-      case TypeDesc("B") => ???
-      case TypeDesc("S") => ???
+      case TypeDesc("Z") => mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getInt, MethodName("intValue"), MethodDesc("()I"), false)
+      case TypeDesc("C") => mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getInt, MethodName("intValue"), MethodDesc("()I"), false)
+      case TypeDesc("B") => mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getInt, MethodName("intValue"), MethodDesc("()I"), false)
+      case TypeDesc("S") => mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getInt, MethodName("intValue"), MethodDesc("()I"), false)
       case TypeDesc("I") => mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getInt, MethodName("intValue"), MethodDesc("()I"), false)
       case TypeDesc("F") => ???
       case TypeDesc("J") => ???
@@ -355,7 +355,7 @@ case class InstrINVOKESTATIC(owner: Owner, name: MethodName, desc: MethodDesc, i
     if (!liftedCall.isLifting && hasVArgs) {
       val vCall = if (liftedCall.desc.isReturnVoid) "sforeach" else "sflatMap"
       val lambdaName = "helper$invokestaticWithVs$" + env.clazz.lambdaMethods.size
-      val args = liftedCall.desc.getArgs.map(_.toObject)
+      val args = liftedCall.desc.getArgs.map(_.toObject).map(_.castInt)
       val invokeDesc = args.head.desc + s"(${args.tail.map(_.desc).mkString("")})" + (if (liftedCall.desc.isReturnVoid) "V" else vclasstype)
       InvokeDynamicUtils.invoke(vCall, mv, env, loadCurrentCtx(_, env, block), lambdaName, invokeDesc, nExplodeArgs = args.size - 1) {
         (m: MethodVisitor) => {

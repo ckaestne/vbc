@@ -30,6 +30,8 @@ object LiftingPolicy {
     else {
       (owner, name, desc) match {
         case (Owner("java/lang/Integer"), _, _) => false
+        case (Owner("java/lang/Short"), _, _) => false
+        case (Owner("java/lang/Byte"), _, _) => false
         case (Owner("java/lang/String"), _, _) => false
         case (Owner("java/io/PrintStream"), MethodName("println"), _) => false
         case _ => true
