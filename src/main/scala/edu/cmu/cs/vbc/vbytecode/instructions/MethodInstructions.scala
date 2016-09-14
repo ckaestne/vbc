@@ -30,7 +30,9 @@ trait MethodInstruction extends Instruction {
     val hasVArgs = nArgs > 0
     val liftedCall = liftCall(owner, name, desc)
     val objType = Type.getObjectType(liftedCall.owner).toString
-    val argTypes: String = liftedCall.desc.getArgs.map(_.toObject).map(_.castInt).map(_.desc).mkString("(", "", ")")
+    val argTypeDesc: String = desc.getArgs.map {
+      t => if (liftedCall.isLifting) t.toV.desc else t.toObject.castInt.desc
+    }.mkString("(", "", ")")
 
     val isReturnVoid = Type.getReturnType(desc) == Type.VOID_TYPE
     val retType = if (isReturnVoid) "V" else vclasstype
@@ -49,11 +51,11 @@ trait MethodInstruction extends Instruction {
       env,
       defaultLoadCtx,
       OpcodePrint.print(invokeType) + "$" + name.name,
-      s"$objType$argTypes$retType",
-      nExplodeArgs = liftedCall.desc.getArgCount
+      s"$objType$argTypeDesc$retType",
+      nExplodeArgs = if (liftedCall.isLifting) 0 else desc.getArgCount
     ) {
       (mv: MethodVisitor) => {
-        if (hasVArgs) {
+        if (!liftedCall.isLifting && hasVArgs) {
           mv.visitVarInsn(ALOAD, 0) // objref
           1 until nArgs foreach { (i) => loadVar(i, liftedCall.desc, i - 1, mv) } // first nArgs -1 arguments
           loadVar(nArgs + 1, liftedCall.desc, nArgs - 1, mv) // last argument

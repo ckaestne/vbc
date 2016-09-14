@@ -160,6 +160,8 @@ case class TypeDesc(desc: String) extends TypeVerifier {
     case TypeDesc("Ljava/lang/Byte;") => TypeDesc.getInt
     case _ => this
   }
+
+  def toV: TypeDesc = TypeDesc("Ledu/cmu/cs/varex/V;")
 }
 
 object TypeDesc {
