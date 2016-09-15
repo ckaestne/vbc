@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode
 
-import edu.cmu.cs.vbc.utils.{LiftUtils, LiftingPolicy}
+import edu.cmu.cs.vbc.utils.LiftUtils
 import edu.cmu.cs.vbc.vbytecode.instructions._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
@@ -22,7 +22,7 @@ case class Block(instr: Instruction*) {
     instr.foreach(_.toByteCode(mv, env, this))
   }
 
-  def toVByteCode(mv: MethodVisitor, env: VMethodEnv) = {
+  def toVByteCode(mv: MethodVisitor, env: VMethodEnv, isFirstBlockOfInit: Boolean = false) = {
     vvalidate(env)
     mv.visitLabel(env.getBlockLabel(this))
 
@@ -31,7 +31,8 @@ case class Block(instr: Instruction*) {
 
     //load block condition (local variable for each block)
     //jump to next block if condition is contradictory
-    if (nextBlock.isDefined) {
+    // avoid wrapping ALOAD 0 sequence into branch
+    if (!isFirstBlockOfInit && nextBlock.isDefined) {
       loadFExpr(mv, env, thisBlockConditionVar)
       //            mv.visitInsn(DUP)
       //            mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/test/TestOutput", "printFE", "(Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
@@ -200,11 +201,6 @@ case class CFG(blocks: List[Block]) {
   import LiftUtils._
 
   def toByteCode(mv: MethodVisitor, env: MethodEnv) = {
-    // For <init> methods, the first two instructions should be ALOAD 0 and INVOKESPECIAL
-    if (env.method.isInit) {
-      mv.visitVarInsn(ALOAD, 0)
-      mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false)
-    }
     blocks.foreach(_.toByteCode(mv, env))
   }
 
@@ -213,19 +209,6 @@ case class CFG(blocks: List[Block]) {
     // allocate a variable for each block, except for the first, which can reuse the parameter slot
     blocks.headOption.map(env.setBlockVar(_, env.ctxParameter))
     //    blocks.tail.foreach(env.setBlockVar(_, env.freshLocalVar()))
-
-    // For <init> methods, the first two instructions should be ALOAD 0 and INVOKESPECIAL
-    if (env.method.isInit) {
-      mv.visitVarInsn(ALOAD, 0)
-      mv.visitMethodInsn(
-        INVOKESPECIAL,
-        LiftingPolicy.liftClassName(Owner("java/lang/Object")),
-        MethodName("<init>"),
-        MethodDesc("()V"),
-        false
-      )
-    }
-
 
     //TODO: exclude those block vars
     for (v <- env.getFreshVars()) {
@@ -251,6 +234,7 @@ case class CFG(blocks: List[Block]) {
       storeV(mv, env, v)
     }
 
-    blocks.foreach(_.toVByteCode(mv, env))
+    blocks.head.toVByteCode(mv, env, isFirstBlockOfInit = env.method.isInit)
+    blocks.tail.foreach(_.toVByteCode(mv, env))
   }
 }

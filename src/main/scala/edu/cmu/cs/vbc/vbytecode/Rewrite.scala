@@ -68,27 +68,25 @@ object Rewrite {
   }
 
 
+  /** Insert INIT_CONDITIONAL_FIELDS in init
+    *
+    * Current rewriting assumes following sequence is in the first block of init:
+    *
+    * ALOAD 0
+    * {load arguments}
+    * INVOKESPECIAL superclass's init
+    *
+    */
   private def initializeConditionalFields(m: VBCMethodNode): VBCMethodNode =
     if (m.isInit) {
       val firstBlock = m.body.blocks.head
       val firstBlockInstructions = firstBlock.instr
 
-      /* Assume that the first two instructions in the <init> method are:
-           ALOAD 0
-           INVOKESPECIAL java/lang/Object.<inti> ()V
-      */
       val nopPrefix = firstBlockInstructions.takeWhile(_.isInstanceOf[EmptyInstruction])
-      val initialInstr = firstBlockInstructions.drop(nopPrefix.length)
+      val restInstrs = firstBlockInstructions.drop(nopPrefix.length)
+      // this is a stronger assumption
+      assert(restInstrs.head.isALOAD0, "first instruction in <init> is NOT ALOAD 0")
 
-      val pairs = initialInstr.init zip initialInstr.tail // each pair is two consecutive instructions
-      val pair = pairs.find((tuple) => tuple._1.isALOAD0 && tuple._2.isINVOKESPECIAL_OBJECT_INIT)
-      assert(pair.isDefined, "no ALOAD0 and INVOKESPECIAL sequence in <init> method")
-      val count = pairs.count(_ == pair.get)
-      assert(count == 1, "more than one ALOAD0 and INVOKESPECIAL sequence in <init> method")
-
-      val restInstrs = initialInstr.filter((i) => i != pair.get._1 && i != pair.get._2)
-
-      // ALOAD and INVOKESPECIAL will be inserted in CFG
       val newInstrs = nopPrefix ++ (InstrINIT_CONDITIONAL_FIELDS() +: restInstrs)
       val newBlocks = new Block(newInstrs: _*) +: m.body.blocks.drop(1)
       m.copy(body = CFG(newBlocks))

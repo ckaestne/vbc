@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc
 
 import de.fosd.typechef.featureexpr.FeatureExprFactory
-import edu.cmu.cs.vbc.prog.LinkedListExample
+import edu.cmu.cs.vbc.prog.{InitExample, LinkedListExample}
 import org.scalatest.FunSuite
 
 
@@ -76,5 +76,9 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
   ignore("LinkedList") {
     //    testMain(classOf[edu.cmu.cs.vbc.prog.LinkedListTest]) //todo
     testMain(classOf[LinkedListExample], compareTraceAgainstBruteForce = false)
+  }
+
+  test("Different ways of superclass initialization") {
+    testMain(classOf[InitExample])
   }
 }

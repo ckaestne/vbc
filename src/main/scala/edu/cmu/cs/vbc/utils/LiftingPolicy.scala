@@ -17,6 +17,7 @@ object LiftingPolicy {
   def shouldLiftClass(owner: Owner): Boolean = owner.name match {
     case x if x.startsWith("edu/cmu/cs/vbc/prog/") => true
     case "java/util/LinkedList" => true
+    case "java/lang/StringBuilder" => true
     case _ => false
   }
 
@@ -33,6 +34,7 @@ object LiftingPolicy {
         case (Owner("java/lang/Short"), _, _) => false
         case (Owner("java/lang/Byte"), _, _) => false
         case (Owner("java/lang/String"), _, _) => false
+        case (Owner("java/lang/Object"), _, _) => false
         case (Owner("java/io/PrintStream"), MethodName("println"), _) => false
         case _ => true
       }

@@ -166,17 +166,8 @@ trait MethodInstruction extends Instruction {
           val (ref2, prev2, frame2) = frame.pop()
           frame = frame2.push(V_TYPE(), prev2)
         }
-        else {
-          // ref is UNINITIALIZED_TYPE
-          val (ref2, prev2, frame2) = frame.pop()
-          assert(ref2 == ref, "Two different uninitialized refs on stack")
-          if (!shouldLift && hasVArgs) {
-            // we are going to use special model class to do initialization
-            frame = frame2.push(V_TYPE(), prev2)
-          }
-          else {
-            frame = frame2.push(REF_TYPE(), prev2)
-          }
+        else if (!shouldLift && hasVArgs) {
+          ??? // invokeOnNonV
         }
       }
     }
