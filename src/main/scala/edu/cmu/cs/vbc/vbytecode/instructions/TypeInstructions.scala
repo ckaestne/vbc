@@ -76,14 +76,20 @@ case class InstrCHECKCAST(clsName: Owner) extends Instruction {
       InvokeDynamicUtils.invoke("smap", mv, env, loadCurrentCtx(_, env, block), "checkcast", "Ljava/lang/Object;()Ljava/lang/Object;") {
         (visitor: MethodVisitor) => {
           visitor.visitVarInsn(ALOAD, 1)  // ref
-          visitor.visitTypeInsn(CHECKCAST, LiftingPolicy.liftClassName(clsName))
+          visitor.visitTypeInsn(CHECKCAST, LiftingPolicy.liftClassName(toVArray(clsName)))
           visitor.visitInsn(ARETURN)
         }
       }
     }
     else {
-      mv.visitTypeInsn(CHECKCAST, LiftingPolicy.liftClassName(clsName))
+      mv.visitTypeInsn(CHECKCAST, LiftingPolicy.liftClassName(toVArray(clsName)))
     }
+  }
+
+  /** For now we only create arrays with V type */
+  def toVArray(owner: Owner): Owner = owner.name match {
+    case s: String if s.startsWith("[") => Owner(s"[$vclasstype")
+    case _ => owner
   }
 }
 
