@@ -29,7 +29,13 @@ case class VBCMethodNode(access: Int,
   def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
     createBackupMethod(cw, clazz)
     val liftedMethodDesc = liftMethodDescription(desc)
-    val mv = cw.visitMethod(access, liftMethodName(name), liftedMethodDesc, liftMethodSignature(desc, signature).getOrElse(null), exceptions.toArray)
+    val mv = cw.visitMethod(
+      access,
+      liftCLINIT(name),
+      liftedMethodDesc,
+      liftMethodSignature(desc, signature).getOrElse(null),
+      exceptions.toArray
+    )
     mv.visitCode()
     val labelStart = new Label()
     mv.visitLabel(labelStart)
@@ -145,7 +151,7 @@ sealed trait Variable {
   *
   * equality by idx
   */
-class Parameter(val idx: Int, val name: String) extends Variable {
+class Parameter(val idx: Int, val name: String, val desc: TypeDesc) extends Variable {
   override def getIdx(): Option[Int] = Some(idx)
 
   override def hashCode = idx
@@ -279,11 +285,15 @@ case class VBCClassNode(
   def createUnliftedMain(cv: ClassVisitor) = {
     val mainMethodSig = "([Ljava/lang/String;)V"
     val mv = cv.visitMethod(ACC_PUBLIC | ACC_STATIC, "main", mainMethodSig, mainMethodSig, Array.empty)
+    val wrapperClsName = TypeDesc("[Ljava/lang/String;").getWrapper.desc.tail.init
     mv.visitCode()
+    mv.visitTypeInsn(NEW, wrapperClsName)
+    mv.visitInsn(DUP)
     //load array param
     mv.visitVarInsn(ALOAD, 0)
     //create a V<String[]>
     callVCreateOne(mv, (m) => pushConstantTRUE(m))
+    mv.visitMethodInsn(INVOKESPECIAL, wrapperClsName, MethodName("<init>"), MethodDesc(s"($vclasstype)V"), false)
     //set context to True
     pushConstantTRUE(mv)
     mv.visitMethodInsn(INVOKESTATIC, name, "main", liftMethodDescription(mainMethodSig), false)

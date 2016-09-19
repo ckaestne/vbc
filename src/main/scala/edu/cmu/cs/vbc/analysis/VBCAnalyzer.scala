@@ -1,7 +1,8 @@
 package edu.cmu.cs.vbc.analysis
 
+import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.vbytecode.instructions.{Instruction, JumpInstruction}
-import edu.cmu.cs.vbc.vbytecode.{Parameter, VBCMethodNode, VMethodEnv}
+import edu.cmu.cs.vbc.vbytecode.{Parameter, TypeDesc, VBCMethodNode, VMethodEnv}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.Type
 
@@ -47,7 +48,7 @@ class VBCAnalyzer(env: VMethodEnv) {
     // init args
     val args = Type.getArgumentTypes(env.method.desc)
     for (argIdx <- 0 until args.size) {
-      initialFrame = initialFrame.setLocal(new Parameter(if (env.method.isStatic) argIdx else argIdx + 1, "ctx"), VBCType(args(argIdx)), Set())
+      initialFrame = initialFrame.setLocal(new Parameter(if (env.method.isStatic) argIdx else argIdx + 1, "ctx", TypeDesc(fexprclasstype)), VBCType(args(argIdx)), Set())
     }
 
     def getInstr(insn: Int) = instructions(insn)

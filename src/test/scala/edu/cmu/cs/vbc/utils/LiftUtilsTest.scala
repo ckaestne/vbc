@@ -10,9 +10,9 @@ class LiftUtilsTest extends FunSuite with Matchers with DiffMethodTestInfrastruc
 
   test("liftDesc") {
     liftMethodDescription("()V") should equal("(" + fexprclasstype + ")V")
-    liftMethodDescription("(I)V") should equal("(" + vclasstype + fexprclasstype + ")V")
-    liftMethodDescription("(II)V") should equal("(" + vclasstype + vclasstype + fexprclasstype + ")V")
-    liftMethodDescription("(II)I") should equal("(" + vclasstype + vclasstype + fexprclasstype + ")" + vclasstype)
+    liftMethodDescription("(I)V") should equal("(" + "Lv/I;" + fexprclasstype + ")V")
+    liftMethodDescription("(II)V") should equal("(" + "Lv/I;" * 2 + fexprclasstype + ")V")
+    liftMethodDescription("(II)I") should equal("(" + "Lv/I;" * 2 + fexprclasstype + ")" + vclasstype)
   }
 
   test("liftSignature") {

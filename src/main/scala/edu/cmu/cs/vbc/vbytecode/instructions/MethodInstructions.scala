@@ -3,8 +3,8 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 import edu.cmu.cs.vbc.OpcodePrint
 import edu.cmu.cs.vbc.analysis.VBCFrame.{FrameEntry, UpdatedFrame}
 import edu.cmu.cs.vbc.analysis._
-import edu.cmu.cs.vbc.model.LiftCall
 import edu.cmu.cs.vbc.model.LiftCall._
+import edu.cmu.cs.vbc.model.{LiftCall, LiftedCall}
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftingPolicy}
 import edu.cmu.cs.vbc.vbytecode._
@@ -38,12 +38,8 @@ trait MethodInstruction extends Instruction {
     val retType = if (isReturnVoid) "V" else vclasstype
     val vCall = if (isReturnVoid) "sforeach" else "sflatMap"
 
-    val invokeType: Int = this match {
-      case i: InstrINVOKEVIRTUAL => INVOKEVIRTUAL
-      case i: InstrINVOKESPECIAL => INVOKESPECIAL
-      case i: InstrINVOKEINTERFACE => INVOKEINTERFACE
-      case _ => throw new UnsupportedOperationException("Unsupported invoke type")
-    }
+    val invokeType = getInvokeType
+    assert(invokeType != INVOKESTATIC)
 
     InvokeDynamicUtils.invoke(
       vCall,
@@ -64,14 +60,26 @@ trait MethodInstruction extends Instruction {
           0 until nArgs foreach { (i) => loadVar(i, liftedCall.desc, i, mv) } // arguments
         }
         if (liftedCall.isLifting) mv.visitVarInsn(ALOAD, nArgs) // ctx
-        mv.visitMethodInsn(invokeType, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
-        // Box primitive type
-        boxReturnValue(liftedCall.desc, mv)
-        if (!LiftingPolicy.shouldLiftMethodCall(owner, name, desc) && !isReturnVoid)
-          callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, nArgs))
+        if (liftedCall.isLifting && hasVArgs) {
+          invokeWithWrapper(liftedCall, itf, mv, env)
+        } else {
+          mv.visitMethodInsn(invokeType, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+          // Box primitive type
+          boxReturnValue(liftedCall.desc, mv)
+          if (!LiftingPolicy.shouldLiftMethodCall(owner, name, desc) && !isReturnVoid)
+            callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, nArgs))
+        }
         if (isReturnVoid) mv.visitInsn(RETURN) else mv.visitInsn(ARETURN)
       }
     }
+  }
+
+  def getInvokeType: Int = this match {
+    case i: InstrINVOKEVIRTUAL => INVOKEVIRTUAL
+    case i: InstrINVOKESPECIAL => INVOKESPECIAL
+    case i: InstrINVOKEINTERFACE => INVOKEINTERFACE
+    case i: InstrINVOKESTATIC => INVOKESTATIC
+    case _ => throw new UnsupportedOperationException("Unsupported invoke type")
   }
 
   def boxReturnValue(desc: MethodDesc, mv: MethodVisitor): Unit = {
@@ -98,6 +106,94 @@ trait MethodInstruction extends Instruction {
       case TypeDesc("D") => ???
       case _ => // nothing
     }
+  }
+
+  /** Create wrapper for each argument and invoke the method
+    *
+    * Assumption:
+    *
+    *   - object is NOT V (if not INVOKESTATIC)
+    *   - all arguments are V (must have at least one argument)
+    *   - return type is V or void
+    *   - owner, name, and desc are already pre-processed by [[LiftCall]], because we assume that LiftCall returns isLifting = true
+    *   - ctx is already loaded
+    *
+    */
+  def invokeWithWrapper(liftedCall: LiftedCall, itf: Boolean, mv: MethodVisitor, env: VMethodEnv): Unit = {
+    val invokeType: Int = getInvokeType
+    val args = liftedCall.desc.getArgs.init // excluding FE
+    val nArgs = args.size
+    val helperName = "helper$wrapper$" + env.clazz.lambdaMethods.size
+    val helperDesc: String =
+      "(" +
+        (if (invokeType != INVOKESTATIC) liftedCall.owner.getTypeDesc.desc else "") +
+        vclasstype * nArgs + fexprclasstype +
+        ")" +
+        (if (liftedCall.desc.isReturnVoid) "V" else vclasstype)
+    val helper = (cv: ClassVisitor) => {
+      val m: MethodVisitor = cv.visitMethod(
+        ACC_PRIVATE | ACC_STATIC | ACC_SYNTHETIC,
+        helperName, // method name
+        helperDesc, // descriptor
+        helperDesc, // signature
+        Array[String]() // exception
+      )
+      m.visitCode()
+      if (invokeType != INVOKESTATIC) {
+        m.visitVarInsn(ALOAD, 0) // objref
+        1 to nArgs foreach { (i) =>
+          val wrapperCls = Owner(args(i - 1).desc.tail.init)
+          m.visitTypeInsn(NEW, wrapperCls.name)
+          m.visitInsn(DUP)
+          m.visitVarInsn(ALOAD, i)
+          m.visitMethodInsn(INVOKESPECIAL, wrapperCls, MethodName("<init>"), MethodDesc(s"($vclasstype)V"), false)
+        } // arguments
+        m.visitVarInsn(ALOAD, nArgs + 1) // FE
+      } else {
+        0 until nArgs foreach { (i) =>
+          val wrapperCls = Owner(args(i).desc.tail.init)
+          m.visitTypeInsn(NEW, wrapperCls.name)
+          m.visitInsn(DUP)
+          m.visitVarInsn(ALOAD, i)
+          m.visitMethodInsn(INVOKESPECIAL, wrapperCls, MethodName("<init>"), MethodDesc(s"($vclasstype)V"), false)
+        } // arguments
+        m.visitVarInsn(ALOAD, nArgs) // FE
+      }
+      m.visitMethodInsn(invokeType, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+      if (liftedCall.desc.isReturnVoid) m.visitInsn(RETURN) else m.visitInsn(ARETURN)
+      m.visitMaxs(10, 10)
+      m.visitEnd()
+    }
+    env.clazz.lambdaMethods += (helperName -> helper)
+    mv.visitMethodInsn(INVOKESTATIC, Owner(env.clazz.name), MethodName(helperName), MethodDesc(helperDesc), false)
+  }
+
+  /** Pop arguments on operand stack, wrap each of them and load them again
+    *
+    * This is an alternative to [[invokeWithWrapper()]], useful for invoking init method where
+    * uninitialized reference can not be passed to helper function.
+    *
+    * Assumption:
+    *
+    *   - all arguments are V (must have at least one argument)
+    *   - owner, name, and desc are already pre-processed by [[LiftCall]], because we assume that LiftCall returns isLifting = true
+    *   - ctx is already loaded
+    */
+  def popAndWrap(liftedCall: LiftedCall, mv: MethodVisitor, env: VMethodEnv): Unit = {
+    val fe = env.freshLocalVar(s"FE${env.getFreshVars().size}", TypeDesc(fexprclasstype))
+    mv.visitVarInsn(ASTORE, env.getVarIdx(fe))
+    val args = liftedCall.desc.getArgs.init // excluding FE
+    val argVars = args.map(v => env.freshLocalVar(s"popAndWrap${env.getFreshVars().length}", TypeDesc(vclasstype)))
+    args.length - 1 to 0 foreach { (i) =>
+      mv.visitVarInsn(ASTORE, env.getVarIdx(argVars(i)))
+    }
+    args.indices foreach { (i) =>
+      mv.visitTypeInsn(NEW, args(i).getOwner.get)
+      mv.visitInsn(DUP)
+      mv.visitVarInsn(ALOAD, env.getVarIdx(argVars(i)))
+      mv.visitMethodInsn(INVOKESPECIAL, args(i).getOwner.get, MethodName("<init>"), MethodDesc(s"($vclasstype)V"), false)
+    }
+    mv.visitVarInsn(ALOAD, env.getVarIdx(fe))
   }
 
   /** Invoke methods on nonV object with V arguments
@@ -241,6 +337,7 @@ case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, 
 
       if (liftedCall.isLifting) loadCurrentCtx(mv, env, block)
       if (name.contentEquals("<init>") && hasVArgs && !LiftingPolicy.shouldLiftMethodCall(owner, name, desc)) {
+        ???
         // Use a special init method to do initialization
         val newDesc = liftedCall.desc.substring(0, liftedCall.desc.length - 1) + vclasstype
         val newName = LiftCall.encodeTypeInName(MethodName("Vinit"), desc)
@@ -250,6 +347,14 @@ case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, 
         mv.visitInsn(POP)
         mv.visitInsn(SWAP)
         mv.visitInsn(POP)
+      }
+      else if (liftedCall.isLifting && hasVArgs) {
+        if (liftedCall.name == MethodName("<init>")) {
+          popAndWrap(liftedCall, mv, env)
+          mv.visitMethodInsn(INVOKESPECIAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+        } else {
+          invokeWithWrapper(liftedCall, itf, mv, env)
+        }
       }
       else {
         mv.visitMethodInsn(INVOKESPECIAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
@@ -317,7 +422,12 @@ case class InstrINVOKEVIRTUAL(owner: Owner, name: MethodName, desc: MethodDesc, 
       }
       else {
         if (liftedCall.isLifting) loadCurrentCtx(mv, env, block)
-        mv.visitMethodInsn(INVOKEVIRTUAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+        if (liftedCall.isLifting && hasVArgs) {
+          invokeWithWrapper(liftedCall, itf, mv, env)
+        }
+        else {
+          mv.visitMethodInsn(INVOKEVIRTUAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+        }
         if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
       }
     }
@@ -346,34 +456,42 @@ case class InstrINVOKESTATIC(owner: Owner, name: MethodName, desc: MethodDesc, i
     val liftedCall = liftCall(owner, name, desc)
 
     if (!liftedCall.isLifting && hasVArgs) {
-      val vCall = if (liftedCall.desc.isReturnVoid) "sforeach" else "sflatMap"
-      val lambdaName = "helper$invokestaticWithVs$" + env.clazz.lambdaMethods.size
-      val args = liftedCall.desc.getArgs.map(_.toObject).map(_.castInt)
-      val invokeDesc = args.head.desc + s"(${args.tail.map(_.desc).mkString("")})" + (if (liftedCall.desc.isReturnVoid) "V" else vclasstype)
-      InvokeDynamicUtils.invoke(vCall, mv, env, loadCurrentCtx(_, env, block), lambdaName, invokeDesc, nExplodeArgs = args.size - 1) {
-        (m: MethodVisitor) => {
-          0 to args.length - 2 foreach { i => loadVar(i, liftedCall.desc, i, m) } // first args.size - 1 arguments
-          loadVar(args.size, liftedCall.desc, args.size - 1, m) // last argument
-          m.visitMethodInsn(INVOKESTATIC, liftedCall.owner, liftedCall.name, liftedCall.desc, false)
-          boxReturnValue(liftedCall.desc, m)
-          if (liftedCall.desc.isReturnVoid) {
-            m.visitInsn(RETURN)
-          }
-          else {
-            callVCreateOne(m, mm => mm.visitVarInsn(ALOAD, args.size - 1))
-            m.visitInsn(ARETURN)
-          }
-        }
-      }
+      explodeVArgs(liftedCall, mv, env, block)
     } else {
       if (liftedCall.isLifting) loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(INVOKESTATIC, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+      if (liftedCall.isLifting && hasVArgs) {
+        invokeWithWrapper(liftedCall, itf, mv, env)
+      } else {
+        mv.visitMethodInsn(INVOKESTATIC, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+      }
       if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame =
     updateStack(s, env, owner, name, desc)
+
+  def explodeVArgs(liftedCall: LiftedCall, mv: MethodVisitor, env: VMethodEnv, block: Block) = {
+    val vCall = if (liftedCall.desc.isReturnVoid) "sforeach" else "sflatMap"
+    val lambdaName = "helper$invokestaticWithVs$" + env.clazz.lambdaMethods.size
+    val args = liftedCall.desc.getArgs.map(_.toObject).map(_.castInt)
+    val invokeDesc = args.head.desc + s"(${args.tail.map(_.desc).mkString("")})" + (if (liftedCall.desc.isReturnVoid) "V" else vclasstype)
+    InvokeDynamicUtils.invoke(vCall, mv, env, loadCurrentCtx(_, env, block), lambdaName, invokeDesc, nExplodeArgs = args.size - 1) {
+      (m: MethodVisitor) => {
+        0 to args.length - 2 foreach { i => loadVar(i, liftedCall.desc, i, m) } // first args.size - 1 arguments
+        loadVar(args.size, liftedCall.desc, args.size - 1, m) // last argument
+        m.visitMethodInsn(INVOKESTATIC, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+        boxReturnValue(liftedCall.desc, m)
+        if (liftedCall.desc.isReturnVoid) {
+          m.visitInsn(RETURN)
+        }
+        else {
+          callVCreateOne(m, mm => mm.visitVarInsn(ALOAD, args.size - 1))
+          m.visitInsn(ARETURN)
+        }
+      }
+    }
+  }
 }
 
 case class InstrINVOKEINTERFACE(owner: Owner, name: MethodName, desc: MethodDesc, itf: Boolean) extends MethodInstruction {

@@ -27,7 +27,7 @@ trait DiffMethodTestInfrastructure {
     private def createClass(testmethod: VBCMethodNode): VBCClassNode = {
       val constr = new VBCMethodNode(ACC_PUBLIC, "<init>", "()V", Some("()V"), Nil,
         CFG(List(
-          Block(InstrALOAD(new Parameter(0, "this")),
+          Block(InstrALOAD(new Parameter(0, "this", TypeDesc("LTest;"))),
             InstrINVOKESPECIAL(Owner("java/lang/Object"), MethodName("<init>"), MethodDesc("()V"), false),
             InstrRETURN())
         )))

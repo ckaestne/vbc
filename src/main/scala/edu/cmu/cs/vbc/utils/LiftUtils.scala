@@ -23,20 +23,19 @@ object LiftUtils {
 
   //    protected def shouldLift(classname: String) = liftedPackagePrefixes.exists(classname startsWith _)
 
-  def liftType(t: Type): String =
-    if (t == Type.VOID_TYPE) t.getDescriptor
-    else
-      vclasstype
+  def liftParameterType(t: Type): String = TypeDesc(t.getDescriptor).getWrapper
+
+  def liftReturnType(t: Type): String = if (t == Type.VOID_TYPE) "V" else vclasstype
 
   /**
     * lift each parameter and add a new fexpr parameter at the end for the context
     */
   def liftMethodDescription(desc: String): String = {
     val mtype = Type.getMethodType(desc)
-    (mtype.getArgumentTypes.map(liftType) :+ Type.getObjectType(fexprclassname)).mkString("(", "", ")") + liftType(mtype.getReturnType)
+    (mtype.getArgumentTypes.map(liftParameterType) :+ Type.getObjectType(fexprclassname)).mkString("(", "", ")") + liftReturnType(mtype.getReturnType)
   }
 
-  def liftMethodName(name: String): String = {
+  def liftCLINIT(name: String): String = {
     if (name == "<clinit>")
       "______clinit______"
     else
@@ -49,7 +48,7 @@ object LiftUtils {
     */
   def liftMtdDescNoFE(desc: String): String = {
     val mtype = Type.getMethodType(desc)
-    mtype.getArgumentTypes.map(liftType).mkString("(", "", ")") + liftType(mtype.getReturnType)
+    mtype.getArgumentTypes.map(liftParameterType).mkString("(", "", ")") + liftReturnType(mtype.getReturnType)
   }
 
   def liftMethodSignature(desc: String, sig: Option[String]): Option[String] = {

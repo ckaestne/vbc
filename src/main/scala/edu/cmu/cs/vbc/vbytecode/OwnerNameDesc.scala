@@ -162,6 +162,23 @@ case class TypeDesc(desc: String) extends TypeVerifier {
   }
 
   def toV: TypeDesc = TypeDesc("Ledu/cmu/cs/varex/V;")
+
+  def isArray: Boolean = desc(0) == '['
+
+  def getWrapper: TypeDesc = {
+    val dimension = desc.lastIndexOf('[') + 1 // in case this is an array
+    val baseType = TypeDesc(desc.substring(dimension))
+    if (baseType.isPrimitive)
+      TypeDesc("Lv/" + "array/" * dimension + baseType.desc + ";")
+    else
+      TypeDesc("Lv/" + "array/" * dimension + baseType.desc.init.tail + ";")
+  }
+
+  def getOwner: Option[Owner] =
+    if (isArray || isPrimitive)
+      None
+    else
+      Some(Owner(desc.tail.init))
 }
 
 object TypeDesc {

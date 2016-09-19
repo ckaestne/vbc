@@ -35,7 +35,7 @@ object LiftingPolicy {
         case (Owner("java/lang/Byte"), _, _) => false
         case (Owner("java/lang/String"), _, _) => false
         case (Owner("java/lang/Object"), _, _) => false
-        case (Owner("java/io/PrintStream"), MethodName("println"), _) => false
+        case (Owner("java/io/PrintStream"), _, _) => false
         case _ => true
       }
     }

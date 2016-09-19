@@ -41,7 +41,7 @@ object LiftCall {
       LiftedCall(
         LiftingPolicy.liftClassName(owner),
         name,
-        replaceWithVs(desc, addFE = true),
+        replaceWithWrapper(desc, addFE = true),
         isLifting = true
       )
     }
@@ -74,13 +74,12 @@ object LiftCall {
   }
 
   /** Replace all the none-void parameter types with V types, also add FE to the end of parameter list */
-  private def replaceWithVs(desc: MethodDesc, addFE: Boolean): MethodDesc = {
-    val liftType: Type => String =
-      (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else "Ledu/cmu/cs/varex/V;"
+  private def replaceWithWrapper(desc: MethodDesc, addFE: Boolean): MethodDesc = {
+    import edu.cmu.cs.vbc.utils.LiftUtils._
     val mtype = Type.getMethodType(desc)
     MethodDesc(
-      (mtype.getArgumentTypes.map(liftType) :+ s"${if (addFE) "Lde/fosd/typechef/featureexpr/FeatureExpr;" else ""}").
-        mkString("(", "", ")") + liftType(mtype.getReturnType)
+      (mtype.getArgumentTypes.map(liftParameterType) :+ s"${if (addFE) "Lde/fosd/typechef/featureexpr/FeatureExpr;" else ""}").
+        mkString("(", "", ")") + liftReturnType(mtype.getReturnType)
     )
   }
 

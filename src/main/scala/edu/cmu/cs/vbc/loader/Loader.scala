@@ -60,12 +60,12 @@ class Loader {
 
     // adding "this" explicitly, because it may not be included if it's the only parameter
     if (!isStatic)
-      varCache += (0 -> new Parameter(0, "this"))
+      varCache += (0 -> new Parameter(0, "this", Owner(owner).getTypeDesc))
     if (m.localVariables != null)
       for (i <- 0 until m.localVariables.size()) {
         val vIdx = m.localVariables(i).index
         if (vIdx < parameterCount)
-          varCache += (vIdx -> new Parameter(vIdx, m.localVariables(i).name))
+          varCache += (vIdx -> new Parameter(vIdx, m.localVariables(i).name, TypeDesc(m.localVariables(i).desc)))
         else
           varCache += (vIdx -> new LocalVar(m.localVariables(i).name, m.localVariables(i).desc))
       }
@@ -77,7 +77,7 @@ class Loader {
         varCache(idx)
       else {
         val newVar = if (idx < parameterCount)
-          new Parameter(idx, "$unknown")
+          new Parameter(idx, "$unknown", TypeDesc("Ljava/lang/Object;"))
         else
           new LocalVar("$unknown", "V")
         varCache += (idx -> newVar)

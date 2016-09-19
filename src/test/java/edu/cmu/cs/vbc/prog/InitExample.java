@@ -11,31 +11,31 @@ public class InitExample {
 
     public static void main(String[] args) {
         InitExample example = new InitExample();
-//        System.out.println(example.createSubClass().toString());
-//        System.out.println(example.createSubClass2().toString());
+        System.out.println(example.createSubClass().toString());
+        System.out.println(example.createSubClass2().toString());
         System.out.println(example.createSubClass3().value);
         System.out.println(example.createSubClass4().value);
     }
 
-//    /**
-//     * Simple case
-//     */
-//    public SubClass createSubClass() {
-//        return new SubClass(1);
-//    }
-//
-//    /**
-//     * Create SubClass with conditional value
-//     */
-//    public SubClass createSubClass2() {
-//        int a = 0;
-//        if (A) {
-//            a = 1;
-//        } else {
-//            a = 2;
-//        }
-//        return new SubClass(a);
-//    }
+    /**
+     * Simple case
+     */
+    public SubClass createSubClass() {
+        return new SubClass(1);
+    }
+
+    /**
+     * Create SubClass with conditional value
+     */
+    public SubClass createSubClass2() {
+        int a = 0;
+        if (A) {
+            a = 1;
+        } else {
+            a = 2;
+        }
+        return new SubClass(a);
+    }
 
     /**
      * Method call in super
@@ -60,9 +60,9 @@ public class InitExample {
 }
 
 class SubClass extends SuperClass {
-//    SubClass(Integer i) {
-//        super(i);
-//    }
+    SubClass(Integer i) {
+        super(i);
+    }
 
     SubClass(String s) {
         super(s.length() + 1);

@@ -171,7 +171,7 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   def createNewVars(l: List[Variable], n: Int): List[Variable] =
     if (n == 0) l else createNewVars(List[Variable](freshLocalVar("$unbalancedstack" + n, LiftUtils.vclasstype)) ::: l, n - 1)
 
-  val ctxParameter: Parameter = new Parameter(-1, "ctx")
+  val ctxParameter: Parameter = new Parameter(-1, "ctx", TypeDesc(LiftUtils.fexprclasstype))
 
 
   def setBlockVar(block: Block, avar: Variable): Unit =

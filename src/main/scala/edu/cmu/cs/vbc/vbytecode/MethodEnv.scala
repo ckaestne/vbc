@@ -25,7 +25,7 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
 
   protected var blockLabels: Map[Block, Label] = Map()
 
-  val thisParameter: Parameter = new Parameter(0, "this")
+  val thisParameter: Parameter = new Parameter(0, "this", Owner(clazz.name).getTypeDesc)
 
   def freshLabel(name: String = "<unknown>") = {
     val l = new Label(name)
