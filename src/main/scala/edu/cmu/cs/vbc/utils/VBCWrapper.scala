@@ -29,11 +29,6 @@ class VBCWrapper(fqName: String) extends LazyLogging {
     createClass(name, cw)
     createField(cw)
     init(cw)
-    //    one(cw)
-    //    choice(cw)
-    //    smap(cw)
-    //    sforeach(cw)
-    //    sflatMap(cw)
     cw.visitEnd()
     // debugging
     VBCWrapper.toFile(fqName, cw)
@@ -59,88 +54,6 @@ class VBCWrapper(fqName: String) extends LazyLogging {
     mv.visitFieldInsn(PUTFIELD, name, "v", vclasstype)
     mv.visitInsn(RETURN)
     mv.visitMaxs(2, 2)
-    mv.visitEnd()
-  }
-
-  def one(cw: ClassWriter): Unit = {
-    val mv = cw.visitMethod(ACC_PUBLIC + ACC_STATIC, "one", s"(${fexprclasstype}L${originName};)$desc", null, null)
-    mv.visitCode()
-    mv.visitTypeInsn(NEW, name)
-    mv.visitInsn(DUP)
-    mv.visitVarInsn(ALOAD, 0)
-    mv.visitVarInsn(ALOAD, 1)
-    mv.visitMethodInsn(INVOKESTATIC, vclassname, "one", s"(${fexprclasstype}Ljava/lang/Object;)$vclasstype", true)
-    mv.visitMethodInsn(INVOKESPECIAL, name, "<init>", s"(${vclasstype})V", false)
-    mv.visitInsn(ARETURN)
-    mv.visitMaxs(4, 2)
-    mv.visitEnd()
-  }
-
-  def choice(cw: ClassWriter): Unit = {
-    val mv = cw.visitMethod(
-      ACC_PUBLIC + ACC_STATIC,
-      "choice",
-      s"(${fexprclasstype}${desc}${desc})$desc",
-      null,
-      null
-    )
-    mv.visitCode()
-    mv.visitTypeInsn(NEW, name)
-    mv.visitInsn(DUP)
-    mv.visitVarInsn(ALOAD, 0)
-    mv.visitVarInsn(ALOAD, 1)
-    mv.visitFieldInsn(GETFIELD, name, "v", vclasstype)
-    mv.visitVarInsn(ALOAD, 2)
-    mv.visitFieldInsn(GETFIELD, name, "v", vclasstype)
-    mv.visitMethodInsn(INVOKESTATIC, vclassname, "choice", s"(${fexprclasstype}${vclasstype}${vclasstype})$vclasstype", true)
-    mv.visitMethodInsn(INVOKESPECIAL, name, "<init>", s"($vclasstype)V", false)
-    mv.visitInsn(ARETURN)
-    mv.visitMaxs(5, 3)
-    mv.visitEnd()
-  }
-
-  def smap(cw: ClassWriter): Unit = {
-    val mv = cw.visitMethod(ACC_PUBLIC, "smap", s"(${biFunType}${fexprclasstype})$desc", null, null)
-    mv.visitCode()
-    mv.visitTypeInsn(NEW, name)
-    mv.visitInsn(DUP)
-    mv.visitVarInsn(ALOAD, 0)
-    mv.visitFieldInsn(GETFIELD, name, "v", vclasstype)
-    mv.visitVarInsn(ALOAD, 1)
-    mv.visitVarInsn(ALOAD, 2)
-    mv.visitMethodInsn(INVOKEINTERFACE, vclassname, "smap", s"(${biFunType}${fexprclasstype})$vclasstype", true)
-    mv.visitMethodInsn(INVOKESPECIAL, name, "<init>", s"($vclasstype)V", false)
-    mv.visitInsn(ARETURN)
-    mv.visitMaxs(5, 3)
-    mv.visitEnd()
-  }
-
-  def sforeach(cw: ClassWriter): Unit = {
-    val mv = cw.visitMethod(ACC_PUBLIC, "sforeach", s"(${biConType}${fexprclasstype})V", null, null)
-    mv.visitCode()
-    mv.visitVarInsn(ALOAD, 0)
-    mv.visitFieldInsn(GETFIELD, name, "v", vclasstype)
-    mv.visitVarInsn(ALOAD, 1)
-    mv.visitVarInsn(ALOAD, 2)
-    mv.visitMethodInsn(INVOKEINTERFACE, vclassname, "sforeach", s"(${biConType}${fexprclasstype})V", true)
-    mv.visitInsn(RETURN)
-    mv.visitMaxs(3, 3)
-    mv.visitEnd()
-  }
-
-  def sflatMap(cw: ClassWriter): Unit = {
-    val mv = cw.visitMethod(ACC_PUBLIC, "sflatMap", s"(${biFunType}${fexprclasstype})$desc", null, null)
-    mv.visitCode()
-    mv.visitTypeInsn(NEW, name)
-    mv.visitInsn(DUP)
-    mv.visitVarInsn(ALOAD, 0)
-    mv.visitFieldInsn(GETFIELD, name, "v", vclasstype)
-    mv.visitVarInsn(ALOAD, 1)
-    mv.visitVarInsn(ALOAD, 2)
-    mv.visitMethodInsn(INVOKEINTERFACE, vclassname, "sflatMap", s"(${biFunType}${fexprclasstype})$vclasstype", true)
-    mv.visitMethodInsn(INVOKESPECIAL, name, "<init>", s"($vclasstype)V", false)
-    mv.visitInsn(ARETURN)
-    mv.visitMaxs(5, 3)
     mv.visitEnd()
   }
 }
