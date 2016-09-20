@@ -17,7 +17,6 @@ class VBCWrapper(fqName: String) extends LazyLogging {
   logger.info(s"Generating wrapper class for $fqName")
 
   val name = fqName.replace('.', '/')
-  val originName = VBCWrapper.getOriginalName(name)
   val desc = s"L$name;"
 
   val biFunType = "Ljava/util/function/BiFunction;"
@@ -60,19 +59,7 @@ class VBCWrapper(fqName: String) extends LazyLogging {
 
 object VBCWrapper {
 
-  def getOriginalName(str: String): String = {
-    val lastSlash = str.lastIndexOf('/')
-    if (lastSlash != -1) {
-      if (lastSlash == 1) {
-        // primitive
-        str.substring(2)
-      } else {
-        str.substring(2, lastSlash) + str.substring(lastSlash + 1)
-      }
-    } else {
-      str.substring(1)
-    }
-  }
+  val prefix = "wrapper"
 
   def toFile(name: String, cw: ClassWriter) = {
     val replaced = name.replace(".", "/")

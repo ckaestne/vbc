@@ -27,7 +27,7 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
   val loader = new Loader()
 
   override def loadClass(name: String): Class[_] = {
-    if (name.startsWith("v.")) {
+    if (name.startsWith(VBCWrapper.prefix)) {
       val w = new VBCWrapper(name)
       val bytes = w.getWrapperClassBytes()
       defineClass(name, bytes, 0, bytes.length)

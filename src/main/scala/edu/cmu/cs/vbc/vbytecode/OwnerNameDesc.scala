@@ -2,6 +2,7 @@ package edu.cmu.cs.vbc.vbytecode
 
 import javax.lang.model.SourceVersion
 
+import edu.cmu.cs.vbc.utils.VBCWrapper
 import org.objectweb.asm.Type
 
 /**
@@ -169,9 +170,9 @@ case class TypeDesc(desc: String) extends TypeVerifier {
     val dimension = desc.lastIndexOf('[') + 1 // in case this is an array
     val baseType = TypeDesc(desc.substring(dimension))
     if (baseType.isPrimitive)
-      TypeDesc("Lv/" + "array/" * dimension + baseType.desc + ";")
+      TypeDesc(s"L${VBCWrapper.prefix}/" + "array/" * dimension + baseType.desc + ";")
     else
-      TypeDesc("Lv/" + "array/" * dimension + baseType.desc.init.tail + ";")
+      TypeDesc(s"L${VBCWrapper.prefix}/" + "array/" * dimension + baseType.desc.init.tail + ";")
   }
 
   def getOwner: Option[Owner] =
