@@ -14,7 +14,9 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
   //not to variables that are generated in the tranformation process;
   //the latter are stored separately as freshVars
   //(localVars and freshVars behave as sorted sets)
-  protected var parameterCount = Type.getArgumentTypes(method.desc).size + (if (method.isStatic) 0 else 1)
+  protected var parameterCount = Type.getArgumentTypes(method.desc).size + (if (method.isStatic) 0 else 1) +
+    Type.getArgumentTypes(method.desc).count(t => t.getDescriptor == "J" || t.getDescriptor == "D")
+  // long and double
   protected var freshVars: List[LocalVar] = Nil
 
   def getFreshVars(): List[Variable] = freshVars
@@ -38,18 +40,24 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
     l
   }
 
+  def countSlots(l: List[LocalVar]): Int = {
+    val ll = l.map(v => if (v.is64bit) 2 else 1)
+    (0 /: ll) (_ + _)
+  }
+
   def getVarIdx(variable: Variable): Int = variable match {
     case p: Parameter =>
       assert(p.idx >= 0, "parameter with negative index not supported")
       p.idx
     case l: LocalVar =>
       val localIdxPos = localVars.reverse.indexOf(l)
-      if (localIdxPos >= 0)
-        parameterCount + localIdxPos
+      if (localIdxPos >= 0) {
+        parameterCount + countSlots(localVars.splitAt(localIdxPos)._1)
+      }
       else {
         val freshIdxPos = freshVars.reverse.indexOf(l)
         assert(freshIdxPos >= 0, "variable not found in environment")
-        parameterCount + localVars.size + freshIdxPos
+        parameterCount + countSlots(localVars) + countSlots(freshVars.splitAt(freshIdxPos)._1)
       }
   }
 

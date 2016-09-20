@@ -165,7 +165,7 @@ class Parameter(val idx: Int, val name: String, val desc: TypeDesc) extends Vari
 /**
   * the name and description are used solely for debugging purposes
   */
-class LocalVar(val name: String, val desc: String) extends Variable
+class LocalVar(val name: String, val desc: String, val is64bit: Boolean = false) extends Variable
 
 
 case class VBCClassNode(

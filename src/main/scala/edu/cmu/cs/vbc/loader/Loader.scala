@@ -56,7 +56,8 @@ class Loader {
     //      for (paramIdx <- 0 until m.parameters.size())
     //        varCache += (paramIdx -> new Parameter(paramIdx, m.parameters(paramIdx).name))
     val isStatic = (m.access & Opcodes.ACC_STATIC) > 0
-    val parameterCount = Type.getArgumentTypes(m.desc).size + (if (isStatic) 0 else 1)
+    val parameterRange = Type.getArgumentTypes(m.desc).size + (if (isStatic) 0 else 1) +
+      Type.getArgumentTypes(m.desc).count(t => t.getDescriptor == "J" || t.getDescriptor == "D") // long and double
 
     // adding "this" explicitly, because it may not be included if it's the only parameter
     if (!isStatic)
@@ -64,7 +65,7 @@ class Loader {
     if (m.localVariables != null)
       for (i <- 0 until m.localVariables.size()) {
         val vIdx = m.localVariables(i).index
-        if (vIdx < parameterCount)
+        if (vIdx < parameterRange)
           varCache += (vIdx -> new Parameter(vIdx, m.localVariables(i).name, TypeDesc(m.localVariables(i).desc)))
         else
           varCache += (vIdx -> new LocalVar(m.localVariables(i).name, m.localVariables(i).desc))
@@ -72,14 +73,25 @@ class Loader {
 
     // typically we initialize all variables and parameters from the table, but that table is technically optional,
     // so we need a fallback option and generate them on the fly with name "$unknown"
-    def lookupVariable(idx: Int): Variable =
+    def lookupVariable(idx: Int, opCode: Int): Variable =
       if (varCache contains idx)
         varCache(idx)
       else {
-        val newVar = if (idx < parameterCount)
-          new Parameter(idx, "$unknown", TypeDesc("Ljava/lang/Object;"))
-        else
-          new LocalVar("$unknown", "V")
+        val newVar =
+          if (idx < parameterRange) {
+            opCode match {
+              case LLOAD | LSTORE => new Parameter(idx, "$unknown", TypeDesc("J"))
+              case DLOAD | DSTORE => new Parameter(idx, "$unknown", TypeDesc("D"))
+              case _ => new Parameter(idx, "$unknown", TypeDesc("Ljava/lang/Object;"))
+            }
+          }
+          else {
+            opCode match {
+              case LLOAD | LSTORE => new LocalVar("$unknown", TypeDesc("J"), is64bit = true)
+              case DLOAD | DSTORE => new LocalVar("$unknown", TypeDesc("D"), is64bit = true)
+              case _ => new LocalVar("$unknown", "V")
+            }
+          }
         varCache += (idx -> newVar)
         newVar
       }
@@ -128,7 +140,7 @@ class Loader {
   )
 
 
-  def adaptBytecodeInstruction(inst: AbstractInsnNode, labelLookup: LabelNode => Int, variables: Int => Variable): Instruction =
+  def adaptBytecodeInstruction(inst: AbstractInsnNode, labelLookup: LabelNode => Int, variables: (Int, Int) => Variable): Instruction =
     inst.getOpcode match {
       case NOP => UNKNOWN()
       case ACONST_NULL => InstrACONST_NULL()
@@ -160,20 +172,20 @@ class Loader {
       }
       case ILOAD => {
         val i = inst.asInstanceOf[VarInsnNode]
-        InstrILOAD(variables(i.`var`))
+        InstrILOAD(variables(i.`var`, ILOAD))
       }
       case LLOAD =>
         val i = inst.asInstanceOf[VarInsnNode]
-        InstrLLOAD(variables(i.`var`))
+        InstrLLOAD(variables(i.`var`, LLOAD))
       case FLOAD =>
         val i = inst.asInstanceOf[VarInsnNode]
-        InstrFLOAD(variables(i.`var`))
+        InstrFLOAD(variables(i.`var`, FLOAD))
       case DLOAD =>
         val i = inst.asInstanceOf[VarInsnNode]
-        InstrDLOAD(variables(i.`var`))
+        InstrDLOAD(variables(i.`var`, DLOAD))
       case ALOAD => {
         val i = inst.asInstanceOf[VarInsnNode]
-        InstrALOAD(variables(i.`var`))
+        InstrALOAD(variables(i.`var`, ALOAD))
       }
       case IALOAD => InstrIALOAD()
       case LALOAD => UNKNOWN(LALOAD)
@@ -185,14 +197,14 @@ class Loader {
       case SALOAD => UNKNOWN(SALOAD)
       case ISTORE => {
         val i = inst.asInstanceOf[VarInsnNode]
-        InstrISTORE(variables(i.`var`))
+        InstrISTORE(variables(i.`var`, ISTORE))
       }
       case LSTORE => UNKNOWN(LSTORE)
       case FSTORE => UNKNOWN(FSTORE)
       case DSTORE => UNKNOWN(DSTORE)
       case ASTORE => {
         val i = inst.asInstanceOf[VarInsnNode]
-        InstrASTORE(variables(i.`var`))
+        InstrASTORE(variables(i.`var`, ASTORE))
       }
       case IASTORE => InstrIASTORE()
       case LASTORE => UNKNOWN(LASTORE)
@@ -249,7 +261,7 @@ class Loader {
       case LXOR => UNKNOWN(LXOR)
       case IINC => {
         val i = inst.asInstanceOf[IincInsnNode]
-        InstrIINC(variables(i.`var`), i.incr)
+        InstrIINC(variables(i.`var`, IINC), i.incr)
       }
       case I2L => UNKNOWN(I2L)
       case I2F => UNKNOWN(I2F)
