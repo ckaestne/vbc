@@ -139,8 +139,8 @@ class Loader {
       case ICONST_3 => InstrICONST(3)
       case ICONST_4 => InstrICONST(4)
       case ICONST_5 => InstrICONST(5)
-      case LCONST_0 => UNKNOWN(LCONST_0)
-      case LCONST_1 => UNKNOWN(LCONST_1)
+      case LCONST_0 => InstrLCONST(0)
+      case LCONST_1 => InstrLCONST(1)
       case FCONST_0 => UNKNOWN(FCONST_0)
       case FCONST_1 => UNKNOWN(FCONST_1)
       case FCONST_2 => UNKNOWN(FCONST_2)
@@ -162,9 +162,15 @@ class Loader {
         val i = inst.asInstanceOf[VarInsnNode]
         InstrILOAD(variables(i.`var`))
       }
-      case LLOAD => UNKNOWN(LLOAD)
-      case FLOAD => UNKNOWN(FLOAD)
-      case DLOAD => UNKNOWN(DLOAD)
+      case LLOAD =>
+        val i = inst.asInstanceOf[VarInsnNode]
+        InstrLLOAD(variables(i.`var`))
+      case FLOAD =>
+        val i = inst.asInstanceOf[VarInsnNode]
+        InstrFLOAD(variables(i.`var`))
+      case DLOAD =>
+        val i = inst.asInstanceOf[VarInsnNode]
+        InstrDLOAD(variables(i.`var`))
       case ALOAD => {
         val i = inst.asInstanceOf[VarInsnNode]
         InstrALOAD(variables(i.`var`))
@@ -226,12 +232,12 @@ class Loader {
       case FREM => UNKNOWN(FREM)
       case DREM => UNKNOWN(DREM)
       case INEG => InstrINEG()
-      case LNEG => UNKNOWN(LNEG)
+      case LNEG => InstrLNEG()
       case FNEG => UNKNOWN(FNEG)
       case DNEG => UNKNOWN(DNEG)
-      case ISHL => UNKNOWN(ISHL)
+      case ISHL => InstrISHL()
       case LSHL => UNKNOWN(LSHL)
-      case ISHR => UNKNOWN(ISHR)
+      case ISHR => InstrISHR()
       case LSHR => UNKNOWN(LSHR)
       case IUSHR => UNKNOWN(IUSHR)
       case LUSHR => UNKNOWN(LUSHR)
@@ -260,7 +266,7 @@ class Loader {
       case I2B => UNKNOWN(I2B)
       case I2C => InstrI2C()
       case I2S => UNKNOWN(I2S)
-      case LCMP => UNKNOWN(LCMP)
+      case LCMP => InstrLCMP()
       case FCMPL => UNKNOWN(FCMPL)
       case FCMPG => UNKNOWN(FCMPG)
       case DCMPL => UNKNOWN(DCMPL)
@@ -287,7 +293,9 @@ class Loader {
         val i = inst.asInstanceOf[JumpInsnNode]
         InstrIFGT(labelLookup(i.label))
       }
-      case IFLE => UNKNOWN(IFLE)
+      case IFLE =>
+        val i = inst.asInstanceOf[JumpInsnNode]
+        InstrIFLE(labelLookup(i.label))
       case IF_ICMPEQ => {
         val i = inst.asInstanceOf[JumpInsnNode]
         InstrIF_ICMPEQ(labelLookup(i.label))
@@ -304,7 +312,10 @@ class Loader {
         val i = inst.asInstanceOf[JumpInsnNode]
         InstrIF_ICMPGE(labelLookup(i.label))
       }
-      case IF_ICMPGT => UNKNOWN(IF_ICMPGT)
+      case IF_ICMPGT => {
+        val i = inst.asInstanceOf[JumpInsnNode]
+        InstrIF_ICMPGT(labelLookup(i.label))
+      }
       case IF_ICMPLE => {
         val i = inst.asInstanceOf[JumpInsnNode]
         InstrIF_ICMPLE(labelLookup(i.label))
@@ -368,13 +379,15 @@ class Loader {
         val i = inst.asInstanceOf[TypeInsnNode]
         InstrANEWARRAY(Owner(i.desc))
       }
-      case ARRAYLENGTH => UNKNOWN(ARRAYLENGTH)
-      case ATHROW => UNKNOWN(ATHROW)
+      case ARRAYLENGTH => InstrARRAYLENGTH()
+      case ATHROW => InstrATHROW()
       case CHECKCAST => {
         val i = inst.asInstanceOf[TypeInsnNode]
         InstrCHECKCAST(Owner(i.desc))
       }
-      case INSTANCEOF => UNKNOWN(INSTANCEOF)
+      case INSTANCEOF =>
+        val i = inst.asInstanceOf[TypeInsnNode]
+        InstrINSTANCEOF(Owner(i.desc))
       case MONITORENTER => UNKNOWN(MONITORENTER)
       case MONITOREXIT => UNKNOWN(MONITOREXIT)
       case MULTIANEWARRAY => UNKNOWN(MULTIANEWARRAY)

@@ -38,6 +38,10 @@ case class REF_TYPE() extends VBCType {
   override def toString: String = "R"
 }
 
+case class LONG_TYPE() extends VBCType {
+  override def toString: String = "J"
+}
+
 /**
   * Represents reference that created by NEW instruction
   *
@@ -64,6 +68,7 @@ object VBCType {
       t.getSort match {
         case Type.BOOLEAN | Type.CHAR | Type.BYTE | Type.SHORT | Type.INT => INT_TYPE()
         case Type.OBJECT | Type.ARRAY => REF_TYPE()
+        case Type.LONG => LONG_TYPE()
         case _ => throw new RuntimeException("Type " + t + " is not supported yet")
       }
     }
