@@ -3,8 +3,6 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 import edu.cmu.cs.vbc.OpcodePrint
 import edu.cmu.cs.vbc.analysis.VBCFrame.{FrameEntry, UpdatedFrame}
 import edu.cmu.cs.vbc.analysis._
-import edu.cmu.cs.vbc.model.LiftCall._
-import edu.cmu.cs.vbc.model.{LiftCall, LiftedCall}
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftingPolicy}
 import edu.cmu.cs.vbc.vbytecode._
@@ -16,6 +14,28 @@ import org.objectweb.asm.{ClassVisitor, MethodVisitor, Type}
   */
 
 trait MethodInstruction extends Instruction {
+
+  case class LiftedCall(owner: Owner, name: MethodName, desc: MethodDesc, isLifting: Boolean)
+
+  def liftCall(owner: Owner, name: MethodName, desc: MethodDesc): LiftedCall = {
+    val shouldLiftMethod = LiftingPolicy.shouldLiftMethodCall(owner, name, desc)
+    if (shouldLiftMethod) {
+      LiftedCall(
+        LiftingPolicy.liftClassName(owner),
+        name,
+        desc.toWrappers.appendFE,
+        isLifting = true
+      )
+    }
+    else {
+      LiftedCall(
+        LiftingPolicy.liftClassName(owner),
+        name,
+        desc,
+        isLifting = false
+      )
+    }
+  }
 
   def invokeDynamic(
                      owner: Owner,
@@ -115,7 +135,7 @@ trait MethodInstruction extends Instruction {
     *   - object is NOT V (if not INVOKESTATIC)
     *   - all arguments are V (must have at least one argument)
     *   - return type is V or void
-    *   - owner, name, and desc are already pre-processed by [[LiftCall]], because we assume that LiftCall returns isLifting = true
+    *   - owner, name, and desc are already pre-processed by [[liftCall()]], because we assume that LiftCall returns isLifting = true
     *   - ctx is already loaded
     *
     */
@@ -176,7 +196,7 @@ trait MethodInstruction extends Instruction {
     * Assumption:
     *
     *   - all arguments are V (must have at least one argument)
-    *   - owner, name, and desc are already pre-processed by [[LiftCall]], because we assume that LiftCall returns isLifting = true
+    *   - owner, name, and desc are already pre-processed by [[liftCall()]], because we assume that LiftCall returns isLifting = true
     *   - ctx is already loaded
     */
   def popAndWrap(liftedCall: LiftedCall, mv: MethodVisitor, env: VMethodEnv): Unit = {
