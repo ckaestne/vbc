@@ -34,16 +34,16 @@ case class InstrGETSTATIC(owner: Owner, name: FieldName, desc: TypeDesc) extends
     if (env.shouldLiftInstr(this)) {
       if (shouldLiftField) {
         // fields are lifted, the desc should be V
-        mv.visitFieldInsn(GETSTATIC, LiftingPolicy.liftClassName(owner), name, "Ledu/cmu/cs/varex/V;")
+        mv.visitFieldInsn(GETSTATIC, owner.toModel, name, vclasstype)
       }
       else {
         // fields are not lifted but we need a V, so we wrap it into a V
-        mv.visitFieldInsn(GETSTATIC, LiftingPolicy.liftClassName(owner), name, LiftingPolicy.liftClassType(desc))
+        mv.visitFieldInsn(GETSTATIC, owner.toModel, name, desc.toModel)
         callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
       }
     }
     else {
-      mv.visitFieldInsn(GETSTATIC, LiftingPolicy.liftClassName(owner), name, LiftingPolicy.liftClassType(desc))
+      mv.visitFieldInsn(GETSTATIC, owner.toModel, name, desc.toModel)
     }
   }
 

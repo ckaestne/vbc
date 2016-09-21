@@ -42,8 +42,15 @@ case class Owner(name: String) extends TypeVerifier {
 
   def getTypeDesc: TypeDesc = TypeDesc(Type.getObjectType(name).getDescriptor)
 
+  /** Get the corresponding model class
+    *
+    * @return
+    * Object -> prepend "model/"
+    * Array -> [baseType.toModel
+    */
   def toModel: Owner = name match {
-    case s: String if s.startsWith("java") => Owner("model/" + name)
+    //    case s: String if s.startsWith("[") => Owner("[" + Owner(s.tail).toModel)
+    //    case s: String if s.startsWith("java") => Owner("model/" + name)
     case _ => this
   }
 

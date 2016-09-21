@@ -28,7 +28,7 @@ object LiftUtils {
   }
 
   def liftMethodSignature(desc: String, sig: Option[String]): Option[String] = {
-    val sigReader = new SignatureReader(sig.getOrElse(replaceLibCls(desc)))
+    val sigReader = new SignatureReader(sig.getOrElse(MethodDesc(desc).toModels))
     val sw = new LiftSignatureWriter()
     sigReader.accept(sw)
     val newSig = sw.getSignature()
@@ -103,27 +103,6 @@ object LiftUtils {
   def callVCreateChoice(mv: MethodVisitor) =
     mv.visitMethodInsn(INVOKESTATIC, vclassname, "choice", "(Lde/fosd/typechef/featureexpr/FeatureExpr;Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Ledu/cmu/cs/varex/V;", true)
 
-
-  def liftPrimitiveType(desc: String): String =
-    liftObjectType(primitiveToObjectType(desc))
-
-
-  def liftObjectType(s: String) = "Ledu/cmu/cs/varex/V<" + s + ">;"
-
-
-  def primitiveToObjectType(t: String): String = t match {
-    case "Z" => "Ljava/lang/Boolean;"
-    case "C" => "Ljava/lang/Character;"
-    case "B" => "Ljava/lang/Byte;"
-    case "S" => "Ljava/lang/Short;"
-    case "I" => "Ljava/lang/Integer;"
-    case "F" => "Ljava/lang/Float;"
-    case "J" => "Ljava/lang/Long;"
-    case "D" => "Ljava/lang/Double;"
-    case "O" => "Ljava/lang/Object;"
-    case _ => t
-  }
-
   /**
     * Helper function to get the method descriptor
     *
@@ -153,13 +132,4 @@ object LiftUtils {
   val ObjectClass = "java/lang/Object"
   val ObjectType = "Ljava/lang/Object;"
 
-  /**
-    * Scan and replace java library classes with model classes
-    */
-  private def replaceLibCls(desc: String): String = {
-    val liftType: Type => String =
-      (t: Type) => if (t == Type.VOID_TYPE) t.getDescriptor else LiftingPolicy.liftClassType(TypeDesc(t.toString))
-    val mtype = Type.getMethodType(desc)
-    mtype.getArgumentTypes.map(liftType).mkString("(", "", ")") + liftType(mtype.getReturnType)
-  }
 }

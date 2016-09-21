@@ -2,8 +2,8 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis._
+import edu.cmu.cs.vbc.utils.InvokeDynamicUtils
 import edu.cmu.cs.vbc.utils.LiftUtils._
-import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftingPolicy}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
@@ -18,7 +18,7 @@ case class InstrNEW(t: String) extends Instruction {
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    mv.visitTypeInsn(NEW, LiftingPolicy.liftClassName(Owner(t)))
+    mv.visitTypeInsn(NEW, Owner(t).toModel)
   }
 
   /**
@@ -76,13 +76,13 @@ case class InstrCHECKCAST(clsName: Owner) extends Instruction {
       InvokeDynamicUtils.invoke("smap", mv, env, loadCurrentCtx(_, env, block), "checkcast", "Ljava/lang/Object;()Ljava/lang/Object;") {
         (visitor: MethodVisitor) => {
           visitor.visitVarInsn(ALOAD, 1)  // ref
-          visitor.visitTypeInsn(CHECKCAST, LiftingPolicy.liftClassName(toVArray(clsName)))
+          visitor.visitTypeInsn(CHECKCAST, toVArray(clsName).toModel)
           visitor.visitInsn(ARETURN)
         }
       }
     }
     else {
-      mv.visitTypeInsn(CHECKCAST, LiftingPolicy.liftClassName(toVArray(clsName)))
+      mv.visitTypeInsn(CHECKCAST, toVArray(clsName).toModel)
     }
   }
 

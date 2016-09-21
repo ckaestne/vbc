@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode
 
-import edu.cmu.cs.vbc.utils.{LiftUtils, LiftingPolicy}
+import edu.cmu.cs.vbc.utils.LiftUtils
 import edu.cmu.cs.vbc.vbytecode.instructions.{InstrINIT_CONDITIONAL_FIELDS, InstrINVOKESTATIC, InstrRETURN, Instruction}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm._
@@ -202,7 +202,7 @@ case class VBCClassNode(
   def liftSuperName(superName: Owner): Owner = {
     // Super class of interface must be java/lang/Object, could not be VObject
     if ((access & ACC_INTERFACE) == 0)
-      LiftingPolicy.liftClassName(superName)
+      superName.toModel
     else
       superName
   }
@@ -352,7 +352,9 @@ case class VBCFieldNode(
   }
 
   def toVByteCode(cv: ClassVisitor) = {
-    val fv = cv.visitField(access, name, vclasstype, liftPrimitiveType(desc), value)
+    def wrap(s: String) = "Ledu/cmu/cs/varex/V<" + s + ">;"
+
+    val fv = cv.visitField(access, name, vclasstype, wrap(TypeDesc(desc).toObject), value)
     //TODO lift initial value for
 
     commonToByteCode(fv)

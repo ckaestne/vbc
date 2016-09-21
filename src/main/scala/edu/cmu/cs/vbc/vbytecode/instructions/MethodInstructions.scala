@@ -21,7 +21,7 @@ trait MethodInstruction extends Instruction {
     val shouldLiftMethod = LiftingPolicy.shouldLiftMethodCall(owner, name, desc)
     if (shouldLiftMethod) {
       LiftedCall(
-        LiftingPolicy.liftClassName(owner),
+        owner.toModel,
         name,
         desc.toWrappers.appendFE,
         isLifting = true
@@ -29,7 +29,7 @@ trait MethodInstruction extends Instruction {
     }
     else {
       LiftedCall(
-        LiftingPolicy.liftClassName(owner),
+        owner.toModel,
         name,
         desc,
         isLifting = false

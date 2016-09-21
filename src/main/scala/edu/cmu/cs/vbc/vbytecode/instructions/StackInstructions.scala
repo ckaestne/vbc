@@ -3,7 +3,6 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{INT_TYPE, VBCFrame, V_TYPE}
 import edu.cmu.cs.vbc.utils.LiftUtils._
-import edu.cmu.cs.vbc.utils.LiftingPolicy
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
@@ -98,7 +97,7 @@ case class InstrSIPUSH(value: Int) extends Instruction {
         INVOKESTATIC,
         IntClass,
         "valueOf",
-        genSign("I", LiftingPolicy.liftClassType(TypeDesc("Ljava/lang/Integer;"))),
+        genSign("I", TypeDesc.getInt.toModel),
         false
       )
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))

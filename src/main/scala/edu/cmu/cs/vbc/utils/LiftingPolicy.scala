@@ -53,47 +53,4 @@ object LiftingPolicy {
       case _ => true
     }
   }
-
-  /** Lift the class name as specified in LiftingPolicy.
-    *
-    * If there is no need to lift this class, return original class name.
-    */
-  def liftClassName(owner: Owner): Owner = {
-
-    def liftClsStr(owner: String): String = owner match {
-      case cls if cls.startsWith("java") =>
-        val lastSlash = owner.lastIndexOf('/')
-        val vClsName = "/V" + owner.substring(lastSlash + 1)
-        s"edu/cmu/cs/vbc/model/${owner.substring(5, lastSlash) + vClsName}"
-      case array if array.startsWith("[") =>
-        "[Ledu/cmu/cs/varex/V;" // all arrays are created as V
-      //      s"[${liftClsStr(primitiveToObjectType(array.substring(1)))}"
-      case _ => owner
-    }
-
-    //    Owner(liftClsStr(owner))
-    owner // as of now we don't want to use any model classes.
-  }
-
-  /** Lift the class type as specified in LiftingPolicy.
-    *
-    * If there is no need to lift this class, return original class type.
-    */
-  def liftClassType(desc: TypeDesc): TypeDesc = {
-    //    val t: Type = Type.getType(desc)
-    //    t.getSort match {
-    //      case Type.OBJECT =>
-    //        desc match {
-    //          case s if s.startsWith("Ljava") =>
-    //            val lastSlashIdx = desc.lastIndexOf('/')
-    //            val javaIdx = desc.indexOf("java")
-    //            assert(lastSlashIdx != -1 && javaIdx != -1)
-    //            TypeDesc(desc.substring(0, javaIdx) + "edu/cmu/cs/vbc/model/" + desc.substring(javaIdx + 5, lastSlashIdx) + "/V" + desc.substring(lastSlashIdx + 1))
-    //          case _ => desc
-    //        }
-    //      case _ => desc
-    //    }
-    desc // as of now we don't want to use any model classes.
-  }
-
 }
