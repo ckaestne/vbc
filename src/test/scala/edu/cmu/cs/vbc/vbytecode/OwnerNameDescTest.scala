@@ -162,11 +162,11 @@ class OwnerNameDescTest extends FlatSpec {
     assert(MethodDesc("([I)Ljava/lang/Object;").getArgCount == 1)
   }
 
-  it can "return the return type in String format" in {
-    assert(MethodDesc("(IF)V").getReturnTypeString == "V")
-    assert(MethodDesc("(Ljava/lang/Object;)I").getReturnTypeString == "I")
-    assert(MethodDesc("(ILjava/lang/String;)[I").getReturnTypeString == "[I")
-    assert(MethodDesc("([I)Ljava/lang/Object;").getReturnTypeString == "Ljava/lang/Object;")
+  it can "return the return type" in {
+    assert(MethodDesc("(IF)V").getReturnType.isEmpty)
+    assert(MethodDesc("(Ljava/lang/Object;)I").getReturnType.contains(TypeDesc("I")))
+    assert(MethodDesc("(ILjava/lang/String;)[I").getReturnType.contains(TypeDesc("[I")))
+    assert(MethodDesc("([I)Ljava/lang/Object;").getReturnType.contains(TypeDesc("Ljava/lang/Object;")))
   }
 
   it can "return the argument list as an array" in {

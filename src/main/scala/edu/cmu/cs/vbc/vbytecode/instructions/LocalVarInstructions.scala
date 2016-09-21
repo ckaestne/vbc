@@ -71,7 +71,7 @@ case class InstrILOAD(variable: Variable) extends Instruction {
     if (env.shouldLiftInstr(this)) {
       loadV(mv, env, variable)
       variable match {
-        case p: Parameter if p.name != "this" => mv.visitFieldInsn(GETFIELD, p.desc.getWrapper.getOwner.get, FieldName("v"), TypeDesc(vclasstype))
+        case p: Parameter if p.name != "this" => mv.visitFieldInsn(GETFIELD, p.desc.toWrapper.getOwner.get, FieldName("v"), TypeDesc(vclasstype))
         case _ => // do nothing
       }
     }
@@ -161,7 +161,7 @@ case class InstrALOAD(variable: Variable) extends Instruction {
     val idx = env.getVarIdx(variable)
     mv.visitVarInsn(ALOAD, idx)
     variable match {
-      case p: Parameter if p.name != "this" => mv.visitFieldInsn(GETFIELD, p.desc.getWrapper.getOwner.get, FieldName("v"), TypeDesc(vclasstype))
+      case p: Parameter if p.name != "this" => mv.visitFieldInsn(GETFIELD, p.desc.toWrapper.getOwner.get, FieldName("v"), TypeDesc(vclasstype))
       case _ => // do nothing
     }
     if (env.shouldLiftInstr(this))

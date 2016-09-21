@@ -339,14 +339,14 @@ case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, 
       if (name.contentEquals("<init>") && hasVArgs && !LiftingPolicy.shouldLiftMethodCall(owner, name, desc)) {
         ???
         // Use a special init method to do initialization
-        val newDesc = liftedCall.desc.substring(0, liftedCall.desc.length - 1) + vclasstype
-        val newName = LiftCall.encodeTypeInName(MethodName("Vinit"), desc)
-        mv.visitMethodInsn(INVOKESTATIC, liftedCall.owner, newName, newDesc, false)
-        // pop the useless uninitialized references
-        mv.visitInsn(SWAP)
-        mv.visitInsn(POP)
-        mv.visitInsn(SWAP)
-        mv.visitInsn(POP)
+        //        val newDesc = liftedCall.desc.substring(0, liftedCall.desc.length - 1) + vclasstype
+        //        val newName = LiftCall.encodeTypeInName(MethodName("Vinit"), desc)
+        //        mv.visitMethodInsn(INVOKESTATIC, liftedCall.owner, newName, newDesc, false)
+        //        // pop the useless uninitialized references
+        //        mv.visitInsn(SWAP)
+        //        mv.visitInsn(POP)
+        //        mv.visitInsn(SWAP)
+        //        mv.visitInsn(POP)
       }
       else if (liftedCall.isLifting && hasVArgs) {
         if (liftedCall.name == MethodName("<init>")) {

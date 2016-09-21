@@ -41,7 +41,7 @@ object LiftCall {
       LiftedCall(
         LiftingPolicy.liftClassName(owner),
         name,
-        replaceWithWrapper(desc, addFE = true),
+        desc.toWrappers.appendFE,
         isLifting = true
       )
     }
@@ -72,28 +72,6 @@ object LiftCall {
       liftType(Type.getType(primitiveToObjectType(mtype.getReturnType.toString)))
     )
   }
-
-  /** Replace all the none-void parameter types with V types, also add FE to the end of parameter list */
-  private def replaceWithWrapper(desc: MethodDesc, addFE: Boolean): MethodDesc = {
-    import edu.cmu.cs.vbc.utils.LiftUtils._
-    val mtype = Type.getMethodType(desc)
-    MethodDesc(
-      (mtype.getArgumentTypes.map(liftParameterType) :+ s"${if (addFE) "Lde/fosd/typechef/featureexpr/FeatureExpr;" else ""}").
-        mkString("(", "", ")") + liftReturnType(mtype.getReturnType)
-    )
-  }
-
-  def encodeTypeInName(mn: MethodName, desc: MethodDesc): MethodName = {
-    mn.name match {
-      case "<init>" => mn
-      case _ => MethodName(mn.name + desc.replace('/', '_').
-        replace('(', '$').
-        replace(')', '$').
-        replace(";", "").
-        replace("[", "Array_"))
-    }
-  }
-
 }
 
 case class LiftedCall(

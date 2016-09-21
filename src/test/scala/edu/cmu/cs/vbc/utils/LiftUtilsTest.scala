@@ -1,6 +1,7 @@
 package edu.cmu.cs.vbc.utils
 
 import edu.cmu.cs.vbc.DiffMethodTestInfrastructure
+import edu.cmu.cs.vbc.vbytecode.MethodDesc
 import org.scalatest.{FunSuite, Matchers}
 
 
@@ -9,10 +10,10 @@ class LiftUtilsTest extends FunSuite with Matchers with DiffMethodTestInfrastruc
   import edu.cmu.cs.vbc.utils.LiftUtils._
 
   test("liftDesc") {
-    liftMethodDescription("()V") should equal("(" + fexprclasstype + ")V")
-    liftMethodDescription("(I)V") should equal("(" + s"L${VBCWrapper.prefix}/I;" + fexprclasstype + ")V")
-    liftMethodDescription("(II)V") should equal("(" + s"L${VBCWrapper.prefix}/I;" * 2 + fexprclasstype + ")V")
-    liftMethodDescription("(II)I") should equal("(" + s"L${VBCWrapper.prefix}/I;" * 2 + fexprclasstype + ")" + vclasstype)
+    MethodDesc("()V").toWrappers.appendFE should equal("(" + fexprclasstype + ")V")
+    MethodDesc("(I)V").toWrappers.appendFE should equal("(" + s"L${VBCWrapper.prefix}/I;" + fexprclasstype + ")V")
+    MethodDesc("(II)V").toWrappers.appendFE should equal("(" + s"L${VBCWrapper.prefix}/I;" * 2 + fexprclasstype + ")V")
+    MethodDesc("(II)I").toWrappers.appendFE should equal("(" + s"L${VBCWrapper.prefix}/I;" * 2 + fexprclasstype + ")" + vclasstype)
   }
 
   test("liftSignature") {

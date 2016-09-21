@@ -28,7 +28,7 @@ case class VBCMethodNode(access: Int,
 
   def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
     createBackupMethod(cw, clazz)
-    val liftedMethodDesc = liftMethodDescription(desc)
+    val liftedMethodDesc = MethodDesc(desc).toWrappers.appendFE
     val mv = cw.visitMethod(
       access,
       liftCLINIT(name),
@@ -111,7 +111,7 @@ case class VBCMethodNode(access: Int,
         callVCreateOne(mv, pushConstantTRUE)
       }
       pushConstantTRUE(mv)  //ctx
-      mv.visitMethodInsn(callType, clazz.name, name, liftMethodDescription(desc), false)
+      mv.visitMethodInsn(callType, clazz.name, name, MethodDesc(desc).toWrappers.appendFE, false)
       // unwrap return type
       Type.getReturnType(desc).getSort match {
         case Type.INT =>
@@ -285,7 +285,7 @@ case class VBCClassNode(
   def createUnliftedMain(cv: ClassVisitor) = {
     val mainMethodSig = "([Ljava/lang/String;)V"
     val mv = cv.visitMethod(ACC_PUBLIC | ACC_STATIC, "main", mainMethodSig, mainMethodSig, Array.empty)
-    val wrapperClsName = TypeDesc("[Ljava/lang/String;").getWrapper.desc.tail.init
+    val wrapperClsName = TypeDesc("[Ljava/lang/String;").toWrapper.desc.tail.init
     mv.visitCode()
     mv.visitTypeInsn(NEW, wrapperClsName)
     mv.visitInsn(DUP)
@@ -296,7 +296,7 @@ case class VBCClassNode(
     mv.visitMethodInsn(INVOKESPECIAL, wrapperClsName, MethodName("<init>"), MethodDesc(s"($vclasstype)V"), false)
     //set context to True
     pushConstantTRUE(mv)
-    mv.visitMethodInsn(INVOKESTATIC, name, "main", liftMethodDescription(mainMethodSig), false)
+    mv.visitMethodInsn(INVOKESTATIC, name, "main", MethodDesc(mainMethodSig).toWrappers.appendFE, false)
     mv.visitInsn(RETURN)
     mv.visitMaxs(2, 0)
     mv.visitEnd()

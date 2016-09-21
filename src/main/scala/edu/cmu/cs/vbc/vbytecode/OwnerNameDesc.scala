@@ -2,6 +2,7 @@ package edu.cmu.cs.vbc.vbytecode
 
 import javax.lang.model.SourceVersion
 
+import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.utils.VBCWrapper
 import org.objectweb.asm.Type
 
@@ -40,6 +41,13 @@ case class Owner(name: String) extends TypeVerifier {
   }
 
   def getTypeDesc: TypeDesc = TypeDesc(Type.getObjectType(name).getDescriptor)
+
+  def toModel: Owner = name match {
+    case s: String if s.startsWith("java") => Owner("model/" + name)
+    case _ => this
+  }
+
+  override def toString: String = name
 }
 
 /** Store implicit conversion to String, avoid changing too much existing code. */
@@ -67,6 +75,8 @@ case class MethodName(name: String) {
     case s: String => s == name
     case _ => false
   }
+
+  override def toString: String = name
 }
 
 object MethodName {
@@ -85,6 +95,8 @@ case class FieldName(name: String) {
     case s: String => name == s
     case _ => false
   }
+
+  override def toString: String = name
 }
 
 object FieldName {
@@ -108,18 +120,72 @@ case class MethodDesc(descString: String) extends TypeVerifier {
 
   def getArgCount: Int = mt.getArgumentTypes.size
 
-  /** Return the return type in String format.
+  /** Get the return type if not void
     *
-    * Sometimes return type could be void, but void is not a valid TypeDesc.
-    * For this reason, we return [[String]] instead of [[TypeDesc]]
+    * @return
+    * None if void
     */
-  def getReturnTypeString: String = mt.getReturnType().getDescriptor
+  def getReturnType: Option[TypeDesc] =
+  if (isReturnVoid) None else Some(TypeDesc(Type.getReturnType(descString).getDescriptor))
 
   def getReturnTypeSort: Int = mt.getReturnType.getSort
 
-  def isReturnVoid: Boolean = getReturnTypeString == "V"
+  def isReturnVoid: Boolean = Type.getReturnType(descString).getDescriptor == "V"
 
   def getArgs: Array[TypeDesc] = Type.getMethodType(descString).getArgumentTypes.map(t => TypeDesc(t.getDescriptor))
+
+  override def toString: String = descString
+
+  /** Append FeatureExpr parameter to the parameter list
+    *
+    * @return
+    * transformed MethodDesc
+    */
+  def appendFE: MethodDesc = {
+    val args = Type.getArgumentTypes(descString) :+ Type.getType(fexprclasstype)
+    val argsString = args.map(_.getDescriptor).mkString("(", "", ")")
+    val retString = Type.getReturnType(descString).getDescriptor
+    MethodDesc(argsString + retString)
+  }
+
+  /** Arguments -> Wrapper, return type -> V (if not void)
+    *
+    * Also need to check that the arguments are not Vs.
+    *
+    * @return
+    * transformed MethodDesc
+    */
+  def toWrappers: MethodDesc = {
+    val args = Type.getArgumentTypes(descString)
+    assert(!args.exists(_.getDescriptor == vclasstype), "Arguments are already V types")
+    val argsString: String = args.map(t => TypeDesc(t.getDescriptor).toWrapper).mkString("(", "", ")")
+    val retString: String = if (isReturnVoid) "V" else vclasstype
+    MethodDesc(argsString + retString)
+  }
+
+  /** Change all arguments and return type (if not void) to V.
+    *
+    * @return
+    * transformed MethodDesc
+    */
+  def toVs: MethodDesc = {
+    val args = Type.getArgumentTypes(descString)
+    val argsString: String = "(" + vclasstype * args.length + ")"
+    val retString: String = if (isReturnVoid) "V" else vclasstype
+    MethodDesc(argsString + retString)
+  }
+
+  /** Change arguments and return type (if not void) to corresponding model class
+    *
+    * @return
+    */
+  def toModels: MethodDesc = {
+    val args = Type.getArgumentTypes(descString)
+    assert(!args.exists(_.getDescriptor == vclasstype), "Arguments are already V types")
+    val argsString: String = args.map(t => TypeDesc(t.getDescriptor).toModel).mkString("(", "", ")")
+    val retString: String = if (isReturnVoid) "V" else getReturnType.get.toModel
+    MethodDesc(argsString + retString)
+  }
 }
 
 object MethodDesc {
@@ -166,7 +232,12 @@ case class TypeDesc(desc: String) extends TypeVerifier {
 
   def isArray: Boolean = desc(0) == '['
 
-  def getWrapper: TypeDesc = {
+  def getArrayBaseType: TypeDesc = {
+    assert(isArray, "Can't get base type from non-array type")
+    TypeDesc(desc.tail)
+  }
+
+  def toWrapper: TypeDesc = {
     val dimension = desc.lastIndexOf('[') + 1 // in case this is an array
     val baseType = TypeDesc(desc.substring(dimension))
     if (baseType.isPrimitive)
@@ -175,11 +246,34 @@ case class TypeDesc(desc: String) extends TypeVerifier {
       TypeDesc(s"L${VBCWrapper.prefix}/" + "array/" * dimension + baseType.desc.init.tail + ";")
   }
 
+  /** Get the owner (if exists) of this type.
+    *
+    * @return
+    * none if current type is array or primitive
+    */
   def getOwner: Option[Owner] =
     if (isArray || isPrimitive)
       None
     else
       Some(Owner(desc.tail.init))
+
+  override def toString: String = desc
+
+  /** Transform to corresponding model class
+    *
+    * @return
+    * Object -> model class descriptor
+    * Array -> [baseType.toModel
+    * Primitive -> toObject.toModel
+    */
+  def toModel: TypeDesc = {
+    if (isArray)
+      TypeDesc("[" + getArrayBaseType.toModel)
+    else if (isPrimitive)
+      toObject.toModel
+    else
+      getOwner.get.toModel.getTypeDesc
+  }
 }
 
 object TypeDesc {

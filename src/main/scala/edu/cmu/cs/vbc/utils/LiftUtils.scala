@@ -20,21 +20,6 @@ object LiftUtils {
   val lamdaFactoryMethod = "metafactory"
   val lamdaFactoryDesc = "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;"
 
-
-  //    protected def shouldLift(classname: String) = liftedPackagePrefixes.exists(classname startsWith _)
-
-  def liftParameterType(t: Type): String = TypeDesc(t.getDescriptor).getWrapper
-
-  def liftReturnType(t: Type): String = if (t == Type.VOID_TYPE) "V" else vclasstype
-
-  /**
-    * lift each parameter and add a new fexpr parameter at the end for the context
-    */
-  def liftMethodDescription(desc: String): String = {
-    val mtype = Type.getMethodType(desc)
-    (mtype.getArgumentTypes.map(liftParameterType) :+ Type.getObjectType(fexprclassname)).mkString("(", "", ")") + liftReturnType(mtype.getReturnType)
-  }
-
   def liftCLINIT(name: String): String = {
     if (name == "<clinit>")
       "______clinit______"
@@ -42,21 +27,12 @@ object LiftUtils {
       name
   }
 
-  /**
-    * lift each parameter but DO NOT add a new fexpr parameter at the end for the context
-    * For example, the <init> method of model classes should not contain
-    */
-  def liftMtdDescNoFE(desc: String): String = {
-    val mtype = Type.getMethodType(desc)
-    mtype.getArgumentTypes.map(liftParameterType).mkString("(", "", ")") + liftReturnType(mtype.getReturnType)
-  }
-
   def liftMethodSignature(desc: String, sig: Option[String]): Option[String] = {
     val sigReader = new SignatureReader(sig.getOrElse(replaceLibCls(desc)))
     val sw = new LiftSignatureWriter()
     sigReader.accept(sw)
     val newSig = sw.getSignature()
-    if (sig != None || newSig != liftMethodDescription(desc))
+    if (sig != None || newSig != MethodDesc(desc).toWrappers.appendFE.toString)
       Some(newSig)
     else None
   }
