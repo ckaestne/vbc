@@ -14,7 +14,7 @@ import org.objectweb.asm.Opcodes._
 
 case class InstrNEW(t: String) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitTypeInsn(NEW, t)
+    mv.visitTypeInsn(NEW, Owner(t).toModel)
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
@@ -57,7 +57,7 @@ case class InstrNEW(t: String) extends Instruction {
   */
 case class InstrCHECKCAST(clsName: Owner) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitTypeInsn(CHECKCAST, clsName)
+    mv.visitTypeInsn(CHECKCAST, clsName.toModel)
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
@@ -145,7 +145,7 @@ case class InstrI2C() extends Instruction {
 
 case class InstrINSTANCEOF(owner: Owner) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitTypeInsn(INSTANCEOF, owner)
+    mv.visitTypeInsn(INSTANCEOF, owner.toModel)
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???

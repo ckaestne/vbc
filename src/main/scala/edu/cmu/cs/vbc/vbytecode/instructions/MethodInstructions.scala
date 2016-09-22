@@ -333,7 +333,7 @@ trait MethodInstruction extends Instruction {
   */
 case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, itf: Boolean) extends MethodInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitMethodInsn(INVOKESPECIAL, owner, name, desc, itf)
+    mv.visitMethodInsn(INVOKESPECIAL, owner.toModel, name, desc.toModels, itf)
   }
 
   /**
@@ -408,7 +408,7 @@ case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, 
   */
 case class InstrINVOKEVIRTUAL(owner: Owner, name: MethodName, desc: MethodDesc, itf: Boolean) extends MethodInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitMethodInsn(INVOKEVIRTUAL, owner, name, desc, itf)
+    mv.visitMethodInsn(INVOKEVIRTUAL, owner.toModel, name, desc.toModels, itf)
   }
 
 
@@ -468,7 +468,7 @@ case class InstrINVOKEVIRTUAL(owner: Owner, name: MethodName, desc: MethodDesc, 
   */
 case class InstrINVOKESTATIC(owner: Owner, name: MethodName, desc: MethodDesc, itf: Boolean) extends MethodInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitMethodInsn(INVOKESTATIC, owner, name, desc, itf)
+    mv.visitMethodInsn(INVOKESTATIC, owner.toModel, name, desc.toModels, itf)
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
@@ -516,7 +516,7 @@ case class InstrINVOKESTATIC(owner: Owner, name: MethodName, desc: MethodDesc, i
 
 case class InstrINVOKEINTERFACE(owner: Owner, name: MethodName, desc: MethodDesc, itf: Boolean) extends MethodInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitMethodInsn(INVOKEINTERFACE, owner, name, desc, itf)
+    mv.visitMethodInsn(INVOKEINTERFACE, owner.toModel, name, desc.toModels, itf)
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = updateStack(s, env, owner, name, desc)

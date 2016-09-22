@@ -23,7 +23,7 @@ trait FieldInstruction extends Instruction
   */
 case class InstrGETSTATIC(owner: Owner, name: FieldName, desc: TypeDesc) extends FieldInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitFieldInsn(GETSTATIC, owner, name, desc)
+    mv.visitFieldInsn(GETSTATIC, owner.toModel, name, desc.toModel)
   }
 
   /**
@@ -76,7 +76,7 @@ case class InstrGETSTATIC(owner: Owner, name: FieldName, desc: TypeDesc) extends
   */
 case class InstrPUTSTATIC(owner: Owner, name: FieldName, desc: TypeDesc) extends FieldInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitFieldInsn(PUTSTATIC, owner, name, desc)
+    mv.visitFieldInsn(PUTSTATIC, owner.toModel, name, desc.toModel)
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
@@ -112,7 +112,7 @@ case class InstrPUTSTATIC(owner: Owner, name: FieldName, desc: TypeDesc) extends
   */
 case class InstrGETFIELD(owner: Owner, name: FieldName, desc: TypeDesc) extends FieldInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitFieldInsn(GETFIELD, owner, name, desc)
+    mv.visitFieldInsn(GETFIELD, owner.toModel, name, desc.toModel)
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
@@ -165,7 +165,7 @@ case class InstrGETFIELD(owner: Owner, name: FieldName, desc: TypeDesc) extends 
   */
 case class InstrPUTFIELD(owner: Owner, name: FieldName, desc: TypeDesc) extends FieldInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitFieldInsn(PUTFIELD, owner, name, desc)
+    mv.visitFieldInsn(PUTFIELD, owner.toModel, name, desc.toModel)
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
