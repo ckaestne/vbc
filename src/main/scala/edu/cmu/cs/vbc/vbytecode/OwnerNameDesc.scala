@@ -3,7 +3,7 @@ package edu.cmu.cs.vbc.vbytecode
 import javax.lang.model.SourceVersion
 
 import edu.cmu.cs.vbc.utils.LiftUtils._
-import edu.cmu.cs.vbc.utils.VBCWrapper
+import edu.cmu.cs.vbc.utils.{VBCModel, VBCWrapper}
 import org.objectweb.asm.Type
 
 /**
@@ -42,6 +42,17 @@ case class Owner(name: String) extends TypeVerifier {
 
   def getTypeDesc: TypeDesc = TypeDesc(Type.getObjectType(name).getDescriptor)
 
+  val modelExceptionList = List(
+    "java/lang/Object",
+    "java/lang/String", // String constants loaded by LDC are String type (todo: wrapper)
+    "java/lang/System",
+    "java/io/PrintStream",
+    "java/lang/Integer",
+    "java/lang/Short",
+    "java/lang/Byte",
+    "java/lang/Boolean"
+  )
+
   /** Get the corresponding model class
     *
     * @return
@@ -49,8 +60,12 @@ case class Owner(name: String) extends TypeVerifier {
     * Array -> [baseType.toModel
     */
   def toModel: Owner = name match {
-    //    case s: String if s.startsWith("[") => Owner("[" + Owner(s.tail).toModel)
-    //    case s: String if s.startsWith("java") => Owner("model/" + name)
+    case s: String if s.startsWith("[") => Owner("[" + TypeDesc(s.tail).toModel)
+    case s: String if s.startsWith("java") =>
+      if (modelExceptionList.contains(name))
+        this
+      else
+        Owner(VBCModel.prefix + "/" + name)
     case _ => this
   }
 
@@ -170,6 +185,18 @@ case class MethodDesc(descString: String) extends TypeVerifier {
     MethodDesc(argsString + retString)
   }
 
+  /** Transform all primitive types to corresponding Object types
+    *
+    * @return
+    * transformed MethodDesc
+    */
+  def toObjects: MethodDesc = {
+    val args = Type.getArgumentTypes(descString)
+    val argsString: String = args.map(t => TypeDesc(t.getDescriptor).toObject).mkString("(", "", ")")
+    val retString: String = if (isReturnVoid) "V" else getReturnType.get.toObject
+    MethodDesc(argsString + retString)
+  }
+
   /** Change all arguments and return type (if not void) to V.
     *
     * @return
@@ -271,13 +298,13 @@ case class TypeDesc(desc: String) extends TypeVerifier {
     * @return
     * Object -> model class descriptor
     * Array -> [baseType.toModel
-    * Primitive -> toObject.toModel
+    * Primitive -> unchanged
     */
   def toModel: TypeDesc = {
     if (isArray)
       TypeDesc("[" + getArrayBaseType.toModel)
     else if (isPrimitive)
-      toObject.toModel
+      this
     else
       getOwner.get.toModel.getTypeDesc
   }

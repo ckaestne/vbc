@@ -16,6 +16,7 @@ object LiftingPolicy {
 
   def shouldLiftClass(owner: Owner): Boolean = owner.name match {
     case x if x.startsWith("edu/cmu/cs/vbc/prog/") => true
+    case x if x.startsWith(VBCModel.prefix) => true
     case "java/util/LinkedList" => true
     case "java/lang/StringBuilder" => true
     case "java/lang/AbstractStringBuilder" => true

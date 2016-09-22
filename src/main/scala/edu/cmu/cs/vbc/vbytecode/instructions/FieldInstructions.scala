@@ -38,7 +38,7 @@ case class InstrGETSTATIC(owner: Owner, name: FieldName, desc: TypeDesc) extends
       }
       else {
         // fields are not lifted but we need a V, so we wrap it into a V
-        mv.visitFieldInsn(GETSTATIC, owner.toModel, name, desc.toModel)
+        mv.visitFieldInsn(GETSTATIC, owner.toModel, name, desc.toObject.toModel)
         callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
       }
     }

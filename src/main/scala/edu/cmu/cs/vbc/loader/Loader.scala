@@ -24,6 +24,13 @@ class Loader {
     adaptClass(classNode)
   }
 
+  def loadClass(bytes: Array[Byte]): VBCClassNode = {
+    val cr = new ClassReader(bytes)
+    val classNode = new ClassNode(ASM5)
+    cr.accept(classNode, 0)
+    adaptClass(classNode)
+  }
+
   def adaptClass(cl: ClassNode): VBCClassNode = new VBCClassNode(
     cl.version,
     cl.access,

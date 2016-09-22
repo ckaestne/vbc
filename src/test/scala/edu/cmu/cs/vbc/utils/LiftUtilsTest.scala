@@ -25,7 +25,7 @@ class LiftUtilsTest extends FunSuite with Matchers with DiffMethodTestInfrastruc
     liftMethodSignature("", Some("(Ljava/lang/Object;)V")) should equal(Some("(L" + vclassname + "<Ljava/lang/Object;>;" + fexprclasstype + ")V"))
     liftMethodSignature("", Some("(Ljava/lang/Object;Ljava/lang/Object;)V")) should equal(Some("(L" + vclassname + "<Ljava/lang/Object;>;L" + vclassname + "<Ljava/lang/Object;>;" + fexprclasstype + ")V"))
     liftMethodSignature("", Some("([Ljava/lang/Object;)V")) should equal(Some("(L" + vclassname + "<[Ljava/lang/Object;>;" + fexprclasstype + ")V"))
-    liftMethodSignature("", Some("(Ljava/util/List<Ljava/lang/Object;>;)V")) should equal(Some("(L" + vclassname + "<Ljava/util/List<Ljava/lang/Object;>;>;" + fexprclasstype + ")V"))
+    liftMethodSignature("", Some("(Ljava/util/List<Ljava/lang/Object;>;)V")) should equal(Some("(L" + vclassname + "<Lmodel/java/util/List<Ljava/lang/Object;>;>;" + fexprclasstype + ")V"))
     liftMethodSignature("(I)I", None) should equal(Some("(L" + vclassname + s"<$IntType>;" + fexprclasstype + ")L" + vclassname + s"<$IntType>;"))
   }
 

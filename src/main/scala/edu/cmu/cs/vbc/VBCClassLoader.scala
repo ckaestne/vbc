@@ -4,7 +4,7 @@ import java.io._
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.cmu.cs.vbc.loader.Loader
-import edu.cmu.cs.vbc.utils.{LiftingPolicy, VBCWrapper}
+import edu.cmu.cs.vbc.utils.{LiftingPolicy, VBCModel, VBCWrapper}
 import edu.cmu.cs.vbc.vbytecode.{Owner, VBCClassNode, VBCMethodNode}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.tree.ClassNode
@@ -39,19 +39,27 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
   }
 
   override def findClass(name: String): Class[_] = {
-    logger.info(s"lifting $name")
     val resource: String = name.replace('.', '/') + ".class"
     val is: InputStream = getResourceAsStream(resource)
-    assert(is != null, s"class $name not found")
-    val clazz: VBCClassNode = loader.loadClass(is)
-
-
+    val clazz: VBCClassNode =
+      if (is != null)
+        loader.loadClass(is)
+      else {
+        // TODO: we should probably scan the "lifted" folder for reuse
+        // since the lifting is not stable yet, we leave this as future optimization.
+        val model = new VBCModel(name)
+        val bytes = model.getModelClassBytes()
+        loader.loadClass(bytes)
+      }
 
     val cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES) // COMPUTE_FRAMES implies COMPUTE_MAX
-    if (isLift)
+    if (isLift) {
+      logger.info(s"lifting $name")
       clazz.toVByteCode(cw, rewriter)
-    else
+    }
+    else {
       clazz.toByteCode(cw, rewriter)
+    }
 
     val cr2 = new ClassReader(cw.toByteArray)
     cr2.accept(getCheckClassAdapter(getTraceClassVisitor(null)), 0)

@@ -28,7 +28,7 @@ object LiftUtils {
   }
 
   def liftMethodSignature(desc: String, sig: Option[String]): Option[String] = {
-    val sigReader = new SignatureReader(sig.getOrElse(MethodDesc(desc).toModels))
+    val sigReader = new SignatureReader(sig.getOrElse(MethodDesc(desc).toObjects.toModels))
     val sw = new LiftSignatureWriter()
     sigReader.accept(sw)
     val newSig = sw.getSignature()
