@@ -16,7 +16,7 @@ case class Block(instr: Instruction*) {
   import LiftUtils._
 
   def toByteCode(mv: MethodVisitor, env: MethodEnv) = {
-    validate()
+    //    validate()
 
     mv.visitLabel(env.getBlockLabel(this))
     instr.foreach(_.toByteCode(mv, env, this))

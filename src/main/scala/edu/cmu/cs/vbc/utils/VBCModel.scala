@@ -3,7 +3,7 @@ package edu.cmu.cs.vbc.utils
 import java.io._
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.cmu.cs.vbc.vbytecode.{MethodDesc, Owner, TypeDesc}
+import edu.cmu.cs.vbc.vbytecode.{MethodDesc, MethodName, Owner, TypeDesc}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.tree._
 import org.objectweb.asm.util.TraceClassVisitor
@@ -62,6 +62,11 @@ class VBCModel(fqName: String) extends LazyLogging {
     cn.methods.foreach(transformMethod)
     // inner classes
     cn.innerClasses.foreach(transformInnerClass)
+
+    // add additional method
+    if (cn.name == Owner("java/lang/String").toModel.toString) {
+      cn.methods.add(createValueOf())
+    }
   }
 
   def transformInnerClass(in: InnerClassNode): Unit = {
@@ -78,6 +83,7 @@ class VBCModel(fqName: String) extends LazyLogging {
     m.exceptions.foreach(rename)
     if (m.localVariables != null) m.localVariables.foreach(lv => lv.desc = rewriteTypeDesc(lv.desc))
     m.instructions.toArray.foreach(transformInsn)
+    wrapString(m.instructions)
   }
 
   def transformInsn(i: AbstractInsnNode): Unit = {
@@ -99,6 +105,54 @@ class VBCModel(fqName: String) extends LazyLogging {
         }
       case _ => // keep it as it is
     }
+  }
+
+  def wrapString(instructions: InsnList): Unit = {
+    def createWrapperCall(): MethodInsnNode = new MethodInsnNode(
+      INVOKESTATIC,
+      Owner("java/lang/String").toModel,
+      MethodName("valueOf"),
+      MethodDesc(s"(Ljava/lang/String;)${Owner("java/lang/String").toModel.getTypeDesc}"),
+      false
+    )
+    val LDCs = instructions.toArray.reverse.filter {
+      case ldc: LdcInsnNode if ldc.cst.isInstanceOf[String] => true
+      case _ => false
+    }
+    LDCs.foreach(ldc => instructions.insert(ldc, createWrapperCall()))
+  }
+
+  def createValueOf(): MethodNode = {
+
+    val mn = new MethodNode(ASM5)
+    val newOwner = Owner("java/lang/String").toModel
+    mn.access = ACC_PUBLIC + ACC_STATIC
+    mn.name = "valueOf"
+    mn.desc = s"(Ljava/lang/String;)${Owner("java/lang/String").toModel.getTypeDesc}"
+    mn.exceptions = List()
+    val instructions: InsnList = new InsnList()
+    instructions.add(new TypeInsnNode(NEW, newOwner))
+    instructions.add(new InsnNode(DUP))
+    instructions.add(new VarInsnNode(ALOAD, 0))
+    instructions.add(new MethodInsnNode(
+      INVOKEVIRTUAL,
+      Owner("java/lang/String"),
+      MethodName("getBytes"),
+      MethodDesc("()[B"),
+      false
+    ))
+    instructions.add(new MethodInsnNode(
+      INVOKESPECIAL,
+      newOwner,
+      MethodName("<init>"),
+      MethodDesc(s"([B)V"),
+      false
+    ))
+    instructions.add(new InsnNode(ARETURN))
+    mn.instructions = instructions
+    mn.maxLocals = 2
+    mn.maxStack = 3
+    return mn
   }
 }
 

@@ -199,7 +199,7 @@ class Loader {
       case FALOAD => UNKNOWN(FALOAD)
       case DALOAD => UNKNOWN(DALOAD)
       case AALOAD => InstrAALOAD()
-      case BALOAD => UNKNOWN(BALOAD)
+      case BALOAD => InstrBALOAD()
       case CALOAD => InstrCALOAD()
       case SALOAD => UNKNOWN(SALOAD)
       case ISTORE => {
@@ -218,7 +218,7 @@ class Loader {
       case FASTORE => UNKNOWN(FASTORE)
       case DASTORE => UNKNOWN(DASTORE)
       case AASTORE => InstrAASTORE()
-      case BASTORE => UNKNOWN(BASTORE)
+      case BASTORE => InstrBASTORE()
       case CASTORE => InstrCASTORE()
       case SASTORE => UNKNOWN(SASTORE)
       case POP => InstrPOP()
@@ -235,7 +235,7 @@ class Loader {
       case FADD => UNKNOWN(FADD)
       case DADD => UNKNOWN(DADD)
       case ISUB => InstrISUB()
-      case LSUB => UNKNOWN(LSUB)
+      case LSUB => InstrLSUB()
       case FSUB => UNKNOWN(FSUB)
       case DSUB => UNKNOWN(DSUB)
       case IMUL => InstrIMUL()
@@ -260,9 +260,9 @@ class Loader {
       case LSHR => UNKNOWN(LSHR)
       case IUSHR => UNKNOWN(IUSHR)
       case LUSHR => UNKNOWN(LUSHR)
-      case IAND => UNKNOWN(IAND)
+      case IAND => InstrIAND()
       case LAND => UNKNOWN(LAND)
-      case IOR => UNKNOWN(IOR)
+      case IOR => InstrIOR()
       case LOR => UNKNOWN(LOR)
       case IXOR => UNKNOWN(IXOR)
       case LXOR => UNKNOWN(LXOR)
@@ -270,7 +270,7 @@ class Loader {
         val i = inst.asInstanceOf[IincInsnNode]
         InstrIINC(variables(i.`var`, IINC), i.incr)
       }
-      case I2L => UNKNOWN(I2L)
+      case I2L => InstrI2L()
       case I2F => UNKNOWN(I2F)
       case I2D => UNKNOWN(I2D)
       case L2I => UNKNOWN(L2I)
@@ -282,7 +282,7 @@ class Loader {
       case D2I => UNKNOWN(D2I)
       case D2L => UNKNOWN(D2L)
       case D2F => UNKNOWN(D2F)
-      case I2B => UNKNOWN(I2B)
+      case I2B => InstrI2B()
       case I2C => InstrI2C()
       case I2S => UNKNOWN(I2S)
       case LCMP => InstrLCMP()
@@ -339,6 +339,12 @@ class Loader {
         val i = inst.asInstanceOf[JumpInsnNode]
         InstrIF_ICMPLE(labelLookup(i.label))
       }
+      case IF_ACMPEQ =>
+        val i = inst.asInstanceOf[JumpInsnNode]
+        InstrIF_ACMPEQ(labelLookup(i.label))
+      case IF_ACMPNE =>
+        val i = inst.asInstanceOf[JumpInsnNode]
+        InstrIF_ACMPNE(labelLookup(i.label))
       case GOTO => {
         val i = inst.asInstanceOf[JumpInsnNode]
         InstrGOTO(labelLookup(i.label))
@@ -407,8 +413,8 @@ class Loader {
       case INSTANCEOF =>
         val i = inst.asInstanceOf[TypeInsnNode]
         InstrINSTANCEOF(Owner(i.desc))
-      case MONITORENTER => UNKNOWN(MONITORENTER)
-      case MONITOREXIT => UNKNOWN(MONITOREXIT)
+      case MONITORENTER => InstrMONITORENTER()
+      case MONITOREXIT => InstrMONITOREXIT()
       case MULTIANEWARRAY => UNKNOWN(MULTIANEWARRAY)
       case IFNULL => {
         val i = inst.asInstanceOf[JumpInsnNode]

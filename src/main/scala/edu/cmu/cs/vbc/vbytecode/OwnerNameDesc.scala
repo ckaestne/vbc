@@ -44,7 +44,7 @@ case class Owner(name: String) extends TypeVerifier {
 
   val modelExceptionList = List(
     "java/lang/Object",
-    "java/lang/String", // String constants loaded by LDC are String type (todo: wrapper)
+    //    "java/lang/String", // String constants loaded by LDC are String type (todo: wrapper)
     "java/lang/System",
     "java/io/PrintStream",
     "java/lang/Integer",

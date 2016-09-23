@@ -19,7 +19,7 @@ case class VBCMethodNode(access: Int,
   import LiftUtils._
 
   def toByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
-    val mv = cw.visitMethod(access, name, desc, signature.getOrElse(null), exceptions.toArray)
+    val mv = cw.visitMethod(access, name, MethodDesc(desc).toModels, signature.getOrElse(null), exceptions.toArray)
     mv.visitCode()
     body.toByteCode(mv, new MethodEnv(clazz, this))
     mv.visitMaxs(0, 0)
@@ -28,7 +28,7 @@ case class VBCMethodNode(access: Int,
 
   def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
     createBackupMethod(cw, clazz)
-    val liftedMethodDesc = MethodDesc(desc).toWrappers.appendFE
+    val liftedMethodDesc = MethodDesc(desc).toModels.toWrappers.appendFE
     val mv = cw.visitMethod(
       access,
       liftCLINIT(name),

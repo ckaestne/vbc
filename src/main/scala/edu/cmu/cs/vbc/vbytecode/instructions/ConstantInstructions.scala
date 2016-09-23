@@ -46,13 +46,29 @@ case class InstrICONST(v: Int) extends Instruction {
 case class InstrLDC(o: Object) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitLdcInsn(o)
+    o match {
+      case s: String => mv.visitMethodInsn(
+        INVOKESTATIC,
+        Owner("java/lang/String").toModel,
+        MethodName("valueOf"),
+        MethodDesc(s"(Ljava/lang/String;)${Owner("java/lang/String").toModel.getTypeDesc}"),
+        false
+      )
+      case _ => // do nothing
+    }
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, blockA: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
       mv.visitLdcInsn(o)
       o match {
-        case s: String => // do nothing
+        case s: String => mv.visitMethodInsn(
+          INVOKESTATIC,
+          Owner("java/lang/String").toModel,
+          MethodName("valueOf"),
+          MethodDesc(s"(Ljava/lang/String;)${Owner("java/lang/String").toModel.getTypeDesc}"),
+          false
+        )
         case i: Integer => mv.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
         case _ => throw new UnsupportedOperationException("Unsupported LDC type")
       }
@@ -61,7 +77,13 @@ case class InstrLDC(o: Object) extends Instruction {
     else {
       mv.visitLdcInsn(o)
       o match {
-        case s: String => // do nothing
+        case s: String => mv.visitMethodInsn(
+          INVOKESTATIC,
+          Owner("java/lang/String").toModel,
+          MethodName("valueOf"),
+          MethodDesc(s"(Ljava/lang/String;)${Owner("java/lang/String").toModel.getTypeDesc}"),
+          false
+        )
         case i: Integer => mv.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
         case _ => throw new UnsupportedOperationException("Unsupported LDC type")
       }

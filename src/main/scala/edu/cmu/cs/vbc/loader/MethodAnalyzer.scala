@@ -1,6 +1,5 @@
 package edu.cmu.cs.vbc.loader
 
-import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.tree.analysis.{Analyzer, BasicInterpreter, BasicValue, Frame}
 import org.objectweb.asm.tree.{JumpInsnNode, LabelNode, MethodNode}
 
@@ -31,7 +30,7 @@ class MethodAnalyzer(owner: String, mn: MethodNode) extends Analyzer[BasicValue]
       mn.instructions.get(insn) match {
         case jump: JumpInsnNode =>
           blocks = blocks + successor
-          if (jump.getOpcode != GOTO)
+          //          if (jump.getOpcode != GOTO)
             blocks = blocks + (insn + 1) // the instruction after the jump
         case _ => // do nothing
       }
