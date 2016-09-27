@@ -19,7 +19,8 @@ case class VBCMethodNode(access: Int,
   import LiftUtils._
 
   def toByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
-    val mv = cw.visitMethod(access, name, MethodDesc(desc).toModels, signature.getOrElse(null), exceptions.toArray)
+    val newDesc: String = if (isMain) desc else MethodDesc(desc).toModels
+    val mv = cw.visitMethod(access, name, newDesc, signature.getOrElse(null), exceptions.toArray)
     mv.visitCode()
     body.toByteCode(mv, new MethodEnv(clazz, this))
     mv.visitMaxs(0, 0)

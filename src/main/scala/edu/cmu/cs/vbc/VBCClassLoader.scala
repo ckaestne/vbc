@@ -4,7 +4,7 @@ import java.io._
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.cmu.cs.vbc.loader.Loader
-import edu.cmu.cs.vbc.utils.{LiftingPolicy, VBCModel, VBCWrapper}
+import edu.cmu.cs.vbc.utils.{LiftingPolicy, MyClassWriter, VBCModel, VBCWrapper}
 import edu.cmu.cs.vbc.vbytecode.{Owner, VBCClassNode, VBCMethodNode}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.tree.ClassNode
@@ -32,6 +32,17 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
       val bytes = w.getWrapperClassBytes()
       defineClass(name, bytes, 0, bytes.length)
     }
+    else if (name.startsWith(VBCModel.prefix)) {
+      val model = new VBCModel(name)
+      val bytes = model.getModelClassBytes()
+      if (shouldLift(name)) {
+        val clazz = loader.loadClass(bytes)
+        liftClass(name, clazz)
+      }
+      else {
+        defineClass(name, bytes, 0, bytes.length)
+      }
+    }
     else if (shouldLift(name))
       findClass(name)
     else
@@ -41,18 +52,13 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
   override def findClass(name: String): Class[_] = {
     val resource: String = name.replace('.', '/') + ".class"
     val is: InputStream = getResourceAsStream(resource)
-    val clazz: VBCClassNode =
-      if (is != null)
-        loader.loadClass(is)
-      else {
-        // TODO: we should probably scan the "lifted" folder for reuse
-        // since the lifting is not stable yet, we leave this as future optimization.
-        val model = new VBCModel(name)
-        val bytes = model.getModelClassBytes()
-        loader.loadClass(bytes)
-      }
+    assert(is != null, s"Class file not found: $name")
+    val clazz: VBCClassNode = loader.loadClass(is)
+    liftClass(name, clazz)
+  }
 
-    val cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES) // COMPUTE_FRAMES implies COMPUTE_MAX
+  def liftClass(name: String, clazz: VBCClassNode): Class[_] = {
+    val cw = new MyClassWriter(ClassWriter.COMPUTE_FRAMES) // COMPUTE_FRAMES implies COMPUTE_MAX
     if (isLift) {
       logger.info(s"lifting $name")
       clazz.toVByteCode(cw, rewriter)

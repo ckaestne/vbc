@@ -43,14 +43,20 @@ case class Owner(name: String) extends TypeVerifier {
   def getTypeDesc: TypeDesc = TypeDesc(Type.getObjectType(name).getDescriptor)
 
   val modelExceptionList = List(
+    // inheritance hierarchy
     "java/lang/Object",
-    //    "java/lang/String", // String constants loaded by LDC are String type (todo: wrapper)
+    // some static field initial values are String constants
+    "java/lang/String",
+    // ATHROW can only throw java/lang/Throwable
+    "java/lang/Throwable",
+    // UnsatisfiedLinkError because of natives
     "java/lang/System",
+    // because we are not lifting System
     "java/io/PrintStream",
-    "java/lang/Integer",
-    "java/lang/Short",
-    "java/lang/Byte",
-    "java/lang/Boolean"
+    // reflection and exception handling
+    "java/lang/Class",
+    // Integer call a package access method from java/lang/Class
+    "java/lang/Integer", "java/lang/Short", "java/lang/Byte"
   )
 
   /** Get the corresponding model class

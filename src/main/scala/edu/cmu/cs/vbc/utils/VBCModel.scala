@@ -63,10 +63,10 @@ class VBCModel(fqName: String) extends LazyLogging {
     // inner classes
     cn.innerClasses.foreach(transformInnerClass)
 
-    // add additional method
-    if (cn.name == Owner("java/lang/String").toModel.toString) {
-      cn.methods.add(createValueOf())
-    }
+//    // add additional method to String class
+//    if (cn.name == Owner("java/lang/String").toModel.toString) {
+//      cn.methods.add(createValueOf())
+//    }
   }
 
   def transformInnerClass(in: InnerClassNode): Unit = {
@@ -83,7 +83,7 @@ class VBCModel(fqName: String) extends LazyLogging {
     m.exceptions.foreach(rename)
     if (m.localVariables != null) m.localVariables.foreach(lv => lv.desc = rewriteTypeDesc(lv.desc))
     m.instructions.toArray.foreach(transformInsn)
-    wrapString(m.instructions)
+//    wrapString(m.instructions)
   }
 
   def transformInsn(i: AbstractInsnNode): Unit = {

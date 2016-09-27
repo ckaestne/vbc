@@ -47,13 +47,7 @@ case class InstrLDC(o: Object) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitLdcInsn(o)
     o match {
-      case s: String => mv.visitMethodInsn(
-        INVOKESTATIC,
-        Owner("java/lang/String").toModel,
-        MethodName("valueOf"),
-        MethodDesc(s"(Ljava/lang/String;)${Owner("java/lang/String").toModel.getTypeDesc}"),
-        false
-      )
+      case s: String => wrapString(mv)
       case _ => // do nothing
     }
   }
@@ -62,13 +56,7 @@ case class InstrLDC(o: Object) extends Instruction {
     if (env.shouldLiftInstr(this)) {
       mv.visitLdcInsn(o)
       o match {
-        case s: String => mv.visitMethodInsn(
-          INVOKESTATIC,
-          Owner("java/lang/String").toModel,
-          MethodName("valueOf"),
-          MethodDesc(s"(Ljava/lang/String;)${Owner("java/lang/String").toModel.getTypeDesc}"),
-          false
-        )
+        case s: String => wrapString(mv)
         case i: Integer => mv.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
         case _ => throw new UnsupportedOperationException("Unsupported LDC type")
       }
@@ -77,17 +65,23 @@ case class InstrLDC(o: Object) extends Instruction {
     else {
       mv.visitLdcInsn(o)
       o match {
-        case s: String => mv.visitMethodInsn(
-          INVOKESTATIC,
-          Owner("java/lang/String").toModel,
-          MethodName("valueOf"),
-          MethodDesc(s"(Ljava/lang/String;)${Owner("java/lang/String").toModel.getTypeDesc}"),
-          false
-        )
+        case s: String => wrapString(mv)
         case i: Integer => mv.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
         case _ => throw new UnsupportedOperationException("Unsupported LDC type")
       }
     }
+  }
+
+  def wrapString(mv: MethodVisitor) = {
+    val stringOwner = Owner("java/lang/String")
+    if (stringOwner != stringOwner.toModel)
+      mv.visitMethodInsn(
+        INVOKESTATIC,
+        Owner("java/lang/String").toModel,
+        MethodName("valueOf"),
+        MethodDesc(s"(Ljava/lang/String;)${Owner("java/lang/String").toModel.getTypeDesc}"),
+        false
+      )
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
