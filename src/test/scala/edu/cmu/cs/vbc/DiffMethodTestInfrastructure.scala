@@ -154,7 +154,8 @@ trait DiffMethodTestInfrastructure {
 
     val constructor = testVClass.getConstructor(classOf[FeatureExpr])
     val testVObject = constructor.newInstance(ctx)
-    testVClass.getMethod(method, classOf[FeatureExpr]).invoke(testVObject, ctx)
+    val mn = MethodName(method).rename(MethodDesc("()V"))
+    testVClass.getMethod(mn, classOf[FeatureExpr]).invoke(testVObject, ctx)
     val vresult = TestOutput.output
     vresult
   }
@@ -191,7 +192,8 @@ trait DiffMethodTestInfrastructure {
       val constructor = testVClass.getConstructor(classOf[FeatureExpr])
       testObject = constructor.newInstance(_ctx)
     } measure {
-      testVClass.getMethod(method, classOf[FeatureExpr]).invoke(testObject, _ctx)
+      val mn = MethodName(method).rename(MethodDesc("()V"))
+      testVClass.getMethod(mn, classOf[FeatureExpr]).invoke(testObject, _ctx)
     }
     //        println(s"Total time V: $time")
 

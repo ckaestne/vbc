@@ -3,7 +3,7 @@ package edu.cmu.cs.vbc.vbytecode
 import javax.lang.model.SourceVersion
 
 import edu.cmu.cs.vbc.utils.LiftUtils._
-import edu.cmu.cs.vbc.utils.{VBCModel, VBCWrapper}
+import edu.cmu.cs.vbc.utils.VBCModel
 import org.objectweb.asm.Type
 
 /**
@@ -105,6 +105,19 @@ case class MethodName(name: String) {
   }
 
   override def toString: String = name
+
+  def rename(desc: MethodDesc): MethodName = name match {
+    case "<init>" | "<clinit>" | "___clinit___" | "______clinit______" => this
+    case _ =>
+      val args = desc.getArgs
+      val argsString = args.mkString("__", "_", "__")
+      MethodName(name + argsString.replace(";", "").replace("/", "_").replace("[", "Array_"))
+  }
+
+  def liftCLINIT: MethodName = name match {
+    case "<clinit>" => MethodName("______clinit______")
+    case _ => this
+  }
 }
 
 object MethodName {
@@ -176,18 +189,18 @@ case class MethodDesc(descString: String) extends TypeVerifier {
     MethodDesc(argsString + retString)
   }
 
-  /** Arguments -> Wrapper, return type -> V (if not void)
+  /** Turn all arguments into Vs, append FeatureExpr and finally append original argument types
     *
-    * Also need to check that the arguments are not Vs.
+    * Only <init> method requires this transformation
     *
     * @return
-    * transformed MethodDesc
+    *         transformed method descriptor
     */
-  def toWrappers: MethodDesc = {
-    val args = Type.getArgumentTypes(descString)
-    assert(!args.exists(_.getDescriptor == vclasstype), "Arguments are already V types")
-    val argsString: String = args.map(t => TypeDesc(t.getDescriptor).toWrapper).mkString("(", "", ")")
-    val retString: String = if (isReturnVoid) "V" else vclasstype
+  def toVs_AppendFE_AppendArgs: MethodDesc = {
+    val args = getArgs
+    assert(!args.exists(_.contentEquals(vclasstype)), "could not append V argument types")
+    val argsString = (toVs.appendFE.getArgs ++ args).mkString("(", "", ")")
+    val retString = "V" // because this is <init>
     MethodDesc(argsString + retString)
   }
 
@@ -275,15 +288,6 @@ case class TypeDesc(desc: String) extends TypeVerifier {
   def getArrayBaseType: TypeDesc = {
     assert(isArray, "Can't get base type from non-array type")
     TypeDesc(desc.tail)
-  }
-
-  def toWrapper: TypeDesc = {
-    val dimension = desc.lastIndexOf('[') + 1 // in case this is an array
-    val baseType = TypeDesc(desc.substring(dimension))
-    if (baseType.isPrimitive)
-      TypeDesc(s"L${VBCWrapper.prefix}/" + "array/" * dimension + baseType.desc + ";")
-    else
-      TypeDesc(s"L${VBCWrapper.prefix}/" + "array/" * dimension + baseType.desc.init.tail + ";")
   }
 
   /** Get the owner (if exists) of this type.

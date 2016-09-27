@@ -70,10 +70,6 @@ case class InstrILOAD(variable: Variable) extends Instruction {
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
       loadV(mv, env, variable)
-      variable match {
-        case p: Parameter if p.name != "this" => mv.visitFieldInsn(GETFIELD, p.desc.toWrapper.getOwner.get, FieldName("v"), TypeDesc(vclasstype))
-        case _ => // do nothing
-      }
     }
     else
       mv.visitVarInsn(ILOAD, env.getVarIdx(variable))
@@ -160,10 +156,6 @@ case class InstrALOAD(variable: Variable) extends Instruction {
      */
     val idx = env.getVarIdx(variable)
     mv.visitVarInsn(ALOAD, idx)
-    variable match {
-      case p: Parameter if p.name != "this" => mv.visitFieldInsn(GETFIELD, p.desc.toWrapper.getOwner.get, FieldName("v"), TypeDesc(vclasstype))
-      case _ => // do nothing
-    }
     if (env.shouldLiftInstr(this))
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
   }

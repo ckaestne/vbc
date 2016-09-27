@@ -10,10 +10,10 @@ class LiftUtilsTest extends FunSuite with Matchers with DiffMethodTestInfrastruc
   import edu.cmu.cs.vbc.utils.LiftUtils._
 
   test("liftDesc") {
-    MethodDesc("()V").toWrappers.appendFE should equal("(" + fexprclasstype + ")V")
-    MethodDesc("(I)V").toWrappers.appendFE should equal("(" + s"L${VBCWrapper.prefix}/I;" + fexprclasstype + ")V")
-    MethodDesc("(II)V").toWrappers.appendFE should equal("(" + s"L${VBCWrapper.prefix}/I;" * 2 + fexprclasstype + ")V")
-    MethodDesc("(II)I").toWrappers.appendFE should equal("(" + s"L${VBCWrapper.prefix}/I;" * 2 + fexprclasstype + ")" + vclasstype)
+    MethodDesc("()V").appendFE should equal("(" + fexprclasstype + ")V")
+    MethodDesc("(I)V").appendFE should equal("(" + "I" + fexprclasstype + ")V")
+    MethodDesc("(II)V").appendFE should equal("(" + "I" * 2 + fexprclasstype + ")V")
+    MethodDesc("(II)I").appendFE should equal("(" + "I" * 2 + fexprclasstype + ")I")
   }
 
   test("liftSignature") {

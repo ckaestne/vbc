@@ -4,7 +4,7 @@ import java.io._
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.cmu.cs.vbc.loader.Loader
-import edu.cmu.cs.vbc.utils.{LiftingPolicy, MyClassWriter, VBCModel, VBCWrapper}
+import edu.cmu.cs.vbc.utils.{LiftingPolicy, MyClassWriter, VBCModel}
 import edu.cmu.cs.vbc.vbytecode.{Owner, VBCClassNode, VBCMethodNode}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.tree.ClassNode
@@ -27,12 +27,7 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
   val loader = new Loader()
 
   override def loadClass(name: String): Class[_] = {
-    if (name.startsWith(VBCWrapper.prefix)) {
-      val w = new VBCWrapper(name)
-      val bytes = w.getWrapperClassBytes()
-      defineClass(name, bytes, 0, bytes.length)
-    }
-    else if (name.startsWith(VBCModel.prefix)) {
+    if (name.startsWith(VBCModel.prefix)) {
       val model = new VBCModel(name)
       val bytes = model.getModelClassBytes()
       if (shouldLift(name)) {

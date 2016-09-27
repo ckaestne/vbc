@@ -20,19 +20,12 @@ object LiftUtils {
   val lamdaFactoryMethod = "metafactory"
   val lamdaFactoryDesc = "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;"
 
-  def liftCLINIT(name: String): String = {
-    if (name == "<clinit>")
-      "______clinit______"
-    else
-      name
-  }
-
   def liftMethodSignature(desc: String, sig: Option[String]): Option[String] = {
     val sigReader = new SignatureReader(sig.getOrElse(MethodDesc(desc).toObjects.toModels))
     val sw = new LiftSignatureWriter()
     sigReader.accept(sw)
     val newSig = sw.getSignature()
-    if (sig != None || newSig != MethodDesc(desc).toWrappers.appendFE.toString)
+    if (sig != None || newSig != MethodDesc(desc).appendFE.toString)
       Some(newSig)
     else None
   }

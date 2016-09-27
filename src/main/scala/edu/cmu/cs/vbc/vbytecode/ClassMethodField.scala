@@ -29,10 +29,10 @@ case class VBCMethodNode(access: Int,
 
   def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
     createBackupMethod(cw, clazz)
-    val liftedMethodDesc = MethodDesc(desc).toModels.toWrappers.appendFE
+    val liftedMethodDesc = if (name != "<init>") MethodDesc(desc).toVs.appendFE else MethodDesc(desc).toVs_AppendFE_AppendArgs
     val mv = cw.visitMethod(
       access,
-      liftCLINIT(name),
+      MethodName(name).rename(MethodDesc(desc)).liftCLINIT,
       liftedMethodDesc,
       liftMethodSignature(desc, signature).getOrElse(null),
       exceptions.toArray
@@ -112,7 +112,7 @@ case class VBCMethodNode(access: Int,
         callVCreateOne(mv, pushConstantTRUE)
       }
       pushConstantTRUE(mv)  //ctx
-      mv.visitMethodInsn(callType, clazz.name, name, MethodDesc(desc).toWrappers.appendFE, false)
+      mv.visitMethodInsn(callType, clazz.name, name, MethodDesc(desc).appendFE, false)
       // unwrap return type
       Type.getReturnType(desc).getSort match {
         case Type.INT =>
@@ -286,18 +286,14 @@ case class VBCClassNode(
   def createUnliftedMain(cv: ClassVisitor) = {
     val mainMethodSig = "([Ljava/lang/String;)V"
     val mv = cv.visitMethod(ACC_PUBLIC | ACC_STATIC, "main", mainMethodSig, mainMethodSig, Array.empty)
-    val wrapperClsName = TypeDesc("[Ljava/lang/String;").toWrapper.desc.tail.init
     mv.visitCode()
-    mv.visitTypeInsn(NEW, wrapperClsName)
-    mv.visitInsn(DUP)
     //load array param
     mv.visitVarInsn(ALOAD, 0)
     //create a V<String[]>
     callVCreateOne(mv, (m) => pushConstantTRUE(m))
-    mv.visitMethodInsn(INVOKESPECIAL, wrapperClsName, MethodName("<init>"), MethodDesc(s"($vclasstype)V"), false)
     //set context to True
     pushConstantTRUE(mv)
-    mv.visitMethodInsn(INVOKESTATIC, name, "main", MethodDesc(mainMethodSig).toWrappers.appendFE, false)
+    mv.visitMethodInsn(INVOKESTATIC, name, MethodName("main").rename(MethodDesc(mainMethodSig)), MethodDesc(mainMethodSig).toVs.appendFE, false)
     mv.visitInsn(RETURN)
     mv.visitMaxs(2, 0)
     mv.visitEnd()
