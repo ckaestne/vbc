@@ -43,6 +43,14 @@ object LiftUtils {
     }
   }
 
+  def pushLongConstant(mv: MethodVisitor, value: Long): Unit = {
+    value match {
+      case 0 => mv.visitInsn(LCONST_0)
+      case 1 => mv.visitInsn(LCONST_1)
+      case v => mv.visitLdcInsn(value)
+    }
+  }
+
   def pushConstantFALSE(mv: MethodVisitor) =
     mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "False", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
 

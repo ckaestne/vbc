@@ -7,7 +7,7 @@ import edu.cmu.cs.vbc.vbytecode.{MethodDesc, MethodName, Owner, TypeDesc}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.tree._
 import org.objectweb.asm.util.TraceClassVisitor
-import org.objectweb.asm.{ClassReader, ClassWriter}
+import org.objectweb.asm.{ClassReader, ClassWriter, Handle, Type}
 
 import scala.collection.JavaConversions._
 
@@ -49,7 +49,7 @@ class VBCModel(fqName: String) extends LazyLogging {
   def rewriteMethodDesc(m: String): String = MethodDesc(m).toModels
 
   def transformClass(cn: ClassNode): Unit = {
-    cn.interfaces.foreach(rename)
+    cn.interfaces = cn.interfaces.map(rename)
     cn.name = rename(cn.name)
     cn.sourceFile = null
     cn.superName = rename(cn.superName)
@@ -80,18 +80,35 @@ class VBCModel(fqName: String) extends LazyLogging {
 
   def transformMethod(m: MethodNode): Unit = {
     m.desc = rewriteMethodDesc(m.desc)
-    m.exceptions.foreach(rename)
+    m.exceptions = m.exceptions.map(rename)
     if (m.localVariables != null) m.localVariables.foreach(lv => lv.desc = rewriteTypeDesc(lv.desc))
     m.instructions.toArray.foreach(transformInsn)
 //    wrapString(m.instructions)
   }
 
   def transformInsn(i: AbstractInsnNode): Unit = {
+    def rewriteHandle(h: Handle): Handle = {
+      new Handle(h.getTag, rename(h.getOwner), h.getName, rewriteMethodDesc(h.getDesc))
+    }
+
+    def rewriteType(t: Type): Type = {
+      Type.getType(MethodDesc(t.getDescriptor).toModels)
+    }
+
     i match {
       case fi: FieldInsnNode =>
         fi.owner = rename(fi.owner)
         fi.desc = rewriteTypeDesc(fi.desc)
-      case d: InvokeDynamicInsnNode => ??? // not sure
+      case d: InvokeDynamicInsnNode =>
+        d.desc = rewriteMethodDesc(d.desc)
+        d.bsm = rewriteHandle(d.bsm)
+        d.bsmArgs.indices foreach { i =>
+          d.bsmArgs(i) match {
+            case t: Type if t.getSort == Type.METHOD => d.bsmArgs(i) = rewriteType(t)
+            case h: Handle => d.bsmArgs(i) = rewriteHandle(h)
+            case i: Integer =>  // nothing
+          }
+        }
       case m: MethodInsnNode =>
         m.owner = rename(m.owner)
         m.desc = rewriteMethodDesc(m.desc)

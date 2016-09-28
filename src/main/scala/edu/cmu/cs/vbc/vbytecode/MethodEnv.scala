@@ -14,9 +14,8 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
   //not to variables that are generated in the tranformation process;
   //the latter are stored separately as freshVars
   //(localVars and freshVars behave as sorted sets)
-  protected var parameterCount = Type.getArgumentTypes(method.desc).size + (if (method.isStatic) 0 else 1) +
-    Type.getArgumentTypes(method.desc).count(t => t.getDescriptor == "J" || t.getDescriptor == "D")
-  // long and double
+  protected def parameterCount: Int = Type.getArgumentTypes(method.desc).size + (if (method.isStatic) 0 else 1) +
+    Type.getArgumentTypes(method.desc).count(t => t.getDescriptor == "J" || t.getDescriptor == "D") // long and double
   protected var freshVars: List[LocalVar] = Nil
 
   def getFreshVars(): List[Variable] = freshVars

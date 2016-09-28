@@ -119,21 +119,28 @@ case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
       mv.visitLdcInsn(fName)
       mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "createDefinedExternal", "(Ljava/lang/String;)Lde/fosd/typechef/featureexpr/SingleFeatureExpr;", false)
       mv.visitInsn(ICONST_1)
-      mv.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", s"(I)${Owner.getInt.getTypeDesc}", false)
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
       mv.visitInsn(ICONST_0)
-      mv.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", s"(I)${Owner.getInt.getTypeDesc}", false)
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
       callVCreateChoice(mv)
     }
 
-    def createOne(fDesc: String, mv: MethodVisitor): Unit = {
+    def createOne(f: VBCFieldNode, fDesc: String, mv: MethodVisitor): Unit = {
       Type.getType(fDesc).getSort match {
-        case Type.INT => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
+        case Type.INT =>
+          if (f.value == null) mv.visitInsn(ICONST_0) else pushConstant(mv, f.value.asInstanceOf[Int])
+          mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", s"(I)${Owner.getInt.getTypeDesc}", false)
         case Type.OBJECT => mv.visitInsn(ACONST_NULL)
-        //          case Type.BOOLEAN => mv.visitIntInsn(BIPUSH, 0); mv.visitMethodInsn(INVOKESTATIC, vBoolean, "valueOf", s"(Z)$vBooleanType", false)
-        case Type.BOOLEAN => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
-        case _ => ???
+        case Type.BOOLEAN =>
+          if (f.value == null) mv.visitInsn(ICONST_0) else pushConstant(mv, f.value.asInstanceOf[Int])
+          mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", s"(I)${Owner.getInt.getTypeDesc}", false)
+        case Type.LONG =>
+          if (f.value == null) mv.visitInsn(LCONST_0) else pushLongConstant(mv, f.value.asInstanceOf[Long])
+          mv.visitMethodInsn(INVOKESTATIC, Owner.getLong, "valueOf", s"(J)${Owner.getLong.getTypeDesc}", false)
+        case _ =>
+          ???
       }
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
@@ -145,7 +152,7 @@ case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
         mv.visitFieldInsn(PUTSTATIC, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
       })
       env.clazz.fields.filter(f => f.isStatic && !f.hasConditionalAnnotation()).foreach(f => {
-        createOne(f.desc, mv);
+        createOne(f, f.desc, mv);
         mv.visitFieldInsn(PUTSTATIC, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
       })
     }
@@ -157,7 +164,7 @@ case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
       })
       env.clazz.fields.filter(f => !f.isStatic && !f.hasConditionalAnnotation()).foreach(f => {
         mv.visitVarInsn(ALOAD, 0)
-        createOne(f.desc, mv)
+        createOne(f, f.desc, mv)
         mv.visitFieldInsn(PUTFIELD, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
       })
     }

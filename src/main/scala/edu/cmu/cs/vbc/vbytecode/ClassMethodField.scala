@@ -28,7 +28,6 @@ case class VBCMethodNode(access: Int,
   }
 
   def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
-    createBackupMethod(cw, clazz)
     val liftedMethodDesc = if (name != "<init>") MethodDesc(desc).toVs.appendFE else MethodDesc(desc).toVs_AppendFE_AppendArgs
     val mv = cw.visitMethod(
       access,
@@ -97,6 +96,7 @@ case class VBCMethodNode(access: Int,
     *
     * Useful for methods like compare(), which is called in JDK
     */
+  @deprecated
   def createBackupMethod(cw: ClassVisitor, clazz: VBCClassNode): Unit = {
     // todo: checking interface name might not be accurate enough
     if (clazz.interfaces.exists(_.startsWith("java"))) {
@@ -341,7 +341,7 @@ case class VBCFieldNode(
   import LiftUtils._
 
   def toByteCode(cv: ClassVisitor) = {
-    val fv = cv.visitField(access, name, desc, signature, value)
+    val fv = cv.visitField(access, name, TypeDesc(desc).toModel, signature, value)
 
     commonToByteCode(fv)
 
@@ -351,8 +351,8 @@ case class VBCFieldNode(
   def toVByteCode(cv: ClassVisitor) = {
     def wrap(s: String) = "Ledu/cmu/cs/varex/V<" + s + ">;"
 
-    val fv = cv.visitField(access, name, vclasstype, wrap(TypeDesc(desc).toObject), value)
-    //TODO lift initial value for
+    // initial value will be set in InstrINIT_CONDITIONAL_FIELDS
+    val fv = cv.visitField(access, name, vclasstype, wrap(TypeDesc(desc).toObject), null)
 
     commonToByteCode(fv)
 

@@ -56,7 +56,7 @@ case class Owner(name: String) extends TypeVerifier {
     // reflection and exception handling
     "java/lang/Class",
     // Integer call a package access method from java/lang/Class
-    "java/lang/Integer", "java/lang/Short", "java/lang/Byte"
+    "java/lang/Integer", "java/lang/Short", "java/lang/Byte", "java/lang/Float", "java/lang/Double"
   )
 
   /** Get the corresponding model class
@@ -83,12 +83,11 @@ object Owner {
   implicit def ownerToString(owner: Owner): String = owner.name
 
   def getInt = Owner("java/lang/Integer")
-
   def getShort = Owner("java/lang/Short")
-
   def getByte = Owner("java/lang/Byte")
   def getBoolean = Owner("java/lang/Boolean")
   def getString = Owner("java/lang/String")
+  def getLong = Owner("java/lang/Long")
 }
 
 
@@ -106,12 +105,16 @@ case class MethodName(name: String) {
 
   override def toString: String = name
 
-  def rename(desc: MethodDesc): MethodName = name match {
-    case "<init>" | "<clinit>" | "___clinit___" | "______clinit______" => this
-    case _ =>
-      val args = desc.getArgs
-      val argsString = args.mkString("__", "_", "__")
-      MethodName(name + argsString.replace(";", "").replace("/", "_").replace("[", "Array_"))
+  def rename(desc: MethodDesc): MethodName = {
+    def replace(s: String): String = s.replace(";", "").replace("/", "_").replace("[", "Array_")
+    name match {
+      case "<init>" | "<clinit>" | "___clinit___" | "______clinit______" => this
+      case _ =>
+        val args = desc.getArgs
+        val argsString = replace(args.mkString("__", "_", "__"))
+        val retString = replace(desc.getReturnType.map(_.toString).getOrElse("V"))
+        MethodName(name + argsString + retString)
+    }
   }
 
   def liftCLINIT: MethodName = name match {

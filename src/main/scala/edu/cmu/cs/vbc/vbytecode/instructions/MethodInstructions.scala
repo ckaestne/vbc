@@ -174,10 +174,12 @@ trait MethodInstruction extends Instruction {
       frame = baseFrame
       if (ref == V_TYPE()) env.setLift(this)
       if (this.isInstanceOf[InstrINVOKESPECIAL] && name.contentEquals("<init>")) {
-        if (ref.isInstanceOf[V_REF_TYPE]) {
+        if (ref.isInstanceOf[V_REF_TYPE] || (!shouldLift && hasVArgs)) {
           // Special handling for <init>:
           // Whenever we see a V_REF_TYPE reference, we know that the initialized object would be consumed later as
           // method arguments or field values, so we scan the stack and wrap it into a V
+          // or
+          // passing Vs to constructors of classes that we don't lift (e.g. String)
           env.setTag(this, env.TAG_WRAP_DUPLICATE)
           // we only expect one duplicate on stack, otherwise calling one createOne is not enough
           assert(frame.stack.head._1 == ref, "No duplicate UNINITIALIZED value on stack")
@@ -185,9 +187,6 @@ trait MethodInstruction extends Instruction {
           assert(!moreThanOne, "More than one UNINITIALIZED value on stack")
           val (ref2, prev2, frame2) = frame.pop()
           frame = frame2.push(V_TYPE(), prev2)
-        }
-        else if (!shouldLift && hasVArgs) {
-          ??? // invokeOnNonV
         }
       }
     }
@@ -260,18 +259,10 @@ case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, 
       val liftedCall = liftCall(owner, name, desc)
 
       if (liftedCall.isLifting) loadCurrentCtx(mv, env, block)
-      if (name.contentEquals("<init>") && hasVArgs && !LiftingPolicy.shouldLiftMethodCall(owner, name, desc)) {
+      if (name.contentEquals("<init>") && hasVArgs && !liftedCall.isLifting) {
         // e.g. passing V<Integer> into String constructor
-        ???
-        // Use a special init method to do initialization
-        //        val newDesc = liftedCall.desc.substring(0, liftedCall.desc.length - 1) + vclasstype
-        //        val newName = LiftCall.encodeTypeInName(MethodName("Vinit"), desc)
-        //        mv.visitMethodInsn(INVOKESTATIC, liftedCall.owner, newName, newDesc, false)
-        //        // pop the useless uninitialized references
-        //        mv.visitInsn(SWAP)
-        //        mv.visitInsn(POP)
-        //        mv.visitInsn(SWAP)
-        //        mv.visitInsn(POP)
+        loadCurrentCtx(mv, env, block)
+        invokeInitWithVs(liftedCall, itf, mv, env)
       }
       else if (name.contentEquals("<init>") && liftedCall.isLifting && hasVArgs) {
         pushNulls(mv, desc)
@@ -284,6 +275,47 @@ case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, 
       if (env.getTag(this, env.TAG_WRAP_DUPLICATE)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
       if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
+  }
+
+  def invokeInitWithVs(liftedCall: LiftedCall, itf: Boolean, mv: MethodVisitor, env: VMethodEnv): Unit = {
+    val args = liftedCall.desc.getArgs
+    val nArgs = args.length
+    val shortClsName = liftedCall.owner.name.split("/").last
+    val helperName = "helper$" + shortClsName + "$init$" + env.clazz.lambdaMethods.size
+    val helperDesc: String = "(" + vclasstype * nArgs + fexprclasstype + s")$vclasstype"
+    val lambdaName = shortClsName + "$init$"
+    val invokeDesc = args(0).toObject + args.tail.map(_.toObject).mkString("(", "", ")") + vclasstype
+    val helper = (cv: ClassVisitor) => {
+      val m: MethodVisitor = cv.visitMethod( ACC_PRIVATE | ACC_STATIC | ACC_SYNTHETIC, helperName, helperDesc, null, Array[String]() )
+      m.visitCode()
+      args.indices foreach { (i) => m.visitVarInsn(ALOAD, i) } // arguments
+      InvokeDynamicUtils.invoke(
+        "sflatMap",
+        m,
+        env,
+        defaultLoadCtx = (m) => m.visitVarInsn(ALOAD, nArgs),
+        lambdaName,
+        invokeDesc,
+        nExplodeArgs = nArgs - 1
+      ) {
+        (mm: MethodVisitor) => {
+          mm.visitTypeInsn(NEW, liftedCall.owner)
+          mm.visitInsn(DUP)
+          0 to nArgs - 2 foreach { i => loadVar(i, liftedCall.desc, i, mm) } // first nArgs - 1 arguments
+          loadVar(nArgs, liftedCall.desc, nArgs - 1 , mm) // last argument
+          mm.visitMethodInsn(INVOKESPECIAL, liftedCall.owner, "<init>", liftedCall.desc, itf)
+          callVCreateOne(mm, mmm => mmm.visitVarInsn(ALOAD, nArgs - 1))
+          mm.visitInsn(ARETURN)
+        }
+      }
+      m.visitInsn(ARETURN)
+      m.visitMaxs(10, 10)
+      m.visitEnd()
+    }
+    env.clazz.lambdaMethods += (helperName -> helper)
+    mv.visitMethodInsn(INVOKESTATIC, Owner(env.clazz.name), MethodName(helperName), MethodDesc(helperDesc), false)
+    // pop useless uninitialized references
+    mv.visitInsn(SWAP); mv.visitInsn(POP); mv.visitInsn(SWAP); mv.visitInsn(POP)
   }
 
   def pushNulls(mv: MethodVisitor, origDesc: MethodDesc): Unit = {

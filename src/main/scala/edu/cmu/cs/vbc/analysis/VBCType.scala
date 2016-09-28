@@ -42,6 +42,14 @@ case class LONG_TYPE() extends VBCType {
   override def toString: String = "J"
 }
 
+case class FLOAT_TYPE() extends VBCType {
+  override def toString: String = "F"
+}
+
+case class DOUBLE_TYPE() extends VBCType {
+  override def toString: String = "D"
+}
+
 /**
   * Represents reference that created by NEW instruction
   *
@@ -69,6 +77,8 @@ object VBCType {
         case Type.BOOLEAN | Type.CHAR | Type.BYTE | Type.SHORT | Type.INT => INT_TYPE()
         case Type.OBJECT | Type.ARRAY => REF_TYPE()
         case Type.LONG => LONG_TYPE()
+        case Type.FLOAT => FLOAT_TYPE()
+        case Type.DOUBLE => DOUBLE_TYPE()
         case _ => throw new RuntimeException("Type " + t + " is not supported yet")
       }
     }

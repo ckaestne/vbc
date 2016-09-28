@@ -3,6 +3,7 @@ package edu.cmu.cs.vbc.vbytecode
 import edu.cmu.cs.vbc.analysis.{VBCAnalyzer, VBCFrame}
 import edu.cmu.cs.vbc.utils.{LiftUtils, Statistics}
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
+import org.objectweb.asm.Type
 
 /**
   * Environment used during generation of the byte code and variational
@@ -19,6 +20,10 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   //////////////////////////////////////////////////
   // tagV
   //////////////////////////////////////////////////
+
+  // Note: long and double are wrapped into objects, so no need to consider the fact that
+  // each long or double takes two slots.
+  override def parameterCount: Int = Type.getArgumentTypes(method.desc).size + (if (method.isStatic) 0 else 1)
 
   val blockTags = new Array[Boolean](blocks.length)
 

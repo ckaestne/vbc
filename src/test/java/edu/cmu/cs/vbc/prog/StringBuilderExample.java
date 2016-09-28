@@ -7,7 +7,7 @@ public class StringBuilderExample {
 
     boolean A;
 
-    private StringBuilder buf;
+    public StringBuilder buf;
 
     public StringBuilderExample() {
         if (A) {
@@ -24,6 +24,7 @@ public class StringBuilderExample {
     public static void main(String[] args) {
         StringBuilderExample a = new StringBuilderExample();
         a.append(" world");
+        System.out.println(a.buf);
     }
 
 }

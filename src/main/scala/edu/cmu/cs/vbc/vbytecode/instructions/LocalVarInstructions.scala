@@ -244,6 +244,13 @@ case class InstrASTORE(variable: Variable) extends Instruction {
   }
 }
 
+/** Load long from local variable
+  *
+  * ... -> ..., value
+  *
+  * @param variable
+  *                 local variable to be loaded
+  */
 case class InstrLLOAD(variable: Variable) extends Instruction {
 
   /** Help env collect all local variables */
@@ -258,23 +265,33 @@ case class InstrLLOAD(variable: Variable) extends Instruction {
     mv.visitVarInsn(LLOAD, env.getVarIdx(variable))
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadV(mv, env, variable)
+    }
+    else
+      mv.visitVarInsn(LLOAD, env.getVarIdx(variable))
+  }
 
-  /**
-    * Update the stack symbolically after executing this instruction
-    *
-    * @return UpdatedFrame is a tuple consisting of new VBCFrame and a backtrack instructions.
-    *         If backtrack instruction set is not empty, we need to backtrack because we finally realise we need to lift
-    *         that instruction. By default every backtracked instruction should be lifted, except for GETFIELD,
-    *         PUTFIELD, INVOKEVIRTUAL, and INVOKESPECIAL, because lifting them or not depends on the type of object
-    *         currently on stack. If the object is a V, we need to lift these instructions with INVOKEDYNAMIC.
-    *
-    *         If backtrack instruction set is not empty, the returned VBCFrame is useless, current frame will be pushed
-    *         to queue again and reanalyze later. (see [[edu.cmu.cs.vbc.analysis.VBCAnalyzer.computeBeforeFrames]]
-    */
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    env.setLift(this)
+    val newFrame = s.push(V_TYPE(), Set(this))
+    val backtrack: Set[Instruction] =
+      if (s.localVar(variable)._1 != V_TYPE())
+        s.localVar(variable)._2
+      else
+        Set()
+    (newFrame, backtrack)
+  }
 }
 
+/** Load float from local variable
+  *
+  * ... -> ..., value
+  *
+  * @param variable
+  *                 local variable to be loaded
+  */
 case class InstrFLOAD(variable: Variable) extends Instruction {
 
   /** Help env collect all local variables */
@@ -289,11 +306,34 @@ case class InstrFLOAD(variable: Variable) extends Instruction {
     mv.visitVarInsn(FLOAD, env.getVarIdx(variable))
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadV(mv, env, variable)
+    }
+    else
+      mv.visitVarInsn(FLOAD, env.getVarIdx(variable))
+  }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    env.setLift(this)
+    val newFrame = s.push(V_TYPE(), Set(this))
+    val backtrack: Set[Instruction] =
+      if (s.localVar(variable)._1 != V_TYPE())
+        s.localVar(variable)._2
+      else
+        Set()
+    (newFrame, backtrack)
+
+  }
 }
 
+/** Load double from local variable
+  *
+  * ... -> ..., value
+  *
+  * @param variable
+  *                 local variable to be loaded
+  */
 case class InstrDLOAD(variable: Variable) extends Instruction {
 
   /** Help env collect all local variables */
@@ -308,7 +348,22 @@ case class InstrDLOAD(variable: Variable) extends Instruction {
     mv.visitVarInsn(DLOAD, env.getVarIdx(variable))
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadV(mv, env, variable)
+    }
+    else
+      mv.visitVarInsn(DLOAD, env.getVarIdx(variable))
+  }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    env.setLift(this)
+    val newFrame = s.push(V_TYPE(), Set(this))
+    val backtrack: Set[Instruction] =
+      if (s.localVar(variable)._1 != V_TYPE())
+        s.localVar(variable)._2
+      else
+        Set()
+    (newFrame, backtrack)
+  }
 }
