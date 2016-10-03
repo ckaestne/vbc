@@ -2,8 +2,8 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{INT_TYPE, VBCFrame, V_TYPE}
-import edu.cmu.cs.vbc.utils.InvokeDynamicUtils
 import edu.cmu.cs.vbc.utils.LiftUtils._
+import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, VCall}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
@@ -122,7 +122,7 @@ case class InstrINEG() extends Instruction {
     */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
-      InvokeDynamicUtils.invoke("smap", mv, env, loadCurrentCtx(_, env, block), "INEG", s"$IntType()$IntType") {
+      InvokeDynamicUtils.invoke(VCall.smap, mv, env, loadCurrentCtx(_, env, block), "INEG", s"$IntType()$IntType") {
         (visitor: MethodVisitor) => {
           visitor.visitVarInsn(ALOAD, 1)
           visitor.visitMethodInsn(INVOKEVIRTUAL, IntClass, "intValue", "()I", false)

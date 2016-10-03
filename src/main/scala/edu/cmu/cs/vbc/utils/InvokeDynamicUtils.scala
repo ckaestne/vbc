@@ -41,25 +41,34 @@ object InvokeDynamicUtils {
   /**
     * Perform the sMap operation
     *
-    * @param vCallName      method of V interface to be called
-    * @param mv             current method visitor
-    * @param env            current method environment
-    * @param defaultLoadCtx default way of loading context
-    * @param lambdaName     key word for the purpose of this lambda method, mostly for debugging purpose
-    * @param desc           Format: typeA(typeB*)typeC
-    *                       typeA describe the V object on which operations are performed
-    *                       typeB* describe the arguments passed to lambda function
-    *                       typeC is the return type of lambda function
-    * @param nExplodeArgs   number of arguments to explode, arguments to be exploded should be the
+    * @param vCall
+    *              method of V interface to be called
+    * @param mv
+    *           current method visitor
+    * @param env
+    *            current method environment
+    * @param loadCtx
+    *                       default way of loading context
+    * @param lambdaName
+    *                   key word for the purpose of this lambda method, mostly for debugging purpose
+    * @param desc
+    *             Format: typeA(typeB*)typeC
+    *                     typeA describe the V object on which operations are performed
+    *                     typeB* describe the arguments passed to lambda function
+    *                     typeC is the return type of lambda function
+    * @param nExplodeArgs
+    *                     number of arguments to explode, arguments to be exploded should be the
     *                       first $nExplodeArgs values in the argument list
-    * @param isExploding    whether we are generating lambda methods to explode arguments
-    * @param lambdaOp       lambda method body
+    * @param isExploding
+    *                    whether we are generating lambda methods to explode arguments
+    * @param lambdaOp
+    *                 lambda method body
     */
   def invoke(
-              vCallName: String,
+              vCall: VCall.Value,
               mv: MethodVisitor,
               env: VMethodEnv,
-              defaultLoadCtx: MethodVisitor => Unit,
+              loadCtx: MethodVisitor => Unit,
               lambdaName: String,
               desc: String,
               nExplodeArgs: Int = 0,
@@ -69,11 +78,11 @@ object InvokeDynamicUtils {
     //////////////////////////////////////////////////
     // Init
     //////////////////////////////////////////////////
-    val (invokeDynamicName, vCallDesc, funType, isReturnVoid) = vCallName match {
-      case "smap" => ("apply", s"($biFuncType$fexprclasstype)$vclasstype", biFuncType, false)
-      case "sforeach" => ("accept", s"($biConsumerType$fexprclasstype)V", biConsumerType, true)
-      case "sflatMap" => ("apply", s"($biFuncType$fexprclasstype)$vclasstype", biFuncType, false)
-      case _ => throw new RuntimeException("Unsupported dynamic invoke type: " + vCallName)
+    val (invokeDynamicName, vCallDesc, funType, isReturnVoid) = vCall match {
+      case VCall.smap => ("apply", s"($biFuncType$fexprclasstype)$vclasstype", biFuncType, false)
+      case VCall.sforeach => ("accept", s"($biConsumerType$fexprclasstype)V", biConsumerType, true)
+      case VCall.sflatMap => ("apply", s"($biFuncType$fexprclasstype)$vclasstype", biFuncType, false)
+      case _ => throw new RuntimeException("Unsupported dynamic invoke type: " + vCall)
     }
 
     //////////////////////////////////////////////////
@@ -105,12 +114,12 @@ object InvokeDynamicUtils {
       Type.getType(s"($fexprclasstype$invokeObjectDesc)$returnDesc")
     )
     if (isExploding) {
-      loadFE(mv, defaultLoadCtx, Some(lambdaDesc))
+      loadFE(mv, loadCtx, Some(lambdaDesc))
     }
     else {
-      loadFE(mv, defaultLoadCtx, None)
+      loadFE(mv, loadCtx, None)
     }
-    mv.visitMethodInsn(INVOKEINTERFACE, vclassname, vCallName, vCallDesc, true)
+    mv.visitMethodInsn(INVOKEINTERFACE, vclassname, vCall.toString, vCallDesc, true)
 
     //////////////////////////////////////////////////
     // Generate lambda method body
@@ -131,7 +140,7 @@ object InvokeDynamicUtils {
         for (i <- 1 until nArg) mv.visitVarInsn(ALOAD, i)
         mv.visitVarInsn(ALOAD, nArg + 1) // last argument of lambda method, the V that just got exploded
 
-        invoke(vCallName, mv, env, defaultLoadCtx, "explodeArg", shiftDesc(desc), nExplodeArgs - 1, isExploding = true)(lambdaOp)
+        invoke(vCall, mv, env, loadCtx, "explodeArg", shiftDesc(desc), nExplodeArgs - 1, isExploding = true)(lambdaOp)
 
         if (isReturnVoid) mv.visitInsn(RETURN) else mv.visitInsn(ARETURN)
         mv.visitMaxs(10, 10)
@@ -160,7 +169,7 @@ object InvokeDynamicUtils {
     * @param desc descriptor for invokedynamic
     * @return (invoke object descriptor, argument list descriptor, return type descriptor)
     */
-  def decomposeDesc(desc: String): (String, String, String) = {
+  private def decomposeDesc(desc: String): (String, String, String) = {
     val split: Array[String] = desc.split('(')
     assert(split.size == 2, "Description format is wrong")
     val split2 = split(1).split(')')
@@ -177,7 +186,7 @@ object InvokeDynamicUtils {
     * Arg2(Arg3, Ref, Arg1)Ret ->
     * Arg3(Ref, Arg1, Arg2)Ret
     */
-  def shiftDesc(desc: String): String = {
+  private def shiftDesc(desc: String): String = {
     val (invokeObjDesc, argsDesc, returnDesc) = decomposeDesc(desc)
     val argsType: Array[Type] = Type.getArgumentTypes(s"($argsDesc)")
 
@@ -191,7 +200,7 @@ object InvokeDynamicUtils {
     *
     * The way of loading current ctx depends on whether we are inside lambda methods
     */
-  def loadFE(mv: MethodVisitor, defaultLoadFE: MethodVisitor => Unit, argsDesc: Option[String]): Unit = {
+  private def loadFE(mv: MethodVisitor, defaultLoadFE: MethodVisitor => Unit, argsDesc: Option[String]): Unit = {
     if (argsDesc.isDefined) {
       val argTypes: Array[Type] = Type.getArgumentTypes(argsDesc.get)
       val feIdx = argTypes.indexOf(Type.getType(fexprclasstype))
@@ -202,4 +211,10 @@ object InvokeDynamicUtils {
       defaultLoadFE(mv)
     }
   }
+}
+
+object VCall extends Enumeration {
+  val smap = Value("smap")
+  val sforeach = Value("sforeach")
+  val sflatMap = Value("sflatMap")
 }

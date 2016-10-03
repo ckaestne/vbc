@@ -4,7 +4,7 @@ import edu.cmu.cs.vbc.OpcodePrint
 import edu.cmu.cs.vbc.analysis.VBCFrame.{FrameEntry, UpdatedFrame}
 import edu.cmu.cs.vbc.analysis._
 import edu.cmu.cs.vbc.utils.LiftUtils._
-import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftingPolicy}
+import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftingPolicy, VCall}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.{ClassVisitor, MethodVisitor, Type}
@@ -50,7 +50,7 @@ trait MethodInstruction extends Instruction {
 
     val isReturnVoid = Type.getReturnType(desc) == Type.VOID_TYPE
     val retType = if (isReturnVoid) "V" else vclasstype
-    val vCall = if (isReturnVoid) "sforeach" else "sflatMap"
+    val vCall = if (isReturnVoid) VCall.sforeach else VCall.sflatMap
 
     val invokeType = getInvokeType
     assert(invokeType != INVOKESTATIC)
@@ -290,10 +290,10 @@ case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, 
       m.visitCode()
       args.indices foreach { (i) => m.visitVarInsn(ALOAD, i) } // arguments
       InvokeDynamicUtils.invoke(
-        "sflatMap",
+        VCall.sflatMap,
         m,
         env,
-        defaultLoadCtx = (m) => m.visitVarInsn(ALOAD, nArgs),
+        loadCtx = (m) => m.visitVarInsn(ALOAD, nArgs),
         lambdaName,
         invokeDesc,
         nExplodeArgs = nArgs - 1
@@ -431,7 +431,7 @@ case class InstrINVOKESTATIC(owner: Owner, name: MethodName, desc: MethodDesc, i
     updateStack(s, env, owner, name, desc)
 
   def explodeVArgs(liftedCall: LiftedCall, mv: MethodVisitor, env: VMethodEnv, block: Block) = {
-    val vCall = if (liftedCall.desc.isReturnVoid) "sforeach" else "sflatMap"
+    val vCall = if (liftedCall.desc.isReturnVoid) VCall.sforeach else VCall.sflatMap
     val lambdaName = "helper$invokestaticWithVs$" + env.clazz.lambdaMethods.size
     val args = liftedCall.desc.getArgs.map(_.toObject).map(_.castInt)
     val invokeDesc = args.head.desc + s"(${args.tail.map(_.desc).mkString("")})" + (if (liftedCall.desc.isReturnVoid) "V" else vclasstype)

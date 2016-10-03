@@ -2,8 +2,8 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis._
-import edu.cmu.cs.vbc.utils.InvokeDynamicUtils
 import edu.cmu.cs.vbc.utils.LiftUtils._
+import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, VCall}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
@@ -73,7 +73,7 @@ case class InstrCHECKCAST(clsName: Owner) extends Instruction {
     */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
-      InvokeDynamicUtils.invoke("smap", mv, env, loadCurrentCtx(_, env, block), "checkcast", "Ljava/lang/Object;()Ljava/lang/Object;") {
+      InvokeDynamicUtils.invoke(VCall.smap, mv, env, loadCurrentCtx(_, env, block), "checkcast", "Ljava/lang/Object;()Ljava/lang/Object;") {
         (visitor: MethodVisitor) => {
           visitor.visitVarInsn(ALOAD, 1)  // ref
           visitor.visitTypeInsn(CHECKCAST, toVArray(clsName).toModel)

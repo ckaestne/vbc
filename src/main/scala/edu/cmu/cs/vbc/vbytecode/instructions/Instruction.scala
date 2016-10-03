@@ -139,6 +139,7 @@ case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
         case Type.LONG =>
           if (f.value == null) mv.visitInsn(LCONST_0) else pushLongConstant(mv, f.value.asInstanceOf[Long])
           mv.visitMethodInsn(INVOKESTATIC, Owner.getLong, "valueOf", s"(J)${Owner.getLong.getTypeDesc}", false)
+        case Type.ARRAY => mv.visitInsn(ACONST_NULL)
         case _ =>
           ???
       }

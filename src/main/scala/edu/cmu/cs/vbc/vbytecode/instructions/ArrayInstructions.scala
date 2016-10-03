@@ -2,8 +2,8 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{REF_TYPE, VBCFrame, V_TYPE}
-import edu.cmu.cs.vbc.utils.InvokeDynamicUtils
 import edu.cmu.cs.vbc.utils.LiftUtils._
+import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, VCall}
 import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, Owner, VMethodEnv}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm._
@@ -14,7 +14,7 @@ import org.objectweb.asm._
   */
 trait ArrayInstructions extends Instruction {
   def createVArray(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    InvokeDynamicUtils.invoke("smap", mv, env, loadCurrentCtx(_, env, block), "anewarray", s"$IntType()[$vclasstype") {
+    InvokeDynamicUtils.invoke(VCall.smap, mv, env, loadCurrentCtx(_, env, block), "anewarray", s"$IntType()[$vclasstype") {
       (visitor: MethodVisitor) => {
         visitor.visitVarInsn(ALOAD, 1)
         visitor.visitMethodInsn(INVOKEVIRTUAL, IntClass, "intValue", "()I", false) // JVM specification requires an int
@@ -25,7 +25,7 @@ trait ArrayInstructions extends Instruction {
   }
 
   def storeOperation(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    InvokeDynamicUtils.invoke("sforeach", mv, env, loadCurrentCtx(_, env, block), "aastore", s"[$vclasstype($IntType$vclasstype)V", nExplodeArgs = 1) {
+    InvokeDynamicUtils.invoke(VCall.sforeach, mv, env, loadCurrentCtx(_, env, block), "aastore", s"[$vclasstype($IntType$vclasstype)V", nExplodeArgs = 1) {
       (visitor: MethodVisitor) => {
         visitor.visitVarInsn(ALOAD, 1) //array ref
         visitor.visitVarInsn(ALOAD, 3) //index
@@ -38,7 +38,7 @@ trait ArrayInstructions extends Instruction {
   }
 
   def loadOperation(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    InvokeDynamicUtils.invoke("sflatMap", mv, env, loadCurrentCtx(_, env, block), "aaload", s"[$vclasstype($IntType)$vclasstype", nExplodeArgs = 1) {
+    InvokeDynamicUtils.invoke(VCall.sflatMap, mv, env, loadCurrentCtx(_, env, block), "aaload", s"[$vclasstype($IntType)$vclasstype", nExplodeArgs = 1) {
       (visitor: MethodVisitor) => {
         visitor.visitVarInsn(ALOAD, 0) // array ref
         visitor.visitVarInsn(ALOAD, 2) // index
@@ -350,26 +350,31 @@ case class InstrCALOAD() extends ArrayInstructions {
   }
 }
 
+/** Get length of array
+  *
+  * ..., arrayref -> ..., length
+  */
 case class InstrARRAYLENGTH() extends ArrayInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(ARRAYLENGTH)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  /** Lifting means invoking on V arrayref */
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    ???
+//    if (env.shouldLiftInstr(this)) {
+//      InvokeDynamicUtils.invoke("sflatMap", mv, env, )
+//    }
+//    else
+//      mv.visitInsn(ARRAYLENGTH)
+  }
 
-  /**
-    * Update the stack symbolically after executing this instruction
-    *
-    * @return UpdatedFrame is a tuple consisting of new VBCFrame and a backtrack instructions.
-    *         If backtrack instruction set is not empty, we need to backtrack because we finally realise we need to lift
-    *         that instruction. By default every backtracked instruction should be lifted, except for GETFIELD,
-    *         PUTFIELD, INVOKEVIRTUAL, and INVOKESPECIAL, because lifting them or not depends on the type of object
-    *         currently on stack. If the object is a V, we need to lift these instructions with INVOKEDYNAMIC.
-    *
-    *         If backtrack instruction set is not empty, the returned VBCFrame is useless, current frame will be pushed
-    *         to queue again and reanalyze later. (see [[edu.cmu.cs.vbc.analysis.VBCAnalyzer.computeBeforeFrames]]
-    */
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    ???
+    val (vt, _, frame) = s.pop()
+    if (vt == V_TYPE()) env.setLift(this)
+    (frame, Set())
+  }
 }
 
 case class InstrBALOAD() extends ArrayInstructions {

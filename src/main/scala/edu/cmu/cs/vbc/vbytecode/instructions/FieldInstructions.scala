@@ -3,7 +3,7 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_TYPE}
 import edu.cmu.cs.vbc.utils.LiftUtils._
-import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftingPolicy}
+import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftingPolicy, VCall}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm._
@@ -140,7 +140,7 @@ case class InstrGETFIELD(owner: Owner, name: FieldName, desc: TypeDesc) extends 
 
   def getFieldFromV(mv: MethodVisitor, env: VMethodEnv, block: Block, owner: String, name: String, desc: String): Unit = {
     val ownerType = Type.getObjectType(owner)
-    InvokeDynamicUtils.invoke("sflatMap", mv, env, loadCurrentCtx(_, env, block), "getfield", s"$ownerType()$vclasstype") {
+    InvokeDynamicUtils.invoke(VCall.sflatMap, mv, env, loadCurrentCtx(_, env, block), "getfield", s"$ownerType()$vclasstype") {
       (visitor: MethodVisitor) => {
         val label = new Label()
         visitor.visitVarInsn(ALOAD, 1) //obj ref
