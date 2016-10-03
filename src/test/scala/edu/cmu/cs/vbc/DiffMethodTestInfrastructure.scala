@@ -302,6 +302,20 @@ trait DiffMethodTestInfrastructure {
     )
   }
 
+  def createVInt(
+                tValue: Int,
+                fValue: Int,
+                startBlockIdx: Int,
+                localVar: Option[LocalVar] = None,
+                config: String = "A"
+                ): List[Block] = {
+    createV(startBlockIdx, localVar, config)(
+      List(InstrBIPUSH(tValue))
+    )(
+      List(InstrBIPUSH(fValue))
+    )
+  }
+
   def createV(startBlockIdx: Int, localVar: Option[LocalVar] = None, config: String = "A")
              (t: List[Instruction])
              (f: List[Instruction]): List[Block] = {

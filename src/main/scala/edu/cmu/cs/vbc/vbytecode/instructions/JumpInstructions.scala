@@ -26,7 +26,7 @@ trait JumpInstruction extends Instruction {
     val (v1, prev1, newFrame) = s.pop()
     env.setLift(this)
     if (v1 != V_TYPE()) return (newFrame, prev1)
-    val backtrack = backtraceNonVStackElements(s)
+    val backtrack = backtrackNonVStackElements(s)
     (newFrame, backtrack)
   }
 
@@ -36,11 +36,11 @@ trait JumpInstruction extends Instruction {
     env.setLift(this)
     if (v1 != V_TYPE()) return (newFrame, prev1)
     if (v1 != V_TYPE()) return (newFrame, prev2)
-    val backtrack = backtraceNonVStackElements(s)
+    val backtrack = backtrackNonVStackElements(s)
     (newFrame, backtrack)
   }
 
-  def backtraceNonVStackElements(f: VBCFrame): Set[Instruction] = {
+  def backtrackNonVStackElements(f: VBCFrame): Set[Instruction] = {
     (Tuple2[VBCType, Set[Instruction]](V_TYPE(), Set()) /: f.stack) (
       (a: FrameEntry, b: FrameEntry) => {
         // a is always V_TYPE()
@@ -139,7 +139,7 @@ case class InstrGOTO(targetBlockIdx: Int) extends JumpInstruction {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     env.setLift(this)
-    val backtrack = backtraceNonVStackElements(s)
+    val backtrack = backtrackNonVStackElements(s)
     (s, backtrack)
   }
 }
@@ -375,34 +375,17 @@ case class InstrIFNULL(targetBlockIdx: Int) extends JumpInstruction {
 }
 
 case class InstrIFLE(targetBlockIdx: Int) extends JumpInstruction {
-  /**
-    * gets the successor of a jump. the first value is the
-    * target of an unconditional jump, but it can be None
-    * when it just falls through to the next block
-    * the second value is the target of a conditional jump,
-    * if any
-    */
   override def getSuccessor(): (Option[Int], Option[Int]) = (None, Some(targetBlockIdx))
-
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitJumpInsn(IFEQ, env.getBlockLabel(env.getBlock(targetBlockIdx)))
   }
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
-
-  /**
-    * Update the stack symbolically after executing this instruction
-    *
-    * @return UpdatedFrame is a tuple consisting of new VBCFrame and a backtrack instructions.
-    *         If backtrack instruction set is not empty, we need to backtrack because we finally realise we need to lift
-    *         that instruction. By default every backtracked instruction should be lifted, except for GETFIELD,
-    *         PUTFIELD, INVOKEVIRTUAL, and INVOKESPECIAL, because lifting them or not depends on the type of object
-    *         currently on stack. If the object is a V, we need to lift these instructions with INVOKEDYNAMIC.
-    *
-    *         If backtrack instruction set is not empty, the returned VBCFrame is useless, current frame will be pushed
-    *         to queue again and reanalyze later. (see [[edu.cmu.cs.vbc.analysis.VBCAnalyzer.computeBeforeFrames]]
-    */
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this))
+      mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "whenLE", genSign(vclasstype, fexprclasstype), false)
+    else
+      mv.visitJumpInsn(IFLE, env.getBlockLabel(env.getBlock(targetBlockIdx)))
+  }
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStack1(s, env)
 }
 
 case class InstrIF_ICMPGT(targetBlockIdx: Int) extends JumpInstruction {
