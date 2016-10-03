@@ -1,10 +1,10 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
-import edu.cmu.cs.vbc.analysis.{REF_TYPE, VBCFrame, V_TYPE}
+import edu.cmu.cs.vbc.analysis.{INT_TYPE, REF_TYPE, VBCFrame, V_TYPE}
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, VCall}
-import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, Owner, VMethodEnv}
+import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm._
 
@@ -352,7 +352,7 @@ case class InstrCALOAD() extends ArrayInstructions {
 
 /** Get length of array
   *
-  * ..., arrayref -> ..., length
+  * ..., arrayref -> ..., length (int)
   */
 case class InstrARRAYLENGTH() extends ArrayInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
@@ -361,19 +361,37 @@ case class InstrARRAYLENGTH() extends ArrayInstructions {
 
   /** Lifting means invoking on V arrayref */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    ???
-//    if (env.shouldLiftInstr(this)) {
-//      InvokeDynamicUtils.invoke("sflatMap", mv, env, )
-//    }
-//    else
-//      mv.visitInsn(ARRAYLENGTH)
+    if (env.shouldLiftInstr(this)) {
+      InvokeDynamicUtils.invoke(
+        VCall.smap,
+        mv,
+        env,
+        loadCtx = loadCurrentCtx(_, env, block),
+        lambdaName = "arraylength",
+        desc = TypeDesc("[" + vclasstype) + "()" + TypeDesc.getInt
+      ) {
+        mv: MethodVisitor => {
+          mv.visitVarInsn(ALOAD, 1) // arrayref
+          mv.visitInsn(ARRAYLENGTH)
+          boxToInteger(mv)
+          mv.visitInsn(ARETURN)
+        }
+      }
+    }
+    else
+      mv.visitInsn(ARRAYLENGTH)
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
-    ???
     val (vt, _, frame) = s.pop()
-    if (vt == V_TYPE()) env.setLift(this)
-    (frame, Set())
+    val newFrame =
+      if (vt == V_TYPE()) {
+        env.setLift(this)
+        frame.push(V_TYPE(), Set(this))
+      } else {
+        frame.push(INT_TYPE(), Set(this))
+      }
+    (newFrame, Set())
   }
 }
 

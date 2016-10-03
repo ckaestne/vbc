@@ -243,39 +243,81 @@ trait DiffMethodTestInfrastructure {
     * @param localVar      store the new variational Integer to this local variable, otherwise leave it on stack
     * @return A list of bytecode blocks
     */
-  def createVInteger(startBlockIdx: Int, tValue: Int, fValue: Int, localVar: Option[LocalVar] = None, config: String = "A"): List[Block] = {
-    Block(InstrLoadConfig(config), InstrIFEQ(startBlockIdx + 2)) ::
-      Block(
-        InstrICONST(tValue),
-        InstrINVOKESTATIC(Owner("java/lang/Integer"), MethodName("valueOf"), MethodDesc("(I)Ljava/lang/Integer;"), itf = false),
-        if (localVar.isDefined) InstrASTORE(localVar.get) else InstrNOP(),
-        InstrGOTO(startBlockIdx + 3)
-      ) ::
-      Block(
-        InstrICONST(fValue),
-        InstrINVOKESTATIC(Owner("java/lang/Integer"), MethodName("valueOf"), MethodDesc("(I)Ljava/lang/Integer;"), itf = false),
-        if (localVar.isDefined) InstrASTORE(localVar.get) else InstrNOP(),
-        // To handle unbalanced stack, current VBCAnalyzer requires the last instruction to be a jump instruction.
-        InstrGOTO(startBlockIdx + 3)
-      ) ::
-      Nil
+  def createVInteger(
+                      startBlockIdx: Int,
+                      tValue: Int,
+                      fValue: Int,
+                      localVar: Option[LocalVar] = None,
+                      config: String = "A"
+                    ): List[Block] = {
+    createV(startBlockIdx, localVar, config)(
+      List( InstrICONST(tValue), InstrINVOKESTATIC(Owner("java/lang/Integer"), MethodName("valueOf"), MethodDesc("(I)Ljava/lang/Integer;"), itf = false) )
+    )(
+      List( InstrICONST(fValue), InstrINVOKESTATIC(Owner("java/lang/Integer"), MethodName("valueOf"), MethodDesc("(I)Ljava/lang/Integer;"), itf = false) )
+    )
   }
 
   /** Helper function to create a variational String. */
-  def createVString(startBlockIdx: Int, tValue: String, fValue: String, localVar: Option[LocalVar] = None, config: String = "A"): List[Block] = {
-    Block(InstrLoadConfig(config), InstrIFEQ(startBlockIdx + 2)) ::
-      Block(
-        InstrLDC(tValue),
-        if (localVar.isDefined) InstrASTORE(localVar.get) else InstrNOP(),
-        InstrGOTO(startBlockIdx + 3)
-      ) ::
-      Block(
-        InstrLDC(fValue),
-        if (localVar.isDefined) InstrASTORE(localVar.get) else InstrNOP(),
-        // To handle unbalanced stack, current VBCAnalyzer requires the last instruction to be a jump instruction.
-        InstrGOTO(startBlockIdx + 3)
-      ) ::
-      Nil
+  def createVString(
+                     startBlockIdx: Int,
+                     tValue: String,
+                     fValue: String,
+                     localVar: Option[LocalVar] = None,
+                     config: String = "A"
+                   ): List[Block] = {
+    createV(startBlockIdx, localVar, config)(
+      List(InstrLDC(tValue))
+    )(
+      List(InstrLDC(fValue))
+    )
   }
 
+  def createVPrimitiveArray(
+                    atype: Int,
+                    startBlockIdx: Int,
+                    tLength: Int,
+                    fLength: Int,
+                    localVar: Option[LocalVar] = None,
+                    config: String = "A"
+                  ): List[Block] = {
+    createV(startBlockIdx, localVar, config)(
+      List(InstrBIPUSH(tLength), InstrNEWARRAY(atype))
+    )(
+      List(InstrBIPUSH(fLength), InstrNEWARRAY(atype))
+    )
+  }
+
+  def createVObjectArray(
+                          atype: Owner,
+                          startBlockIdx: Int,
+                          tLength: Int,
+                          fLength: Int,
+                          localVar: Option[LocalVar] = None,
+                          config: String = "A"
+                        ): List[Block] = {
+    createV(startBlockIdx, localVar, config)(
+      List(InstrBIPUSH(tLength), InstrANEWARRAY(atype))
+    )(
+      List(InstrBIPUSH(fLength), InstrANEWARRAY(atype))
+    )
+  }
+
+  def createV(startBlockIdx: Int, localVar: Option[LocalVar] = None, config: String = "A")
+             (t: List[Instruction])
+             (f: List[Instruction]): List[Block] = {
+    Block(InstrLoadConfig(config), InstrIFEQ(startBlockIdx + 2)) ::
+    Block(
+      t ::: List(
+        if (localVar.isDefined) InstrASTORE(localVar.get) else InstrNOP(),
+        InstrGOTO(startBlockIdx + 3)
+      ): _*
+    ) ::
+    Block(
+      f ::: List(
+        if (localVar.isDefined) InstrASTORE(localVar.get) else InstrNOP(),
+        InstrGOTO(startBlockIdx + 3)
+      ): _*
+    ) ::
+    Nil
+  }
 }

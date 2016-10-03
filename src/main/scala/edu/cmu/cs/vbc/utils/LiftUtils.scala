@@ -133,4 +133,8 @@ object LiftUtils {
   val ObjectClass = "java/lang/Object"
   val ObjectType = "Ljava/lang/Object;"
 
+  def boxToInteger(mv: MethodVisitor): Unit = {
+    mv.visitMethodInsn(INVOKESTATIC, Owner.getInt,"valueOf", MethodDesc("(I)Ljava/lang/Integer;").toModels, false)
+  }
+
 }
