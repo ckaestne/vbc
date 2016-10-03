@@ -302,7 +302,7 @@ trait DiffMethodTestInfrastructure {
     )
   }
 
-  def createVInt(
+  def createVint(
                 tValue: Int,
                 fValue: Int,
                 startBlockIdx: Int,
@@ -313,6 +313,20 @@ trait DiffMethodTestInfrastructure {
       List(InstrBIPUSH(tValue))
     )(
       List(InstrBIPUSH(fValue))
+    )
+  }
+
+  def createVlong(
+                 tValue: Long,
+                 fValue: Long,
+                 startBlockIdx: Int,
+                 localVar: Option[LocalVar] = None,
+                 config: String = "A"
+                 ): List[Block] = {
+    createV(startBlockIdx, localVar, config)(
+      List(InstrLDC(new java.lang.Long(tValue)))
+    )(
+      List(InstrLDC(new java.lang.Long(fValue)))
     )
   }
 

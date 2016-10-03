@@ -133,8 +133,13 @@ object LiftUtils {
   val ObjectClass = "java/lang/Object"
   val ObjectType = "Ljava/lang/Object;"
 
-  def boxToInteger(mv: MethodVisitor): Unit = {
-    mv.visitMethodInsn(INVOKESTATIC, Owner.getInt,"valueOf", MethodDesc("(I)Ljava/lang/Integer;").toModels, false)
-  }
+  def int2Integer(mv: MethodVisitor) =
+    mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", MethodDesc(s"(I)${TypeDesc.getInt}"), false)
+  def Integer2int(mv: MethodVisitor) =
+    mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getInt, "intValue", MethodDesc("()I"), false)
+  def long2Long(mv: MethodVisitor) =
+    mv.visitMethodInsn(INVOKESTATIC, Owner.getLong, "valueOf", MethodDesc(s"(J)${TypeDesc.getLong}"), false)
+  def Long2long(mv: MethodVisitor) =
+    mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getLong, "longValue", MethodDesc("()J"), false)
 
 }

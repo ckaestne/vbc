@@ -327,8 +327,8 @@ object TypeDesc {
   implicit def typeDescToString(td: TypeDesc): String = td.desc
 
   def getInt: TypeDesc = TypeDesc("Ljava/lang/Integer;")
-
   def getString: TypeDesc = TypeDesc("Ljava/lang/String;")
+  def getLong: TypeDesc = TypeDesc("Ljava/lang/Long;")
 }
 
 trait TypeVerifier {

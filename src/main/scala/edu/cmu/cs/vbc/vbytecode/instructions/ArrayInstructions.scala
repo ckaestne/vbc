@@ -373,7 +373,7 @@ case class InstrARRAYLENGTH() extends ArrayInstructions {
         mv: MethodVisitor => {
           mv.visitVarInsn(ALOAD, 1) // arrayref
           mv.visitInsn(ARRAYLENGTH)
-          boxToInteger(mv)
+          int2Integer(mv)
           mv.visitInsn(ARETURN)
         }
       }

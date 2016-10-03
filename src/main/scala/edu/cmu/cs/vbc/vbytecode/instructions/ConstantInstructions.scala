@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
-import edu.cmu.cs.vbc.analysis.{INT_TYPE, VBCFrame, VBCType, V_TYPE}
+import edu.cmu.cs.vbc.analysis._
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
@@ -57,7 +57,8 @@ case class InstrLDC(o: Object) extends Instruction {
       mv.visitLdcInsn(o)
       o match {
         case s: String => wrapString(mv)
-        case i: Integer => mv.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
+        case i: Integer => int2Integer(mv)
+        case l: java.lang.Long => long2Long(mv)
         case _ => throw new UnsupportedOperationException("Unsupported LDC type")
       }
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, blockA))
@@ -92,6 +93,7 @@ case class InstrLDC(o: Object) extends Instruction {
         o match {
           case i: java.lang.Integer => s.push(INT_TYPE(), Set(this))
           case str: java.lang.String => s.push(VBCType(Type.getObjectType("java/lang/String")), Set(this))
+          case l: java.lang.Long => s.push(LONG_TYPE(), Set(this))
           case _ => throw new RuntimeException("Incomplete support for LDC")
         }
     (newFrame, Set())

@@ -135,26 +135,59 @@ case class InstrINEG() extends Instruction {
   }
 }
 
+/** Shift left int
+  *
+  * ..., value1(int), value2(int) -> ..., result
+  */
 case class InstrISHL() extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(ISHL)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
-
-  /**
-    * Update the stack symbolically after executing this instruction
+  /** Lifting means invoking ISHL on V.
     *
-    * @return UpdatedFrame is a tuple consisting of new VBCFrame and a backtrack instructions.
-    *         If backtrack instruction set is not empty, we need to backtrack because we finally realise we need to lift
-    *         that instruction. By default every backtracked instruction should be lifted, except for GETFIELD,
-    *         PUTFIELD, INVOKEVIRTUAL, and INVOKESPECIAL, because lifting them or not depends on the type of object
-    *         currently on stack. If the object is a V, we need to lift these instructions with INVOKEDYNAMIC.
-    *
-    *         If backtrack instruction set is not empty, the returned VBCFrame is useless, current frame will be pushed
-    *         to queue again and reanalyze later. (see [[edu.cmu.cs.vbc.analysis.VBCAnalyzer.computeBeforeFrames]]
+    * If lifting, assume that value2 is V
     */
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      InvokeDynamicUtils.invoke(
+        VCall.sflatMap,
+        mv,
+        env,
+        loadCtx = loadCurrentCtx(_, env, block),
+        lambdaName = "ISHL",
+        desc = TypeDesc.getInt + "(" + TypeDesc.getInt + ")" + vclasstype,
+        nExplodeArgs = 1
+      ) {
+        (mv: MethodVisitor) => {
+          mv.visitVarInsn(ALOAD, 0) // Integer
+          Integer2int(mv)  // int
+          mv.visitVarInsn(ALOAD, 2) // Integer
+          Integer2int(mv) // int
+          mv.visitInsn(ISHL)
+          int2Integer(mv)
+          callVCreateOne(mv, m => m.visitVarInsn(ALOAD, 1))
+          mv.visitInsn(ARETURN)
+        }
+      }
+    }
+    else
+      mv.visitInsn(ISHL)
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    val (argType, argBacktrack, frame1) = s.pop()
+    val (receiverType, receiverBacktrack, frame2) = frame1.pop()
+    val hasV = argType == V_TYPE() || receiverType == V_TYPE()
+    if (hasV) env.setLift(this)
+    val newFrame = frame2.push(if (hasV) V_TYPE() else INT_TYPE(), Set(this))
+    val backtrack: Set[Instruction] = (argType, receiverType) match {
+      case (INT_TYPE(), _) => argBacktrack
+      case (_, INT_TYPE()) => receiverBacktrack
+      case _ => Set()
+    }
+    (newFrame, backtrack)
+  }
 }
 
 case class InstrLCMP() extends Instruction {
