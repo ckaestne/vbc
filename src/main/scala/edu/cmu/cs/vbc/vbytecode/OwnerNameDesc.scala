@@ -88,6 +88,7 @@ object Owner {
   def getBoolean = Owner("java/lang/Boolean")
   def getString = Owner("java/lang/String")
   def getLong = Owner("java/lang/Long")
+  def getException = Owner("java/lang/Exception")
 }
 
 
@@ -329,6 +330,7 @@ object TypeDesc {
   def getInt: TypeDesc = TypeDesc("Ljava/lang/Integer;")
   def getString: TypeDesc = TypeDesc("Ljava/lang/String;")
   def getLong: TypeDesc = TypeDesc("Ljava/lang/Long;")
+  def getException: TypeDesc = TypeDesc("Ljava/lang/Exception;")
 }
 
 trait TypeVerifier {
