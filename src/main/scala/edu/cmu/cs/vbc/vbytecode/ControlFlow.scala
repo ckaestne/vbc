@@ -214,6 +214,11 @@ case class CFG(blocks: List[Block]) {
       storeV(mv, env, v)
     }
 
+    // initialize $exceptionVar
+    mv.visitInsn(ACONST_NULL)
+    callVCreateOne(mv, (m) => loadFExpr(m, env, env.ctxParameter))
+    mv.visitVarInsn(ASTORE, env.getVarIdx(env.exceptionVar))
+
     // initialize all block variables to FALSE, except for the first one which is initialized
     // to the ctx parameter (by using the parameter's slot in the stack)
     for (block <- blocks.tail) {

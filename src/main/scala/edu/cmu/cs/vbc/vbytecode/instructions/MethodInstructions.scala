@@ -21,9 +21,10 @@ trait MethodInstruction extends Instruction {
     val shouldLiftMethod = LiftingPolicy.shouldLiftMethodCall(owner, name, desc)
     if (shouldLiftMethod) {
       if (name.contentEquals("<init>")) {
+        // cpwtodo: handle exception in <init>
         LiftedCall(owner.toModel, name, desc.toVs_AppendFE_AppendArgs, isLifting = true)
       } else {
-        LiftedCall(owner.toModel, name.rename(desc), desc.toVs.appendFE, isLifting = true)
+        LiftedCall(owner.toModel, name.rename(desc), desc.toVs.appendFE.toVReturnType, isLifting = true)
       }
     }
     else {
@@ -48,7 +49,7 @@ trait MethodInstruction extends Instruction {
       t => if (liftedCall.isLifting) t.toV.desc else t.toObject.castInt.desc
     }.mkString("(", "", ")")
 
-    val isReturnVoid = Type.getReturnType(desc) == Type.VOID_TYPE
+    val isReturnVoid = desc.isReturnVoid
     val retType = if (isReturnVoid) "V" else vclasstype
     val vCall = if (isReturnVoid) VCall.sforeach else VCall.sflatMap
 
@@ -81,6 +82,7 @@ trait MethodInstruction extends Instruction {
         boxReturnValue(liftedCall.desc, mv)
         if (!LiftingPolicy.shouldLiftMethodCall(owner, name, desc) && !isReturnVoid)
           callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, nArgs))
+        //cpwtodo: when calling RETURN, there might be a V<Exception> on stack, but for not just ignore it.
         if (isReturnVoid) mv.visitInsn(RETURN) else mv.visitInsn(ARETURN)
       }
     }
@@ -267,9 +269,12 @@ case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, 
       else if (name.contentEquals("<init>") && liftedCall.isLifting && hasVArgs) {
         pushNulls(mv, desc)
         mv.visitMethodInsn(INVOKESPECIAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+        //cpwtodo: handle exceptions in <init>
       }
       else {
         mv.visitMethodInsn(INVOKESPECIAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+        //cpwtodo: for now, ignore the exceptions on stack
+        if (!name.contentEquals("<init>") && liftedCall.isLifting && desc.isReturnVoid) mv.visitInsn(POP)
       }
 
       if (env.getTag(this, env.TAG_WRAP_DUPLICATE)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
@@ -392,6 +397,8 @@ case class InstrINVOKEVIRTUAL(owner: Owner, name: MethodName, desc: MethodDesc, 
         if (liftedCall.isLifting) loadCurrentCtx(mv, env, block)
         mv.visitMethodInsn(INVOKEVIRTUAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
         if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+        // cpwtodo: for now, just pop the returned exceptions.
+        if (liftedCall.isLifting && desc.isReturnVoid) mv.visitInsn(POP)
       }
     }
   }
@@ -424,6 +431,8 @@ case class InstrINVOKESTATIC(owner: Owner, name: MethodName, desc: MethodDesc, i
       if (liftedCall.isLifting) loadCurrentCtx(mv, env, block)
       mv.visitMethodInsn(INVOKESTATIC, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
       if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+      //cpwtodo: for now, ignore exceptions on stack
+      if (liftedCall.isLifting && desc.isReturnVoid) mv.visitInsn(POP)
     }
   }
 

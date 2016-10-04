@@ -217,4 +217,5 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   //////////////////////////////////////////////////
   Statistics.collectLiftingRatio(method.name, instructionTags.count(_ != 0), instructionTags.length)
 
+  val exceptionVar: LocalVar = freshLocalVar(name = "$exceptionVar", desc = LiftUtils.vclasstype)
 }

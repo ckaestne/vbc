@@ -172,8 +172,7 @@ case class MethodDesc(descString: String) extends TypeVerifier {
     * @return
     * None if void
     */
-  def getReturnType: Option[TypeDesc] =
-  if (isReturnVoid) None else Some(TypeDesc(Type.getReturnType(descString).getDescriptor))
+  def getReturnType: Option[TypeDesc] = if (isReturnVoid) None else Some(TypeDesc(Type.getReturnType(descString).getDescriptor))
 
   def getReturnTypeSort: Int = mt.getReturnType.getSort
 
@@ -244,6 +243,22 @@ case class MethodDesc(descString: String) extends TypeVerifier {
     val argsString: String = args.map(t => TypeDesc(t.getDescriptor).toModel).mkString("(", "", ")")
     val retString: String = if (isReturnVoid) "V" else getReturnType.get.toModel
     MethodDesc(argsString + retString)
+  }
+
+  /** Change method return type to V
+    *
+    * @return
+    *         transformed MethodDesc
+    */
+  def toVReturnType: MethodDesc = {
+    if (isReturnVoid) {
+      val args = Type.getArgumentTypes(descString)
+      val argsString: String = args.map(_.toString).mkString("(", "", ")")
+      val retString: String = vclasstype
+      MethodDesc(argsString + retString)
+    }
+    else
+      this
   }
 }
 

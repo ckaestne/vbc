@@ -28,7 +28,11 @@ case class VBCMethodNode(access: Int,
   }
 
   def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
-    val liftedMethodDesc = if (name != "<init>") MethodDesc(desc).toVs.appendFE else MethodDesc(desc).toVs_AppendFE_AppendArgs
+    val liftedMethodDesc =
+      if (name != "<init>")
+        MethodDesc(desc).toVs.appendFE.toVReturnType
+      else
+        MethodDesc(desc).toVs_AppendFE_AppendArgs //cpwtodo: exception handling in constructor
     val mv = cw.visitMethod(
       access,
       MethodName(name).rename(MethodDesc(desc)).liftCLINIT,
@@ -261,7 +265,7 @@ case class VBCClassNode(
     val vbcMtd = VBCMethodNode(
       ACC_STATIC,
       "___clinit___",
-      "()V",
+      MethodDesc("()V"),
       None,
       List.empty,
       CFG(List(Block(instrs: _*)))
@@ -271,7 +275,7 @@ case class VBCClassNode(
     val mv = cv.visitMethod(ACC_STATIC, "<clinit>", "()V", null, Array.empty)
     mv.visitCode()
     pushConstantTRUE(mv)
-    mv.visitMethodInsn(INVOKESTATIC, name, "___clinit___", s"($fexprclasstype)V", false)
+    mv.visitMethodInsn(INVOKESTATIC, name, "___clinit___", MethodDesc(s"($fexprclasstype)V").toVReturnType, false)
     mv.visitInsn(RETURN)
     mv.visitMaxs(10, 10)
     mv.visitEnd()
@@ -293,7 +297,13 @@ case class VBCClassNode(
     callVCreateOne(mv, (m) => pushConstantTRUE(m))
     //set context to True
     pushConstantTRUE(mv)
-    mv.visitMethodInsn(INVOKESTATIC, name, MethodName("main").rename(MethodDesc(mainMethodSig)), MethodDesc(mainMethodSig).toVs.appendFE, false)
+    mv.visitMethodInsn(
+      INVOKESTATIC,
+      name,
+      MethodName("main").rename(MethodDesc(mainMethodSig)),
+      MethodDesc(mainMethodSig).toVs.appendFE.toVReturnType,
+      false
+    )
     mv.visitInsn(RETURN)
     mv.visitMaxs(2, 0)
     mv.visitEnd()
