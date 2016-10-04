@@ -70,6 +70,8 @@ case class Owner(name: String) extends TypeVerifier {
     case s: String if s.startsWith("java") =>
       if (modelExceptionList.contains(name))
         this
+      else if (name.endsWith("Exception") || name.endsWith("Error"))
+        this
       else
         Owner(VBCModel.prefix + "/" + name)
     case _ => this

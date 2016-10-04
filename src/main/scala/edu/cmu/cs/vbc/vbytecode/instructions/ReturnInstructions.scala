@@ -62,24 +62,15 @@ case class InstrARETURN() extends ReturnInstruction {
   }
 }
 
+/** Throw exception or error
+  *
+  * In lifted bytecode, all ATHROWs will be replaced with STOREs, and handled while methods return.
+  */
 case class InstrATHROW() extends Instruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitInsn(ATHROW)
-  }
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
-
-  /**
-    * Update the stack symbolically after executing this instruction
-    *
-    * @return UpdatedFrame is a tuple consisting of new VBCFrame and a backtrack instructions.
-    *         If backtrack instruction set is not empty, we need to backtrack because we finally realise we need to lift
-    *         that instruction. By default every backtracked instruction should be lifted, except for GETFIELD,
-    *         PUTFIELD, INVOKEVIRTUAL, and INVOKESPECIAL, because lifting them or not depends on the type of object
-    *         currently on stack. If the object is a V, we need to lift these instructions with INVOKEDYNAMIC.
-    *
-    *         If backtrack instruction set is not empty, the returned VBCFrame is useless, current frame will be pushed
-    *         to queue again and reanalyze later. (see [[edu.cmu.cs.vbc.analysis.VBCAnalyzer.computeBeforeFrames]]
-    */
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def isATHROW: Boolean = true
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(ATHROW)
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit =
+    throw new RuntimeException("ATHROW should not appear in lifted bytecode")
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) =
+    throw new RuntimeException("ATHROW should not appear in lifted bytecode")
 }

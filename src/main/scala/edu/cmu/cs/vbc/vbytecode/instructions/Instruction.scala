@@ -37,6 +37,7 @@ trait Instruction {
   final def isJumpInstr: Boolean = getJumpInstr.isDefined
 
   def isReturnInstr: Boolean = false
+  def isATHROW: Boolean = false
 
 
   /**

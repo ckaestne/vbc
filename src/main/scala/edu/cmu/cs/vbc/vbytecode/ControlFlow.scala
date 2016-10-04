@@ -208,9 +208,7 @@ case class CFG(blocks: List[Block]) {
   def toVByteCode(mv: MethodVisitor, env: VMethodEnv) = {
     // allocate a variable for each block, except for the first, which can reuse the parameter slot
     blocks.headOption.map(env.setBlockVar(_, env.ctxParameter))
-    //    blocks.tail.foreach(env.setBlockVar(_, env.freshLocalVar()))
 
-    //TODO: exclude those block vars
     for (v <- env.getFreshVars()) {
       mv.visitInsn(ACONST_NULL)
       storeV(mv, env, v)

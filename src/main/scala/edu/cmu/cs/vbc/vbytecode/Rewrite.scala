@@ -20,7 +20,9 @@ object Rewrite {
   def rewriteV(m: VBCMethodNode): VBCMethodNode = {
     if (m.body.blocks.nonEmpty) {
       initializeConditionalFields(
-        ensureUniqueReturnInstr(m)
+        ensureUniqueReturnInstr(
+          replaceAthrowWithAreturn(m)
+        )
       )
     }
     else {
@@ -28,12 +30,24 @@ object Rewrite {
     }
   }
 
+  private def replaceAthrowWithAreturn(m: VBCMethodNode): VBCMethodNode = {
+    val rewrittenBlocks = m.body.blocks.map(b =>
+      Block(b.instr.flatMap(i => List(
+        if (i.isATHROW) InstrARETURN() else i)
+      ): _*)
+    )
+    m.copy(body = CFG(rewrittenBlocks))
+  }
+
 
   private def ensureUniqueReturnInstr(m: VBCMethodNode): VBCMethodNode = {
     //if the last instruction in the last block is the only return statement, we are happy
     val returnInstr = for (block <- m.body.blocks; instr <- block.instr if instr.isReturnInstr) yield instr
     assert(returnInstr.nonEmpty, "no return instruction found in method")
-    assert(returnInstr.map(_.getClass).distinct.size == 1, "inconsistency: different kinds of return instructions found in method")
+    // RETURN and ARETURN should not happen together, otherwise code could not compile in the first place.
+    // For all other kinds of return instructions that take argument, there is no need to worry about exact return type
+    // because they are all Vs anyway.
+//    assert(returnInstr.map(_.getClass).distinct.size == 1, "inconsistency: different kinds of return instructions found in method")
     if (returnInstr.size == 1 && returnInstr.head == m.body.blocks.last.instr.last)
       m
     else unifyReturnInstr(m: VBCMethodNode, returnInstr.head)
@@ -46,16 +60,16 @@ object Rewrite {
 
     var newReturnBlockInstr = List(returnInstr)
     if (!method.returnsVoid)
-      newReturnBlockInstr ::= InstrILOAD(returnVariable) //TODO generalize to different types of variables, based on return type
-    val newReturnBlock = new Block(newReturnBlockInstr: _*)
+      newReturnBlockInstr ::= InstrALOAD(returnVariable)
+    val newReturnBlock = Block(newReturnBlockInstr: _*)
     val newReturnBlockIdx = method.body.blocks.size
 
-    var substituteInstr: List[Instruction] = List(new InstrGOTO(newReturnBlockIdx))
+    var substituteInstr: List[Instruction] = List(InstrGOTO(newReturnBlockIdx))
     if (!method.returnsVoid)
-      substituteInstr ::= InstrISTORE(returnVariable) //TODO generalize to different types of variables, based on return type
+      substituteInstr ::= InstrASTORE(returnVariable)
 
     val rewrittenBlocks = method.body.blocks.map(block =>
-      new Block(block.instr.flatMap(instr =>
+      Block(block.instr.flatMap(instr =>
         if (instr.isReturnInstr) substituteInstr else List(instr)
       ): _*))
 

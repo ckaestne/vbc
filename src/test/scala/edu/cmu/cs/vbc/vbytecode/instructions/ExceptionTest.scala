@@ -14,7 +14,7 @@ class ExceptionTest extends FunSuite with DiffMethodTestInfrastructure {
     InstrLDC(msg),
     InstrINVOKESPECIAL(cls, MethodName("<init>"), MethodDesc(s"(${TypeDesc.getString})V"), itf = false)
   )
-  test("terminate with exception") {
+  ignore("terminate with exception") {
     methodWithBlocks(
       Block(createException(Owner.getException, "foo") :+ InstrATHROW(): _*) :: Nil
     )
