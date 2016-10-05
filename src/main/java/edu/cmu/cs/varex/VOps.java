@@ -141,6 +141,11 @@ public class VOps {
         return whenNE(sub);
     }
 
+    public static FeatureExpr whenIGT(V<? extends Integer> a, V<? extends Integer> b) {
+        V<? extends Integer> sub = ISUB(a, b);
+        return whenGT(sub);
+    }
+
     public static V<? extends Integer> ISUB(V<? extends Integer> a, V<? extends Integer> b) {
         return a.flatMap(aa -> {
             if (aa == null)
