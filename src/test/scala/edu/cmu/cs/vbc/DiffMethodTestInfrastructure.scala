@@ -81,7 +81,7 @@ trait DiffMethodTestInfrastructure {
   }
 
 
-  def testMethod(m: VBCMethodNode): Unit = {
+  def testMethod(m: VBCMethodNode, compareBruteForce: Boolean = true): Unit = {
 
     val clazz = new TestClass(m)
 
@@ -100,13 +100,13 @@ trait DiffMethodTestInfrastructure {
     val testVClass = loadVTestClass(clazz)
 
     val vresult: List[TOpt[String]] = executeV(testVClass, m.name)
-    val bruteForceResult = executeBruteForce(testClass, m.name, configOptions)
-    println("expected " + bruteForceResult.reverse)
     println("found    " + vresult.reverse)
-
-    compare(bruteForceResult.reverse, vresult.reverse)
-
-    benchmark(testVClass, testClass, m.name, configOptions)
+    if (compareBruteForce) {
+      val bruteForceResult = executeBruteForce(testClass, m.name, configOptions)
+      println("expected " + bruteForceResult.reverse)
+      compare(bruteForceResult.reverse, vresult.reverse)
+      benchmark(testVClass, testClass, m.name, configOptions)
+    }
   }
 
   def getConfigOptions(m: VBCMethodNode): Set[String] = {
@@ -156,8 +156,8 @@ trait DiffMethodTestInfrastructure {
     val testVObject = constructor.newInstance(ctx)
     val mn = MethodName(method).rename(MethodDesc("()V"))
     val exceptions = testVClass.getMethod(mn, classOf[FeatureExpr]).invoke(testVObject, ctx)
-    println("[INFO] Returned exceptions: " + exceptions)
     val vresult = TestOutput.output
+    println("[INFO] Returned exceptions: " + exceptions)
     vresult
   }
 
@@ -230,10 +230,9 @@ trait DiffMethodTestInfrastructure {
       CFG(List(Block(instrs: _*)))))
   }
 
-  def methodWithBlocks(blocks: List[Block]) = {
+  def methodWithBlocks(blocks: List[Block], compareBruteForce: Boolean = true) = {
     FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
-    testMethod(new VBCMethodNode(ACC_PUBLIC, "test", "()V", Some("()V"), Nil,
-      CFG(blocks)))
+    testMethod(VBCMethodNode(ACC_PUBLIC, "test", "()V", Some("()V"), Nil, CFG(blocks)), compareBruteForce)
   }
 
   /** Helper function to create a variational Integer.

@@ -16,9 +16,7 @@ class ExceptionTest extends FunSuite with DiffMethodTestInfrastructure {
   )
 
   def testException(blocks: List[Block]) = {
-    intercept[Exception] {
-      methodWithBlocks(blocks)
-    }
+      methodWithBlocks(blocks, compareBruteForce = false)
   }
 
   test("terminate with exception") {
@@ -27,8 +25,8 @@ class ExceptionTest extends FunSuite with DiffMethodTestInfrastructure {
     )
   }
 
-  ignore("conditionally terminate with exception") {
-    methodWithBlocks(
+  test("conditionally terminate with exception") {
+    testException(
       Block(InstrLoadConfig("A"), InstrIFEQ(2)) ::
       Block(createException(Owner.getException, "foo") :+ InstrATHROW(): _*) ::
       Block(InstrICONST(4), InstrDBGIPrint(), InstrRETURN()) ::
@@ -36,8 +34,8 @@ class ExceptionTest extends FunSuite with DiffMethodTestInfrastructure {
     )
   }
 
-  ignore("conditionally terminate with different exception") {
-    methodWithBlocks(
+  test("conditionally terminate with different exception") {
+    testException(
       Block(InstrLoadConfig("A"), InstrIFEQ(2)) ::
       Block(createException(Owner.getException, "foo") :+ InstrATHROW(): _*) ::
       Block(InstrLoadConfig("B"), InstrIFEQ(4)) ::
@@ -47,16 +45,16 @@ class ExceptionTest extends FunSuite with DiffMethodTestInfrastructure {
     )
   }
 
-  ignore("terminate with alternative exception") {
-    methodWithBlocks(List(
+  test("terminate with alternative exception") {
+    testException(List(
       Block(InstrLoadConfig("A"), InstrIFEQ(2)),
       Block(createException(Owner.getException, "foo") :+ InstrATHROW(): _*),
       Block(createException(Owner.getException, "bar") :+ InstrATHROW(): _*)
     ))
   }
 
-  ignore("terminate with alternative exception on stack") {
-    methodWithBlocks(List(
+  test("terminate with alternative exception on stack") {
+    testException(List(
       Block(InstrLoadConfig("A"), InstrIFEQ(2)),
       Block(createException(Owner.getException, "foo") :+ InstrGOTO(3): _*),
       Block(createException(Owner.getException, "bar"): _*),
@@ -64,9 +62,9 @@ class ExceptionTest extends FunSuite with DiffMethodTestInfrastructure {
     ))
   }
 
-  ignore("terminate with alternative exception in var") {
+  test("terminate with alternative exception in var") {
     val exVar = new LocalVar("ex", TypeDesc.getException)
-    methodWithBlocks(List(
+    testException(List(
       Block(createException(Owner.getException, "foo") :+ InstrASTORE(exVar): _*),
       Block(InstrLoadConfig("A"), InstrIFEQ(3)),
       Block(createException(Owner.getException, "bar") :+ InstrASTORE(exVar): _*),
