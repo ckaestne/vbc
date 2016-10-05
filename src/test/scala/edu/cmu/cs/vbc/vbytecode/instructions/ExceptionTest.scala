@@ -14,8 +14,15 @@ class ExceptionTest extends FunSuite with DiffMethodTestInfrastructure {
     InstrLDC(msg),
     InstrINVOKESPECIAL(cls, MethodName("<init>"), MethodDesc(s"(${TypeDesc.getString})V"), itf = false)
   )
-  ignore("terminate with exception") {
-    methodWithBlocks(
+
+  def testException(blocks: List[Block]) = {
+    intercept[Exception] {
+      methodWithBlocks(blocks)
+    }
+  }
+
+  test("terminate with exception") {
+    testException(
       Block(createException(Owner.getException, "foo") :+ InstrATHROW(): _*) :: Nil
     )
   }

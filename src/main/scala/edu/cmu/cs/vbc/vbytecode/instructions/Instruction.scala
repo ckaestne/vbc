@@ -38,6 +38,7 @@ trait Instruction {
 
   def isReturnInstr: Boolean = false
   def isATHROW: Boolean = false
+  def isRETURN: Boolean = false
 
 
   /**

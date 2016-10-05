@@ -50,7 +50,9 @@ object Rewrite {
 //    assert(returnInstr.map(_.getClass).distinct.size == 1, "inconsistency: different kinds of return instructions found in method")
     if (returnInstr.size == 1 && returnInstr.head == m.body.blocks.last.instr.last)
       m
-    else unifyReturnInstr(m: VBCMethodNode, returnInstr.head)
+    else {
+      unifyReturnInstr(m: VBCMethodNode, InstrARETURN())
+    }
   }
 
   private def unifyReturnInstr(method: VBCMethodNode, returnInstr: Instruction): VBCMethodNode = {
@@ -59,18 +61,21 @@ object Rewrite {
     val returnVariable = new LocalVar("$result", LiftUtils.vclasstype)
 
     var newReturnBlockInstr = List(returnInstr)
-    if (!method.returnsVoid)
+    if (!returnInstr.isRETURN)
       newReturnBlockInstr ::= InstrALOAD(returnVariable)
     val newReturnBlock = Block(newReturnBlockInstr: _*)
     val newReturnBlockIdx = method.body.blocks.size
 
-    var substituteInstr: List[Instruction] = List(InstrGOTO(newReturnBlockIdx))
-    if (!method.returnsVoid)
-      substituteInstr ::= InstrASTORE(returnVariable)
+    def storeAndGoto: List[Instruction] = List(InstrASTORE(returnVariable), InstrGOTO(newReturnBlockIdx))
+    def storeNullAndGoto: List[Instruction] = InstrACONST_NULL() :: storeAndGoto
 
     val rewrittenBlocks = method.body.blocks.map(block =>
       Block(block.instr.flatMap(instr =>
-        if (instr.isReturnInstr) substituteInstr else List(instr)
+        if (instr.isReturnInstr) {
+          if (instr.isRETURN) storeNullAndGoto else storeAndGoto
+        }
+        else
+          List(instr)
       ): _*))
 
     method.copy(body =

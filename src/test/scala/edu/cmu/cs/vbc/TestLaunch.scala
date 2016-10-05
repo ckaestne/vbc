@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc
 
 import de.fosd.typechef.featureexpr.FeatureExprFactory
-import edu.cmu.cs.vbc.prog.{InitExample, LinkedListExample}
+import edu.cmu.cs.vbc.prog.{ExceptionExample, InitExample, LinkedListExample}
 import org.scalatest.FunSuite
 
 
@@ -80,5 +80,9 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
 
   test("Different ways of superclass initialization") {
     testMain(classOf[InitExample])
+  }
+
+  test("Exceptions") {
+    testMain(classOf[ExceptionExample], compareTraceAgainstBruteForce = false)
   }
 }

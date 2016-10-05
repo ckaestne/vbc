@@ -2,6 +2,7 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, V_TYPE}
+import edu.cmu.cs.vbc.utils.LiftUtils
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
@@ -32,6 +33,8 @@ case class InstrRETURN() extends ReturnInstruction {
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set())
+
+  override def isRETURN: Boolean = true
 }
 
 
@@ -60,8 +63,19 @@ case class InstrARETURN() extends ReturnInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
     mv.visitInsn(ARETURN)
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit =
+  /** Return $exceptionVar and $result
+    *
+    * $exceptionVar represents exceptions that are thrown while calling lifted methods, and
+    * $result stands for normal return values as well as exceptions thrown by ATHROW.
+    */
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    // $result should be on top of operand stack already
+    LiftUtils.loadFExpr(mv, env, env.getBlockVar(block))
+    mv.visitInsn(SWAP)
+    mv.visitVarInsn(ALOAD, env.getVarIdx(env.exceptionVar))
+    LiftUtils.callVCreateChoice(mv)
     mv.visitInsn(ARETURN)
+  }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     env.setLift(this)

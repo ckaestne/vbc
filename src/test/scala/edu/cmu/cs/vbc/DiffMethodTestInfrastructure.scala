@@ -155,7 +155,8 @@ trait DiffMethodTestInfrastructure {
     val constructor = testVClass.getConstructor(classOf[FeatureExpr])
     val testVObject = constructor.newInstance(ctx)
     val mn = MethodName(method).rename(MethodDesc("()V"))
-    testVClass.getMethod(mn, classOf[FeatureExpr]).invoke(testVObject, ctx)
+    val exceptions = testVClass.getMethod(mn, classOf[FeatureExpr]).invoke(testVObject, ctx)
+    println("[INFO] Returned exceptions: " + exceptions)
     val vresult = TestOutput.output
     vresult
   }

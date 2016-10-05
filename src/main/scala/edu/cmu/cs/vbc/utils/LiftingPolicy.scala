@@ -36,6 +36,7 @@ object LiftingPolicy {
         case (Owner("java/lang/String"), _, _) => false
         case (Owner("java/lang/Object"), _, _) => false
         case (Owner("java/io/PrintStream"), _, _) => false
+        case (o, _, _) if o.name.endsWith("Exception") => false
         case _ => true
       }
     }
