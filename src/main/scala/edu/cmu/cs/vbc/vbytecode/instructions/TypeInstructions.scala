@@ -143,26 +143,48 @@ case class InstrI2C() extends Instruction {
   }
 }
 
+/** Determine if object is of given type
+  *
+  * ..., objref -> ..., result (int)
+  */
 case class InstrINSTANCEOF(owner: Owner) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitTypeInsn(INSTANCEOF, owner.toModel)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  /** Lifting means invoking INSTANCEOF on V */
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      InvokeDynamicUtils.invoke(
+        VCall.smap,
+        mv,
+        env,
+        loadCtx = loadCurrentCtx(_, env, block),
+        lambdaName = "instanceOf",
+        desc = TypeDesc.getObject + "()" + TypeDesc.getInt
+      ) {
+        (mv: MethodVisitor) => {
+          mv.visitVarInsn(ALOAD, 1) // objref
+          mv.visitTypeInsn(INSTANCEOF, owner.toModel)
+          int2Integer(mv)
+          mv.visitInsn(ARETURN)
+        }
+      }
+    }
+    else
+      mv.visitTypeInsn(INSTANCEOF, owner.toModel)
+  }
 
-  /**
-    * Update the stack symbolically after executing this instruction
-    *
-    * @return UpdatedFrame is a tuple consisting of new VBCFrame and a backtrack instructions.
-    *         If backtrack instruction set is not empty, we need to backtrack because we finally realise we need to lift
-    *         that instruction. By default every backtracked instruction should be lifted, except for GETFIELD,
-    *         PUTFIELD, INVOKEVIRTUAL, and INVOKESPECIAL, because lifting them or not depends on the type of object
-    *         currently on stack. If the object is a V, we need to lift these instructions with INVOKEDYNAMIC.
-    *
-    *         If backtrack instruction set is not empty, the returned VBCFrame is useless, current frame will be pushed
-    *         to queue again and reanalyze later. (see [[edu.cmu.cs.vbc.analysis.VBCAnalyzer.computeBeforeFrames]]
-    */
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    val (objType, objBacktrack, frame) = s.pop()
+    if (objType == V_TYPE()) {
+      env.setLift(this)
+      (frame.push(V_TYPE(), Set(this)), Set())
+    }
+    else {
+      (frame.push(INT_TYPE(), Set(this)), Set())
+    }
+  }
 }
 
 case class InstrI2B() extends Instruction {

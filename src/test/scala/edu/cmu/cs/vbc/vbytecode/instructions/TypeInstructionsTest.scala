@@ -2,8 +2,8 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 
 import java.lang.reflect.InvocationTargetException
 
-import edu.cmu.cs.vbc.vbytecode.{MethodDesc, MethodName, Owner}
-import edu.cmu.cs.vbc.{DiffMethodTestInfrastructure, InstrDBGStrPrint}
+import edu.cmu.cs.vbc.vbytecode._
+import edu.cmu.cs.vbc.{DiffMethodTestInfrastructure, InstrDBGIPrint, InstrDBGStrPrint, InstrLoadConfig}
 import org.objectweb.asm.Opcodes._
 import org.scalatest.FlatSpec
 
@@ -78,5 +78,18 @@ class TypeInstructionsTest extends FlatSpec with DiffMethodTestInfrastructure {
       )
     }
     assert(caught.getCause.getClass == classOf[ClassCastException], "Expecting ClassCastException")
+  }
+
+  "INSTANCEOF" can "check non-null object" in {
+    methodWithBlocks(List(
+      Block(InstrLoadConfig("A"), InstrIFEQ(2)),
+      Block(InstrLDC("hello"), InstrGOTO(3)),
+      Block(
+        InstrICONST(1),
+        InstrINVOKESTATIC(Owner.getInt, MethodName("valueOf"), MethodDesc(s"(I)${TypeDesc.getInt}"), itf = false),
+        InstrGOTO(3)
+      ),
+      Block(InstrINSTANCEOF(Owner.getInt), InstrDBGIPrint(), InstrRETURN())
+    ))
   }
 }
