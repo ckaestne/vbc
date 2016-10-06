@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
-import edu.cmu.cs.vbc.analysis.{INT_TYPE, VBCFrame, V_TYPE}
+import edu.cmu.cs.vbc.analysis.{INT_TYPE, LONG_TYPE, VBCFrame, V_TYPE}
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, VCall}
 import edu.cmu.cs.vbc.vbytecode._
@@ -190,26 +190,54 @@ case class InstrISHL() extends Instruction {
   }
 }
 
+/** Compare long
+  *
+  * ..., value1(long), value2(long) -> ..., result(int)
+  */
 case class InstrLCMP() extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(LCMP)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      InvokeDynamicUtils.invoke(
+        VCall.sflatMap,
+        mv,
+        env,
+        loadCtx = loadCurrentCtx(_, env, block),
+        lambdaName = "lcmp",
+        desc = TypeDesc.getLong + s"(${TypeDesc.getLong})" + vclasstype,
+        nExplodeArgs = 1
+      ) {
+        (mv: MethodVisitor) => {
+          mv.visitVarInsn(ALOAD, 0) //value1
+          Long2long(mv)
+          mv.visitVarInsn(ALOAD, 2) //value2
+          Long2long(mv)
+          mv.visitInsn(LCMP)
+          int2Integer(mv)
+          callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, 1))
+          mv.visitInsn(ARETURN)
+        }
+      }
+    }
+    else
+      mv.visitInsn(LCMP)
+  }
 
-  /**
-    * Update the stack symbolically after executing this instruction
-    *
-    * @return UpdatedFrame is a tuple consisting of new VBCFrame and a backtrack instructions.
-    *         If backtrack instruction set is not empty, we need to backtrack because we finally realise we need to lift
-    *         that instruction. By default every backtracked instruction should be lifted, except for GETFIELD,
-    *         PUTFIELD, INVOKEVIRTUAL, and INVOKESPECIAL, because lifting them or not depends on the type of object
-    *         currently on stack. If the object is a V, we need to lift these instructions with INVOKEDYNAMIC.
-    *
-    *         If backtrack instruction set is not empty, the returned VBCFrame is useless, current frame will be pushed
-    *         to queue again and reanalyze later. (see [[edu.cmu.cs.vbc.analysis.VBCAnalyzer.computeBeforeFrames]]
-    */
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    val (value2Type, value2Backtrack, frame2) = s.pop()
+    val (value1Type, value1Backtrack, frame1) = frame2.pop()
+    (value1Type, value2Type) match {
+      case (LONG_TYPE(), LONG_TYPE()) => (frame1.push(INT_TYPE(), Set(this)), Set())
+      case (LONG_TYPE(), V_TYPE()) => (frame1, value1Backtrack) // backtrack, frame1 will be discarded
+      case (V_TYPE(), LONG_TYPE()) => (frame1, value2Backtrack) // backtrack, frame2 will be discarded
+      case (V_TYPE(), V_TYPE()) =>
+        env.setLift(this)
+        (frame1.push(V_TYPE(), Set(this)), Set())
+    }
+  }
 }
 
 case class InstrLNEG() extends Instruction {

@@ -15,4 +15,39 @@ class ArithmeticInstructionsTest extends FlatSpec with DiffMethodTestInfrastruct
       Nil
     )
   }
+
+  "LCMP" can "compare VLong(equal and bigger) with long" in {
+    methodWithBlocks(
+      createVlong(tValue = 1, fValue = 2, startBlockIdx = 0) :::
+      Block(InstrLDC(new java.lang.Long(1)), InstrLCMP(), InstrDBGIPrint(), InstrRETURN()) ::
+      Nil
+    )
+  }
+
+  it can "compare VLong(smaller and bigger) with long" in {
+    methodWithBlocks(
+      createVlong(tValue = 1, fValue = 3, startBlockIdx = 0) :::
+      Block(InstrLDC(new java.lang.Long(2)), InstrLCMP(), InstrDBGIPrint(), InstrRETURN()) ::
+      Nil
+    )
+  }
+
+  it can "compare VLong with VLong" in {
+    methodWithBlocks(
+      createVlong(tValue = 1, fValue = 3, startBlockIdx = 0, config = "A") :::
+      createVlong(tValue = 0, fValue = 2, startBlockIdx = 3, config = "B")  :::
+      Block(InstrLCMP(), InstrDBGIPrint(), InstrRETURN()) ::
+      Nil
+    )
+  }
+
+  it should "throw exception if values being compared are not long" in {
+    assertThrows[Throwable] {
+      methodWithBlocks(
+        createVlong(tValue = 1, fValue = 2, startBlockIdx = 0) :::
+        Block(InstrICONST(1), InstrLCMP(), InstrDBGIPrint(), InstrRETURN()) ::
+        Nil
+      )
+    }
+  }
 }
