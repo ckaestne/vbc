@@ -129,19 +129,18 @@ case class InstrLCONST(v: Int) extends Instruction {
     if (v == 0) mv.visitInsn(LCONST_0) else mv.visitInsn(LCONST_1)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (v == 0) mv.visitInsn(LCONST_0) else mv.visitInsn(LCONST_1)
+    if (env.shouldLiftInstr(this)) {
+      long2Long(mv)
+      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+    }
+  }
 
-  /**
-    * Update the stack symbolically after executing this instruction
-    *
-    * @return UpdatedFrame is a tuple consisting of new VBCFrame and a backtrack instructions.
-    *         If backtrack instruction set is not empty, we need to backtrack because we finally realise we need to lift
-    *         that instruction. By default every backtracked instruction should be lifted, except for GETFIELD,
-    *         PUTFIELD, INVOKEVIRTUAL, and INVOKESPECIAL, because lifting them or not depends on the type of object
-    *         currently on stack. If the object is a V, we need to lift these instructions with INVOKEDYNAMIC.
-    *
-    *         If backtrack instruction set is not empty, the returned VBCFrame is useless, current frame will be pushed
-    *         to queue again and reanalyze later. (see [[edu.cmu.cs.vbc.analysis.VBCAnalyzer.computeBeforeFrames]]
-    */
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    if (env.shouldLiftInstr(this))
+      (s.push(V_TYPE(), Set(this)), Set())
+    else
+      (s.push(LONG_TYPE(), Set(this)), Set())
+  }
 }
