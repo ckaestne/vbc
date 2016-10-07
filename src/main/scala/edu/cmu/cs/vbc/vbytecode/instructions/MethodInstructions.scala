@@ -116,7 +116,7 @@ trait MethodInstruction extends Instruction {
       case TypeDesc("S") => mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getInt, MethodName("intValue"), MethodDesc("()I"), false)
       case TypeDesc("I") => mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getInt, MethodName("intValue"), MethodDesc("()I"), false)
       case TypeDesc("F") => ???
-      case TypeDesc("J") => ???
+      case TypeDesc("J") => mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getLong, MethodName("longValue"), MethodDesc("()J"), false)
       case TypeDesc("D") => ???
       case _ => // nothing
     }

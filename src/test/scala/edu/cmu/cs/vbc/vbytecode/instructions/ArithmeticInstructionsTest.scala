@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
-import edu.cmu.cs.vbc.vbytecode.Block
-import edu.cmu.cs.vbc.{DiffMethodTestInfrastructure, InstrDBGIPrint}
+import edu.cmu.cs.vbc.vbytecode._
+import edu.cmu.cs.vbc.{DiffMethodTestInfrastructure, InstrDBGIPrint, InstrDBGStrPrint}
 import org.scalatest.FlatSpec
 
 /**
@@ -49,5 +49,18 @@ class ArithmeticInstructionsTest extends FlatSpec with DiffMethodTestInfrastruct
         Nil
       )
     }
+  }
+
+  "LNEG" can "negate long value" in {
+    methodWithBlocks(
+      createVlong(tValue = 1, fValue = 2, startBlockIdx = 0) :::
+      Block(
+        InstrLNEG(),
+        InstrINVOKESTATIC(Owner.getString, MethodName("valueOf"), MethodDesc(s"(J)${TypeDesc.getString}"), itf = false),
+        InstrDBGStrPrint(),
+        InstrRETURN()
+      ) ::
+      Nil
+    )
   }
 }

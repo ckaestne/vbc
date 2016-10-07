@@ -240,26 +240,47 @@ case class InstrLCMP() extends Instruction {
   }
 }
 
+/** Negate long
+  *
+  * ..., value(long) -> ..., result(long)
+  */
 case class InstrLNEG() extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(LNEG)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      InvokeDynamicUtils.invoke(
+        VCall.smap,
+        mv,
+        env,
+        loadCtx = loadCurrentCtx(_, env, block),
+        lambdaName = "lneg",
+        desc = TypeDesc.getLong + "()" + TypeDesc.getLong
+      ) {
+        (mv: MethodVisitor) => {
+          mv.visitVarInsn(ALOAD, 1)
+          Long2long(mv)
+          mv.visitInsn(LNEG)
+          long2Long(mv)
+          mv.visitInsn(ARETURN)
+        }
+      }
+    }
+    else
+      mv.visitInsn(LNEG)
+  }
 
-  /**
-    * Update the stack symbolically after executing this instruction
-    *
-    * @return UpdatedFrame is a tuple consisting of new VBCFrame and a backtrack instructions.
-    *         If backtrack instruction set is not empty, we need to backtrack because we finally realise we need to lift
-    *         that instruction. By default every backtracked instruction should be lifted, except for GETFIELD,
-    *         PUTFIELD, INVOKEVIRTUAL, and INVOKESPECIAL, because lifting them or not depends on the type of object
-    *         currently on stack. If the object is a V, we need to lift these instructions with INVOKEDYNAMIC.
-    *
-    *         If backtrack instruction set is not empty, the returned VBCFrame is useless, current frame will be pushed
-    *         to queue again and reanalyze later. (see [[edu.cmu.cs.vbc.analysis.VBCAnalyzer.computeBeforeFrames]]
-    */
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    val (vType, _, frame) = s.pop()
+    if (vType == V_TYPE()) {
+      env.setLift(this)
+      (frame.push(V_TYPE(), Set(this)), Set())
+    }
+    else
+      (frame.push(LONG_TYPE(), Set(this)), Set())
+  }
 }
 
 case class InstrISHR() extends Instruction {
