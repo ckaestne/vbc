@@ -91,6 +91,8 @@ object Owner {
   def getString = Owner("java/lang/String")
   def getLong = Owner("java/lang/Long")
   def getException = Owner("java/lang/Exception")
+  def getFloat = Owner("java/lang/Float")
+  def getDouble = Owner("java/lang/Double")
 }
 
 

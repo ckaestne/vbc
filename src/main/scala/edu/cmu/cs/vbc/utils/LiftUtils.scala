@@ -39,7 +39,7 @@ object LiftUtils {
       case 4 => mv.visitInsn(ICONST_4)
       case 5 => mv.visitInsn(ICONST_5)
       case v if v <= Byte.MaxValue && v >= Byte.MinValue => mv.visitIntInsn(BIPUSH, v)
-      //TODO other push operation for larger constants
+      case _ => mv.visitLdcInsn(value)
     }
   }
 
