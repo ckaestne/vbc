@@ -63,4 +63,13 @@ class ArithmeticInstructionsTest extends FlatSpec with DiffMethodTestInfrastruct
       Nil
     )
   }
+
+  "ISHR" can "shift right int" in {
+    methodWithBlocks(
+      createVint(tValue = 1, fValue = 2, startBlockIdx = 0) :::
+      createVint(tValue = 3, fValue = 4, startBlockIdx = 3) :::
+      Block(InstrISHR(), InstrDBGIPrint(), InstrRETURN()) ::
+      Nil
+    )
+  }
 }
