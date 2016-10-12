@@ -20,6 +20,19 @@ public class CharArrayExample {
         new CharArrayExample().createVCharArray();
         new CharArrayExample().potentialNullArrayRef();
         new CharArrayExample().arrayWithVIndex();
+        new CharArrayExample().getChars();
+    }
+
+    public void getChars() {
+        char[] chars = new char[20];
+        String str;
+        if (A) {
+            str = "Hello world";
+        } else {
+            str = "Hi world";
+        }
+        str.getChars(0, 3, chars, 0);
+        System.out.println(chars[1]);
     }
 
     public void createBuffer() {
