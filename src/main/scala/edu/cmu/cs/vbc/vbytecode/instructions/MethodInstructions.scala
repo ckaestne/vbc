@@ -24,7 +24,7 @@ trait MethodInstruction extends Instruction {
         // cpwtodo: handle exception in <init>
         LiftedCall(owner.toModel, name, desc.toVs_AppendFE_AppendArgs, isLifting = true)
       } else {
-        LiftedCall(owner.toModel, name.rename(desc), desc.toVs.appendFE.toVReturnType, isLifting = true)
+        LiftedCall(owner.toModel, name.rename(desc.toModels), desc.toVs.appendFE.toVReturnType, isLifting = true)
       }
     }
     else {
@@ -100,7 +100,9 @@ trait MethodInstruction extends Instruction {
   def boxReturnValue(desc: MethodDesc, mv: MethodVisitor): Unit = {
     desc.getReturnTypeSort match {
       case Type.INT =>
-        mv.visitMethodInsn(INVOKESTATIC, Owner("java/lang/Integer"), MethodName("valueOf"), MethodDesc("(I)Ljava/lang/Integer;"), false)
+        mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, MethodName("valueOf"), MethodDesc(s"(I)${TypeDesc.getInt}"), false)
+      case Type.BOOLEAN =>
+        mv.visitMethodInsn(INVOKESTATIC, Owner.getBoolean, MethodName("valueOf"), MethodDesc(s"(Z)${TypeDesc.getBoolean}"), false)
       case Type.OBJECT => // do nothing
       case Type.VOID => // do nothing
       case _ => ???
@@ -290,10 +292,13 @@ case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, 
     val helperName = "helper$" + shortClsName + "$init$" + env.clazz.lambdaMethods.size
     val helperDesc: String = "(" + vclasstype * nArgs + fexprclasstype + s")$vclasstype"
     val lambdaName = shortClsName + "$init$"
-    val invokeDesc = args(0).toObject + args.tail.map(_.toObject).mkString("(", "", ")") + vclasstype
     val helper = (cv: ClassVisitor) => {
       val m: MethodVisitor = cv.visitMethod( ACC_PRIVATE | ACC_STATIC | ACC_SYNTHETIC, helperName, helperDesc, null, Array[String]() )
       m.visitCode()
+
+      m.visitInsn(ACONST_NULL)  // fake invoke object
+      callVCreateOne(m, loadCtx = (mv) => mv.visitVarInsn(ALOAD, nArgs))
+
       args.indices foreach { (i) => m.visitVarInsn(ALOAD, i) } // arguments
       InvokeDynamicUtils.invoke(
         VCall.sflatMap,
@@ -301,16 +306,17 @@ case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, 
         env,
         loadCtx = (m) => m.visitVarInsn(ALOAD, nArgs),
         lambdaName,
-        invokeDesc,
-        nExplodeArgs = nArgs - 1
+        desc = TypeDesc.getObject + args.map(_.toObject).mkString("(", "", ")") + vclasstype,
+        nExplodeArgs = nArgs,
+        expandArgArray = true
       ) {
         (mm: MethodVisitor) => {
           mm.visitTypeInsn(NEW, liftedCall.owner)
           mm.visitInsn(DUP)
-          0 to nArgs - 2 foreach { i => loadVar(i, liftedCall.desc, i, mm) } // first nArgs - 1 arguments
-          loadVar(nArgs, liftedCall.desc, nArgs - 1 , mm) // last argument
+          1 until nArgs foreach { i => loadVar(i, liftedCall.desc, i - 1, mm) } // first nArgs - 1 arguments
+          loadVar(nArgs + 1, liftedCall.desc, nArgs - 1 , mm) // last argument
           mm.visitMethodInsn(INVOKESPECIAL, liftedCall.owner, "<init>", liftedCall.desc, itf)
-          callVCreateOne(mm, mmm => mmm.visitVarInsn(ALOAD, nArgs - 1))
+          callVCreateOne(mm, mmm => mmm.visitVarInsn(ALOAD, nArgs))
           mm.visitInsn(ARETURN)
         }
       }

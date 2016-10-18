@@ -12,9 +12,9 @@ public class Main {
         Application b = new Application();
 
         a.account.update(100);
-        System.out.println("A Balance = " + a.account.balance);
+        System.out.println("A Balance = " + String.valueOf(a.account.balance));
         a.account.undoUpdate(100);
-        System.out.println("A Balance = " + a.account.balance);
+        System.out.println("A Balance = " + String.valueOf(a.account.balance));
 
         a.account.update(200);
         b.account.update(400);

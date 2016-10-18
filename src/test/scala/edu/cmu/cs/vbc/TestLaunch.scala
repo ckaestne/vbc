@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc
 
 import de.fosd.typechef.featureexpr.FeatureExprFactory
-import edu.cmu.cs.vbc.prog.{ExceptionExample, InitExample, LinkedListExample}
+import edu.cmu.cs.vbc.prog.{ExceptionExample, InitExample, LinkedListExample, StringBuilderExample}
 import org.scalatest.FunSuite
 
 
@@ -30,7 +30,7 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
   }
 
   test("bankaccount") {
-    testMain(classOf[edu.cmu.cs.vbc.prog.bankaccount.Main])
+    testMain(classOf[edu.cmu.cs.vbc.prog.bankaccount.Main], compareTraceAgainstBruteForce = false)
   }
 
   test("static fields") {
@@ -84,5 +84,9 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
 
   test("Exceptions") {
     testMain(classOf[ExceptionExample], compareTraceAgainstBruteForce = false)
+  }
+
+  test("StringBuilderExample") {
+    testMain(classOf[StringBuilderExample], compareTraceAgainstBruteForce = false)
   }
 }

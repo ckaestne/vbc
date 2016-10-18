@@ -201,7 +201,11 @@ public interface V<T> {
     }
 
     static <U> V<U> one(FeatureExpr configSpace, @Nullable U v) {
-        return new One(configSpace, v);
+        if (v instanceof V) {
+            return (V<U>) v;
+        } else {
+            return new One(configSpace, v);
+        }
     }
 
     static <U> V<? extends U> choice(@Nonnull FeatureExpr condition, @Nullable U a, @Nullable U b) {

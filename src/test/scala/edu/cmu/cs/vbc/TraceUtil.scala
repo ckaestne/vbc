@@ -5,8 +5,8 @@ import edu.cmu.cs.varex.{V, VHelper}
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, V_TYPE}
 import edu.cmu.cs.vbc.utils.LiftUtils._
+import edu.cmu.cs.vbc.vbytecode._
 import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
-import edu.cmu.cs.vbc.vbytecode.{Block, MethodEnv, VMethodEnv}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.{MethodVisitor, Type}
 
@@ -112,6 +112,8 @@ case class TraceInstr_ConfigInit() extends Instruction {
         case Type.OBJECT => mv.visitInsn(ACONST_NULL)
         //          case Type.BOOLEAN => mv.visitIntInsn(BIPUSH, 0); mv.visitMethodInsn(INVOKESTATIC, vBoolean, "valueOf", s"(Z)$vBooleanType", false)
         case Type.BOOLEAN => mv.visitInsn(ICONST_0); mv.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
+        case Type.LONG => mv.visitInsn(LCONST_0); mv.visitMethodInsn(INVOKESTATIC, Owner.getLong, "valueOf", s"(J)${TypeDesc.getLong}", false)
+        case Type.ARRAY => mv.visitInsn(ACONST_NULL)
         case _ => ???
       }
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))

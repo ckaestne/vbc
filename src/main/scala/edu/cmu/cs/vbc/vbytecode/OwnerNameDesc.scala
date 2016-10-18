@@ -356,6 +356,7 @@ object TypeDesc {
   def getException: TypeDesc = TypeDesc("Ljava/lang/Exception;")
   def getObject: TypeDesc = TypeDesc("Ljava/lang/Object;")
   def getChar: TypeDesc = TypeDesc("Ljava/lang/Character;")
+  def getBoolean: TypeDesc = TypeDesc("Ljava/lang/Boolean;")
 }
 
 trait TypeVerifier {
