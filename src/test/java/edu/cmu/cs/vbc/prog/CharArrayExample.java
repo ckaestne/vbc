@@ -15,12 +15,19 @@ public class CharArrayExample {
     private int arrayLength;
 
     public static void main(String[] args) {
-        new CharArrayExample().createBuffer();
-        new CharArrayExample().printCharArray();
-        new CharArrayExample().createVCharArray();
-        new CharArrayExample().potentialNullArrayRef();
-        new CharArrayExample().arrayWithVIndex();
-        new CharArrayExample().getChars();
+        CharArrayExample example = new CharArrayExample();
+        example.createBuffer();
+        example.printCharArray();
+        example.createVCharArray();
+        example.potentialNullArrayRef();
+        example.arrayWithVIndex();
+        example.getChars();
+        example.emptyCharArray();
+    }
+
+    void emptyCharArray() {
+        char[] chars = new char[10];
+        System.out.println(chars[1]);
     }
 
     public void getChars() {

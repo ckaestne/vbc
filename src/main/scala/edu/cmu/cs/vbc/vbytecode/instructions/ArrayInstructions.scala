@@ -24,6 +24,23 @@ trait ArrayInstructions extends Instruction {
     }
   }
 
+  def createPrimitiveVArray(mv: MethodVisitor, env: VMethodEnv, block: Block, pType: PrimitiveType.Value): Unit = {
+    InvokeDynamicUtils.invoke(VCall.smap, mv, env, loadCurrentCtx(_, env, block), s"newarray$pType", s"$IntType()[$vclasstype") {
+      (visitor: MethodVisitor) => {
+        visitor.visitVarInsn(ALOAD, 1)  // int
+        visitor.visitVarInsn(ALOAD, 0)  // FE
+        visitor.visitMethodInsn(
+          INVOKESTATIC,
+          Owner.getArrayOps,
+          MethodName(s"init${pType}Array"),
+          MethodDesc(s"(${TypeDesc.getInt}${fexprclasstype})[$vclasstype"),
+          false
+        )
+        visitor.visitInsn(ARETURN)
+      }
+    }
+  }
+
   def storeOperation(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     InvokeDynamicUtils.invoke(VCall.sforeach, mv, env, loadCurrentCtx(_, env, block), "aastore", s"[$vclasstype($IntType$vclasstype)V", nExplodeArgs = 1) {
       (visitor: MethodVisitor) => {
@@ -31,6 +48,44 @@ trait ArrayInstructions extends Instruction {
         visitor.visitVarInsn(ALOAD, 3) //index
         visitor.visitMethodInsn(INVOKEVIRTUAL, IntClass, "intValue", "()I", false)
         visitor.visitVarInsn(ALOAD, 0) //new value
+        visitor.visitInsn(AASTORE)
+        visitor.visitInsn(RETURN)
+      }
+    }
+  }
+
+  /** Store value of the following type to array: byte, boolean, char, short, int
+    *
+    * JVM assumes the new value to be of type int, thus we need some unboxing and boxing.
+    * We could just store V[Integer] internally for the above types, but it needs additional
+    * effort when expanding and compressing. Also, it is counter-intuitive to store Integer in
+    * char array.
+    */
+  def storeBCSI(mv: MethodVisitor, env: VMethodEnv, block: Block, pType: PrimitiveType.Value): Unit = {
+    InvokeDynamicUtils.invoke(
+      VCall.sforeach,
+      mv,
+      env,
+      loadCurrentCtx(_, env, block),
+      s"${pType}astore",
+      s"[$vclasstype(${TypeDesc.getInt}${TypeDesc.getInt})V",
+      nExplodeArgs = 2
+    ) {
+      (visitor: MethodVisitor) => {
+        visitor.visitVarInsn(ALOAD, 0) //array ref
+        visitor.visitVarInsn(ALOAD, 1) //index
+        Integer2int(visitor)
+
+        // load original value in the array and create a choice between new value and old value
+        visitor.visitVarInsn(ALOAD, 2)  // FE
+        visitor.visitVarInsn(ALOAD, 3)  // new value
+        callVCreateOne(visitor, (m) => m.visitVarInsn(ALOAD, 2))
+        visitor.visitVarInsn(ALOAD, 0)
+        visitor.visitVarInsn(ALOAD, 1)
+        Integer2int(visitor)
+        visitor.visitInsn(AALOAD)
+        callVCreateChoice(visitor)
+
         visitor.visitInsn(AASTORE)
         visitor.visitInsn(RETURN)
       }
@@ -50,6 +105,28 @@ trait ArrayInstructions extends Instruction {
   }
 }
 
+object PrimitiveType extends Enumeration {
+  val boolean = Value("Z")
+  val char = Value("C")
+  val byte = Value("B")
+  val short = Value("S")
+  val int = Value("I")
+  val float = Value("F")
+  val long = Value("J")
+  val double = Value("D")
+
+  def toEnum(atype: Int): PrimitiveType.Value = (atype: @unchecked) match {
+    case T_BOOLEAN => boolean
+    case T_CHAR => char
+    case T_BYTE => byte
+    case T_SHORT => short
+    case T_INT => int
+    case T_FLOAT => float
+    case T_LONG => long
+    case T_DOUBLE => double
+  }
+}
+
 /**
   * NEWARRAY is for primitive type. Since we are boxing all primitive types, all NEWARRAY should
   * be replaced by ANEWARRAY
@@ -60,16 +137,24 @@ trait ArrayInstructions extends Instruction {
   *       so we might need to initialize also
   */
 case class InstrNEWARRAY(atype: Int) extends ArrayInstructions {
+  val pType = PrimitiveType.toEnum(atype)
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitIntInsn(NEWARRAY, atype)
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
-      createVArray(mv, env, block)
+      createPrimitiveVArray(mv, env, block, pType)
     }
     else {
-      mv.visitTypeInsn(ANEWARRAY, "edu/cmu/cs/varex/V")
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(
+        INVOKESTATIC,
+        Owner.getArrayOps,
+        MethodName(s"init${pType}Array"),
+        MethodDesc(s"(I${fexprclasstype})[$vclasstype"),
+        false
+      )
       if (env.getTag(this, env.TAG_NEED_V)) {
         callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
       }
@@ -276,7 +361,7 @@ case class InstrIASTORE() extends ArrayInstructions {
 /**
   * Store into char array
   *
-  * Operand stack: ..., arrayref, index, value -> ...
+  * Operand stack: ..., arrayref, index(int), value(int) -> ...
   */
 case class InstrCASTORE() extends ArrayInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
@@ -301,7 +386,7 @@ case class InstrCASTORE() extends ArrayInstructions {
     */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
-      storeOperation(mv, env, block)
+      storeBCSI(mv, env, block, PrimitiveType.char)
     }
     else {
       mv.visitInsn(AASTORE)

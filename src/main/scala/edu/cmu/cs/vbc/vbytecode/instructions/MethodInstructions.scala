@@ -46,7 +46,7 @@ trait MethodInstruction extends Instruction {
     val liftedCall = liftCall(owner, name, desc)
     val objType = Type.getObjectType(liftedCall.owner).toString
     val argTypeDesc: String = desc.getArgs.map {
-      t => if (liftedCall.isLifting) t.toV.desc else t.toObject.castInt.desc
+      t => if (liftedCall.isLifting) t.toV.desc else t.castInt.toObject.desc
     }.mkString("(", "", ")")
 
     val isReturnVoid = desc.isReturnVoid
@@ -63,7 +63,8 @@ trait MethodInstruction extends Instruction {
       defaultLoadCtx,
       OpcodePrint.print(invokeType) + "$" + name.name,
       s"$objType$argTypeDesc$retType",
-      nExplodeArgs = if (liftedCall.isLifting) 0 else desc.getArgCount
+      nExplodeArgs = if (liftedCall.isLifting) 0 else desc.getArgCount,
+      expandArgArray = !liftedCall.isLifting
     ) {
       (mv: MethodVisitor) => {
         if (!liftedCall.isLifting && hasVArgs) {
@@ -442,7 +443,7 @@ case class InstrINVOKESTATIC(owner: Owner, name: MethodName, desc: MethodDesc, i
   def explodeVArgs(liftedCall: LiftedCall, mv: MethodVisitor, env: VMethodEnv, block: Block) = {
     val vCall = if (liftedCall.desc.isReturnVoid) VCall.sforeach else VCall.sflatMap
     val lambdaName = "helper$invokestaticWithVs$" + env.clazz.lambdaMethods.size
-    val args = liftedCall.desc.getArgs.map(_.toObject).map(_.castInt)
+    val args = liftedCall.desc.getArgs.map(_.castInt).map(_.toObject)
     val invokeDesc = args.head.desc + s"(${args.tail.map(_.desc).mkString("")})" + (if (liftedCall.desc.isReturnVoid) "V" else vclasstype)
     InvokeDynamicUtils.invoke(vCall, mv, env, loadCurrentCtx(_, env, block), lambdaName, invokeDesc, nExplodeArgs = args.size - 1) {
       (m: MethodVisitor) => {

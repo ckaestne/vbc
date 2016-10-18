@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.utils
 
 import edu.cmu.cs.vbc.utils.LiftUtils._
-import edu.cmu.cs.vbc.vbytecode.VMethodEnv
+import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.{ClassVisitor, Handle, MethodVisitor, Type}
 
@@ -72,7 +72,9 @@ object InvokeDynamicUtils {
               lambdaName: String,
               desc: String,
               nExplodeArgs: Int = 0,
-              isExploding: Boolean = false)
+              isExploding: Boolean = false,
+              expandArgArray: Boolean = false
+            )
             (lambdaOp: MethodVisitor => Unit): Unit = {
 
     //////////////////////////////////////////////////
@@ -97,9 +99,10 @@ object InvokeDynamicUtils {
       vclasstype * nExplodeArgs + (for (t <- argTypes.drop(nExplodeArgs)) yield t.toString).mkString("") +
       s")$funType"
 
+    val newInvokeObjDesc: String = if (isExploding && expandArgArray && invokeObjectDesc.startsWith("[")) s"[$vclasstype" else invokeObjectDesc
     val lambdaDesc = "(" +
       vclasstype * nExplodeArgs + (for (t <- argTypes.drop(nExplodeArgs)) yield t.toString).mkString("") +
-      s"$fexprclasstype$invokeObjectDesc" +
+      s"$fexprclasstype" + newInvokeObjDesc +
       s")$returnDesc"
 
     val n = env.clazz.lambdaMethods.size
@@ -111,7 +114,7 @@ object InvokeDynamicUtils {
       // Arguments:
       Type.getType("(Ljava/lang/Object;Ljava/lang/Object;)" + (if (isReturnVoid) "V" else "Ljava/lang/Object;")),
       new Handle(H_INVOKESTATIC, env.clazz.name, lambdaMtdName, lambdaDesc),
-      Type.getType(s"($fexprclasstype$invokeObjectDesc)$returnDesc")
+      Type.getType(s"($fexprclasstype$newInvokeObjDesc)$returnDesc")
     )
     if (isExploding) {
       loadFE(mv, loadCtx, Some(lambdaDesc))
@@ -134,13 +137,43 @@ object InvokeDynamicUtils {
           Array[String]() // Empty exception list
         )
         mv.visitCode()
-        mv.visitVarInsn(ALOAD, 0) // this is the next V to be exploded
 
-        /* load arguments */
-        for (i <- 1 until nArg) mv.visitVarInsn(ALOAD, i)
-        mv.visitVarInsn(ALOAD, nArg + 1) // last argument of lambda method, the V that just got exploded
-
-        invoke(vCall, mv, env, loadCtx, "explodeArg", shiftDesc(desc), nExplodeArgs - 1, isExploding = true)(lambdaOp)
+        val currentInvokeObjType = TypeDesc(invokeObjectDesc)
+        if (isExploding && expandArgArray && currentInvokeObjType.isArray) {
+          mv.visitVarInsn(ALOAD, nArg + 1)  // [V
+          0 until nArg foreach {i => mv.visitVarInsn(ALOAD, i)}
+          mv.visitVarInsn(ALOAD, nArg)
+          val baseType = currentInvokeObjType.getArrayBaseType
+          val baseTypeStr = if (baseType.isPrimitive) baseType.toString else ""
+          val helperName = "helper$expandArray$" + env.clazz.lambdaMethods.size
+          val helperDesc = s"([$vclasstype" + vclasstype * nExplodeArgs + argTypes.drop(nExplodeArgs).map(_.toString).mkString("") + fexprclasstype + ")" + returnDesc
+          val helper = (cv: ClassVisitor) => {
+            val mv: MethodVisitor = cv.visitMethod(ACC_PRIVATE | ACC_STATIC | ACC_SYNTHETIC, helperName, helperDesc, null, Array[String]())
+            mv.visitVarInsn(ALOAD, 0)  // [V
+            mv.visitVarInsn(ALOAD, nArg + 1)  // ctx
+            mv.visitMethodInsn(INVOKESTATIC, Owner.getArrayOps, s"expand${baseTypeStr}Array", MethodDesc(s"([${vclasstype}${fexprclasstype})$vclasstype"), false)
+            mv.visitVarInsn(ASTORE, nArg + 2) // store the expanded array
+            mv.visitVarInsn(ALOAD, nArg + 2)
+            (1 to nArg) foreach {i => mv.visitVarInsn(ALOAD, i)}
+            invoke(vCall, mv, env, (m) => m.visitVarInsn(ALOAD, nArg + 1), "explodeArg", desc, nExplodeArgs, false, expandArgArray)(lambdaOp)
+            mv.visitVarInsn(ALOAD, nArg + 2)
+            mv.visitMethodInsn(INVOKESTATIC, Owner.getArrayOps, s"compress${baseTypeStr}Array", MethodDesc(s"($vclasstype)[$vclasstype"), false)
+            mv.visitVarInsn(ALOAD, 0)
+            mv.visitMethodInsn(INVOKESTATIC, Owner.getArrayOps, "copyVArray", MethodDesc(s"([$vclasstype[$vclasstype)V"), false)
+            if (isReturnVoid) mv.visitInsn(RETURN) else mv.visitInsn(ARETURN)
+            mv.visitMaxs(10, 10)
+            mv.visitEnd()
+          }
+          env.clazz.lambdaMethods += (helperName -> helper)
+          mv.visitMethodInsn(INVOKESTATIC, Owner(env.clazz.name), MethodName(helperName), MethodDesc(helperDesc), false)
+        }
+        else {
+          mv.visitVarInsn(ALOAD, 0) // this is the next V to be exploded
+          /* load arguments */
+          for (i <- 1 until nArg) mv.visitVarInsn(ALOAD, i)
+          mv.visitVarInsn(ALOAD, nArg + 1) // last argument of lambda method, the V that just got exploded
+          invoke(vCall, mv, env, loadCtx, "explodeArg", shiftDesc(desc), nExplodeArgs - 1, isExploding = true, expandArgArray)(lambdaOp)
+        }
 
         if (isReturnVoid) mv.visitInsn(RETURN) else mv.visitInsn(ARETURN)
         mv.visitMaxs(10, 10)

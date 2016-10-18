@@ -2,10 +2,6 @@ package edu.cmu.cs.varex;
 
 import de.fosd.typechef.featureexpr.FeatureExpr;
 
-import java.util.ArrayList;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-
 /**
  * Created by ckaestne on 1/16/2016.
  */
@@ -188,50 +184,5 @@ public class VOps {
             char c = (char)i;
             return (int) c;
         }), ctx);
-    }
-
-    public static <T> V<?> expandArray(V<T>[] array, FeatureExpr ctx) {
-        return expandArrayElements(array, ctx, 0, new ArrayList<T>());
-    }
-
-    private static <T> V<?> expandArrayElements(V<T>[] array, FeatureExpr ctx, Integer index, ArrayList<T> soFar) {
-        return array[index].sflatMap(ctx, new BiFunction<FeatureExpr, T, V<?>>() {
-            @Override
-            public V<?> apply(FeatureExpr featureExpr, T t) {
-                ArrayList<T> newArray = new ArrayList<T>(soFar);
-                newArray.add(t);
-                if (index == array.length - 1) {
-                    return V.one(featureExpr, newArray.toArray());
-                } else {
-                    return expandArrayElements(array, ctx, index + 1, newArray);
-                }
-            }
-        });
-    }
-
-    public static <T> V<?>[] compressArray(V<T[]> arrays) {
-        V<?> sizes = arrays.map(new Function<T[], Integer>() {
-            @Override
-            public Integer apply(T[] t) {
-                return t.length;
-            }
-        });
-        Integer size = (Integer) sizes.getOne(); // if results in a choice, exceptions will be thrown.
-        ArrayList<V<?>> array = new ArrayList<>();
-        for (int i = 0; i < size; i++) {
-            array.add(compressArrayElement(arrays, i));
-        }
-        V<?>[] results = new V<?>[size];
-        array.toArray(results);
-        return results;
-    }
-
-    private static <T> V<?> compressArrayElement(V<T[]> arrays, Integer index) {
-        return arrays.map(new Function<T[], Object>() {
-            @Override
-            public Object apply(T[] ts) {
-                return ts[index];
-            }
-        });
     }
 }

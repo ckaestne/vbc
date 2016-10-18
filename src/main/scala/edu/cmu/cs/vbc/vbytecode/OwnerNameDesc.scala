@@ -56,7 +56,7 @@ case class Owner(name: String) extends TypeVerifier {
     // reflection and exception handling
     "java/lang/Class",
     // Integer call a package access method from java/lang/Class
-    "java/lang/Integer", "java/lang/Short", "java/lang/Byte", "java/lang/Float", "java/lang/Double"
+    "java/lang/Integer", "java/lang/Short", "java/lang/Byte", "java/lang/Float", "java/lang/Double", "java/lang/Character"
   )
 
   /** Get the corresponding model class
@@ -93,6 +93,8 @@ object Owner {
   def getException = Owner("java/lang/Exception")
   def getFloat = Owner("java/lang/Float")
   def getDouble = Owner("java/lang/Double")
+  def getArrayOps = Owner("edu/cmu/cs/varex/ArrayOps")
+  def getChar = Owner("java/lang/Character")
 }
 
 
@@ -286,7 +288,7 @@ case class TypeDesc(desc: String) extends TypeVerifier {
 
   def toObject: TypeDesc = desc match {
     case "Z" => TypeDesc("Ljava/lang/Boolean;")
-    case "C" => TypeDesc("Ljava/lang/Char;")
+    case "C" => TypeDesc("Ljava/lang/Character;")
     case "B" => TypeDesc("Ljava/lang/Byte;")
     case "S" => TypeDesc("Ljava/lang/Short;")
     case "I" => TypeDesc("Ljava/lang/Integer;")
@@ -297,10 +299,10 @@ case class TypeDesc(desc: String) extends TypeVerifier {
   }
 
   def castInt: TypeDesc = this match {
-    case TypeDesc("Ljava/lang/Boolean;") => TypeDesc.getInt
-    case TypeDesc("Ljava/lang/Char;") => TypeDesc.getInt
-    case TypeDesc("Ljava/lang/Short;") => TypeDesc.getInt
-    case TypeDesc("Ljava/lang/Byte;") => TypeDesc.getInt
+    case TypeDesc("Z") => TypeDesc("I")
+    case TypeDesc("C") => TypeDesc("I")
+    case TypeDesc("S") => TypeDesc("I")
+    case TypeDesc("B") => TypeDesc("I")
     case _ => this
   }
 
@@ -341,6 +343,8 @@ case class TypeDesc(desc: String) extends TypeVerifier {
     else
       getOwner.get.toModel.getTypeDesc
   }
+
+  def toVArray: TypeDesc = if (isArray) TypeDesc("[" + vclasstype) else this
 }
 
 object TypeDesc {
@@ -351,6 +355,7 @@ object TypeDesc {
   def getLong: TypeDesc = TypeDesc("Ljava/lang/Long;")
   def getException: TypeDesc = TypeDesc("Ljava/lang/Exception;")
   def getObject: TypeDesc = TypeDesc("Ljava/lang/Object;")
+  def getChar: TypeDesc = TypeDesc("Ljava/lang/Character;")
 }
 
 trait TypeVerifier {
