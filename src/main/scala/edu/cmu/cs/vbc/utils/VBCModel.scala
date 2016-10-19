@@ -194,6 +194,6 @@ class MyClassWriter(flag: Int) extends ClassWriter(flag) {
   override protected def getCommonSuperClass(type1: String, type2: String): String = {
     val t1 = if (type1.startsWith(VBCModel.prefix)) type1.substring(VBCModel.prefix.length + 1) else type1
     val t2 = if (type2.startsWith(VBCModel.prefix)) type2.substring(VBCModel.prefix.length + 1) else type2
-    super.getCommonSuperClass(t1, t2)
+    Owner(super.getCommonSuperClass(t1, t2)).toModel
   }
 }

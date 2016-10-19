@@ -185,4 +185,22 @@ public class VOps {
             return (int) c;
         }), ctx);
     }
+
+    public static FeatureExpr whenAEQ(V<?> a, V<?> b) {
+        V<? extends Boolean> compare = a.flatMap(aa -> {
+            return b.map(bb -> {
+                return aa == bb;
+            });
+        });
+        return compare.when(c -> c);
+    }
+
+    public static FeatureExpr whenANE(V<?> a, V<?> b) {
+        V<? extends Boolean> compare = a.flatMap(aa -> {
+            return b.map(bb -> {
+                return aa != bb;
+            });
+        });
+        return compare.when(c -> c);
+    }
 }

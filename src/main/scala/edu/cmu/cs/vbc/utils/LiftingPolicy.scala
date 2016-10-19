@@ -18,6 +18,7 @@ object LiftingPolicy {
     case x if x.startsWith("edu/cmu/cs/vbc/prog/") => true
     case x if x.endsWith("java/lang/StringBuilder") => true
     case x if x.endsWith("java/lang/AbstractStringBuilder") => true
+    case x if x.endsWith("java/util/ArrayList") => true
     case _ => false
   }
 

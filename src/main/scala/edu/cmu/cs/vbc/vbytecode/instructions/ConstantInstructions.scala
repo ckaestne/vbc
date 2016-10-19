@@ -59,6 +59,7 @@ case class InstrLDC(o: Object) extends Instruction {
         case s: String => wrapString(mv)
         case i: Integer => int2Integer(mv)
         case l: java.lang.Long => long2Long(mv)
+        case t: Type => callVCreateOne(mv, loadCurrentCtx(_, env, blockA))
         case _ => throw new UnsupportedOperationException("Unsupported LDC type")
       }
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, blockA))
@@ -94,6 +95,7 @@ case class InstrLDC(o: Object) extends Instruction {
           case i: java.lang.Integer => s.push(INT_TYPE(), Set(this))
           case str: java.lang.String => s.push(VBCType(Type.getObjectType("java/lang/String")), Set(this))
           case l: java.lang.Long => s.push(LONG_TYPE(), Set(this))
+          case t: Type => s.push(REF_TYPE(), Set(this))
           case _ => throw new RuntimeException("Incomplete support for LDC")
         }
     (newFrame, Set())
