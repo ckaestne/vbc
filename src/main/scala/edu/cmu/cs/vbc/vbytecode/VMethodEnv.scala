@@ -114,6 +114,8 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
     blockTags(blockIdx)
   }
 
+  def getBlockForInstruction(i: Instruction): Block = blocks.find(_.instr contains i).get
+
   def isNonStaticL0(variable: Variable): Boolean = {
     if (method.isStatic) false
     else getVarIdxNoCtx(variable) == 0

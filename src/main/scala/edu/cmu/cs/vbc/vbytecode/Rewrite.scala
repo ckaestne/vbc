@@ -51,7 +51,7 @@ object Rewrite {
     if (returnInstr.size == 1 && returnInstr.head == m.body.blocks.last.instr.last)
       m
     else {
-      unifyReturnInstr(m: VBCMethodNode, InstrARETURN())
+      unifyReturnInstr(m: VBCMethodNode, if (m.name == "<init>") InstrRETURN() else InstrARETURN())
     }
   }
 

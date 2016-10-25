@@ -81,6 +81,13 @@ case class VBCFrame(localVar: Map[Variable, FrameEntry], stack: List[FrameEntry]
   }
 
   /**
+    * remove all elements from the stack (for exceptions)
+    */
+  def emptyStack(): VBCFrame = {
+    this.copy(stack = Nil)
+  }
+
+  /**
     * pop one value from stack
     */
   def pop(): (VBCType, Set[Instruction], VBCFrame) = {
