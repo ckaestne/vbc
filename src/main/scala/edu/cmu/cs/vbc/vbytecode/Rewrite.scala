@@ -34,7 +34,7 @@ object Rewrite {
     val rewrittenBlocks = m.body.blocks.map(b =>
       Block(b.instr.flatMap(i => List(
         if (i.isATHROW) InstrARETURN() else i)
-      ): _*)
+      ), b.exceptionHandlers)
     )
     m.copy(body = CFG(rewrittenBlocks))
   }
@@ -63,7 +63,7 @@ object Rewrite {
     var newReturnBlockInstr = List(returnInstr)
     if (!returnInstr.isRETURN)
       newReturnBlockInstr ::= InstrALOAD(returnVariable)
-    val newReturnBlock = Block(newReturnBlockInstr: _*)
+    val newReturnBlock = Block(newReturnBlockInstr, Nil)
     val newReturnBlockIdx = method.body.blocks.size
 
     def storeAndGoto: List[Instruction] = List(InstrASTORE(returnVariable), InstrGOTO(newReturnBlockIdx))
@@ -76,7 +76,7 @@ object Rewrite {
         }
         else
           List(instr)
-      ): _*))
+      ), block.exceptionHandlers))
 
     method.copy(body =
       CFG(
@@ -107,7 +107,7 @@ object Rewrite {
       assert(restInstrs.head.isALOAD0, "first instruction in <init> is NOT ALOAD 0")
 
       val newInstrs = nopPrefix ++ (InstrINIT_CONDITIONAL_FIELDS() +: restInstrs)
-      val newBlocks = new Block(newInstrs: _*) +: m.body.blocks.drop(1)
+      val newBlocks = Block(newInstrs, Nil) +: m.body.blocks.drop(1)
       m.copy(body = CFG(newBlocks))
     } else m
 

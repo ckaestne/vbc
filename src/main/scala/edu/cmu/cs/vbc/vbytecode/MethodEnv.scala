@@ -1,10 +1,8 @@
 package edu.cmu.cs.vbc.vbytecode
 
-import org.objectweb.asm.{Label, Type}
+import org.objectweb.asm.{Label, MethodVisitor, Type}
 
-class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
-  protected val blocks = method.body.blocks
-
+class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) extends CFGAnalysis {
   //find all local variables
   protected val localVars: List[LocalVar] =
     (for (block <- blocks; instr <- block.instr; v <- instr.getVariables) yield v).distinct
@@ -18,7 +16,7 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
     Type.getArgumentTypes(method.desc).count(t => t.getDescriptor == "J" || t.getDescriptor == "D") // long and double
   protected var freshVars: List[LocalVar] = Nil
 
-  def getFreshVars(): List[Variable] = freshVars
+  def getFreshVars(): List[LocalVar] = freshVars
 
   protected var blockLabels: Map[Block, Label] = Map()
 
@@ -30,11 +28,8 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
     l
   }
 
-  def freshLocalVar(name: String, desc: String): LocalVar = freshLocalVar(desc, Some(name))
-
-  def freshLocalVar(desc: String, name: Option[String] = None): LocalVar = {
-    val n = name.getOrElse("v$" + freshVars.size)
-    val l = new LocalVar(n, desc)
+  def freshLocalVar(name: String, desc: String, init: (MethodVisitor, VMethodEnv, LocalVar) => Unit): LocalVar = {
+    val l = new LocalVar(name, desc, vinitialize = init)
     freshVars ::= l
     l
   }
@@ -60,11 +55,6 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
       }
   }
 
-
-  def getBlock(blockIdx: Int) = blocks(blockIdx)
-
-  def getLastBlock(): Block = blocks.last
-
   /**
     * returns a label for a block
     */
@@ -73,38 +63,6 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) {
       blockLabels += (block -> freshLabel("L" + blocks.indexOf(block)))
     blockLabels(block)
   }
-
-  /**
-    * returns the next block in the CFG (not necessarily a successor)
-    */
-  def getNextBlock(block: Block): Option[Block] = {
-    val blockIdx = blocks.indexOf(block)
-    if (blockIdx == blocks.size - 1)
-      None
-    else
-      Some(blocks(blockIdx + 1))
-  }
-
-  /**
-    * returns the next block (unless this is the last block), and in case of a conditional
-    * jump, the conditional next block
-    */
-  def getSuccessors(block: Block): (Option[Block], Option[Block]) = {
-    val nextBlock = getNextBlock(block)
-    val lastInstr = block.instr.last
-    val jumpInstr = lastInstr.getJumpInstr
-    if (jumpInstr.isDefined) {
-      val succ = jumpInstr.get.getSuccessor()
-      (if (succ._1.isDefined) succ._1.map(getBlock) else nextBlock, succ._2.map(getBlock))
-    } else (nextBlock, None)
-  }
-
-  def getPredecessors(thisBlock: Block): Set[Block] =
-    for (block: Block <- blocks.toSet;
-         succ = getSuccessors(block)
-         if succ._1 == Some(thisBlock) || succ._2 == Some(thisBlock))
-      yield block
-
 
   /**
     * returns whether the first block is before the second block

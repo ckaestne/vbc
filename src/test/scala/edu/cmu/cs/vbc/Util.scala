@@ -89,7 +89,7 @@ case class InstrDBGIPrint() extends Instruction {
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    loadFExpr(mv, env, env.getBlockVar(block)) //ctx
+    loadFExpr(mv, env, env.getVBlockVar(block)) //ctx
     mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/TestOutput", "printVI", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
   }
 
@@ -109,7 +109,7 @@ case class InstrDBGStrPrint() extends Instruction {
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    loadFExpr(mv, env, env.getBlockVar(block)) //ctx
+    loadFExpr(mv, env, env.getVBlockVar(block)) //ctx
     mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/TestOutput", "printVStr", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
   }
 
@@ -130,7 +130,7 @@ case class InstrDBGCtx(name: String) extends Instruction {
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     mv.visitLdcInsn(name)
-    loadFExpr(mv, env, env.getBlockVar(block)) //ctx
+    loadFExpr(mv, env, env.getVBlockVar(block)) //ctx
     mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/TestOutput", "printFE", "(Ljava/lang/String;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
   }
 

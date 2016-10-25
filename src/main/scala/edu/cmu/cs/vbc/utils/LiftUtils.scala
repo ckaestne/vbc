@@ -79,7 +79,7 @@ object LiftUtils {
     mv.visitVarInsn(ALOAD, env.getVarIdx(v))
 
   def loadCurrentCtx(mv: MethodVisitor, env: VMethodEnv, block: Block) =
-    if (env.isMain) pushConstantTRUE(mv) else loadFExpr(mv, env, env.getBlockVar(block))
+    if (env.isMain) pushConstantTRUE(mv) else loadFExpr(mv, env, env.getVBlockVar(block))
 
   def storeV(mv: MethodVisitor, env: MethodEnv, v: Variable) =
     mv.visitVarInsn(ASTORE, env.getVarIdx(v))

@@ -29,7 +29,7 @@ trait DiffLaunchTestInfrastructure {
         case InstrIRETURN() => List(vbc.TraceInstr_S("IRETURN"), instr)
         case instr => List(instr)
       }
-      ).flatten: _*
+      ).flatten, block.exceptionHandlers
     )
 
 
@@ -41,7 +41,7 @@ trait DiffLaunchTestInfrastructure {
         //replace initialization of conditional fields
         case InstrINIT_CONDITIONAL_FIELDS() => vbc.TraceInstr_ConfigInit()
         case instr => instr
-      }): _*
+      }), block.exceptionHandlers
     )
 
 

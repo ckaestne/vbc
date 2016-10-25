@@ -2,7 +2,7 @@ package edu.cmu.cs.vbc.vbytecode
 
 import edu.cmu.cs.vbc.analysis.{VBCAnalyzer, VBCFrame}
 import edu.cmu.cs.vbc.utils.{LiftUtils, Statistics}
-import edu.cmu.cs.vbc.vbytecode.instructions.Instruction
+import edu.cmu.cs.vbc.vbytecode.instructions.{InstrGOTO, Instruction, JumpInstruction}
 import org.objectweb.asm.Type
 
 /**
@@ -15,7 +15,10 @@ import org.objectweb.asm.Type
   * 1. decide whether or not to lift each instruction (see tagV section)
   * 1. handle unbalanced stack (see unbalanced stack section)
   */
-class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(clazz, method) {
+class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(clazz, method) with VBlockAnalysis {
+
+  val exceptionVar: LocalVar = freshLocalVar(name = "$exceptionVar", desc = LiftUtils.vclasstype, LocalVar.initOneNull)
+  val ctxParameter: Parameter = new Parameter(-1, "ctx", TypeDesc(LiftUtils.fexprclasstype))
 
   //////////////////////////////////////////////////
   // tagV
@@ -26,9 +29,6 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   override def parameterCount: Int = Type.getArgumentTypes(method.desc).size + (if (method.isStatic) 0 else 1)
 
   val blockTags = new Array[Boolean](blocks.length)
-
-  // by default all elements are false
-  def getBlockIdx(b: Block) = blocks.indexWhere(_ eq b)
 
   /**
     * For each instruction, mark whether or not we need to lift it
@@ -83,22 +83,18 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   def getOrderedSuccessorsIndexes(b: Block): List[Int] = {
     var idxSet = Set[Int]()
     var visited = Set[Block]()
-    val (uncond, cond) = getSuccessors(b)
+    val succ: Set[Block] = getSuccessors(b)
     var queue = List[Block]()
-    if (uncond.isDefined) queue = queue :+ uncond.get
-    if (cond.isDefined) queue = queue :+ cond.get
+    queue  = queue ++ succ
     while (queue.nonEmpty) {
       val h = queue.head
       visited += h
       if (!idxSet.contains(getBlockIdx(h))) {
         idxSet += getBlockIdx(h)
-        val (o1, o2) = getSuccessors(h)
-        if (o1.isDefined && !visited.contains(o1.get))
-          queue = queue :+ o1.get
-        if (o2.isDefined && !visited.contains(o2.get))
-          queue = queue :+ o2.get
+        val succ = getSuccessors(h)
+        queue = queue ++ succ
       }
-      queue = queue.drop(1)
+      queue = queue.tail
     }
     idxSet.toList sortWith (_ < _)
   }
@@ -123,6 +119,36 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
     else getVarIdxNoCtx(variable) == 0
   }
 
+  /**
+    * determines whether a CFJ edge between two blocks could be executed
+    * in a stricter context than the context in which `fromBlock` was executed.
+    *
+    * This is the case when the last instruction of the `fromBlock` is
+    * a variational jump (eg if condition on V value) or a method call that
+    * could throw a variational exception. In contrast, GOTO or a normal
+    * exception is a nonvariational jump and the `toBlock` will continue
+    * in the same condition as the `fromBlock`
+    */
+  def isVariationalJump(fromBlock: Block, toBlock: Block): Boolean = {
+    //TODO this should be informed by results of the tagV analysis
+    //for now it's simply returning true for all IF statements and method
+    //invocations
+
+    val lastInstr = fromBlock.instr.last
+    val fromBlockIdx = getBlockIdx(fromBlock)
+    val toBlockIdx = getBlockIdx(toBlock)
+
+    lastInstr match {
+      case InstrGOTO(t) => false // GOTO does not change the context
+      //      case method: MethodInstruction => true // all methods can have conditional exceptions
+      case jump: JumpInstruction =>
+        // all possible jump targets are variational, exception edges are not
+        val succ = jump.getSuccessor()
+        toBlockIdx == succ._1.getOrElse(fromBlockIdx + 1) || succ._2.exists(_ == toBlockIdx)
+      case _ => false // exceptions do not change the context
+    }
+  }
+
   //////////////////////////////////////////////////
   // unbalanced stack
   //////////////////////////////////////////////////
@@ -134,7 +160,7 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
 
   def getLeftVars(block: Block): List[Set[Variable]] = {
     val afterFrame = framesAfter(getInsnIdx(block.instr.last))
-    val (succ1, succ2) = getSuccessors(block)
+    val (succ1, succ2) = getJumpTargets(block)
     getVarSetList(Nil, succ1, succ2, afterFrame.getStackSize)
   }
 
@@ -166,29 +192,35 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
     (block, newVars)
   }
 
+  //////////////////////////////////////////////////
+  // Block management
+  //////////////////////////////////////////////////
+
+  // allocate a variable for each VBlock, except for the first, which can reuse the parameter slot
+  // EBlocks have variables that do not need to be initialized (we cannot jump there directly)
+  val vblockVars: Map[VBlock, Variable] =
+  (for ((vblock, vblockidx) <- (vblocks zip vblocks.indices).tail) yield
+    vblock -> freshLocalVar("$blockctx" + vblockidx, LiftUtils.fexprclasstype, LocalVar.initFalse)).toMap +
+    (vblocks.head -> ctxParameter) //TODO should not reuse ctxParameter if we want to access that value later on, e.g., in VInstrRETURN
+
+  def getVBlockVar(vblock: VBlock): Variable = vblockVars(vblock)
+
+  def getVBlockVar(block: Block): Variable = {
+    val vblock = vblocks.filter(_.allBlocks contains block)
+    assert(vblock.size == 1, "expected the block to be in exactly one VBlock")
+    vblockVars(vblock.head)
+  }
+
+  def getVBlockLabel(vblock: VBlock) = getBlockLabel(vblock.firstBlock)
 
   //////////////////////////////////////////////////
   // Utilities
   //////////////////////////////////////////////////
 
-  var blockVars: Map[Block, Variable] = Map()
-
   def createNewVars(l: List[Variable], n: Int): List[Variable] =
-    if (n == 0) l else createNewVars(List[Variable](freshLocalVar("$unbalancedstack" + n, LiftUtils.vclasstype)) ::: l, n - 1)
+    if (n == 0) l else createNewVars(List[Variable](freshLocalVar("$unbalancedstack" + n, LiftUtils.vclasstype, init = LocalVar.initOneNull)) ::: l, n - 1)
 
-  val ctxParameter: Parameter = new Parameter(-1, "ctx", TypeDesc(LiftUtils.fexprclasstype))
-
-
-  def setBlockVar(block: Block, avar: Variable): Unit =
-    blockVars += (block -> avar)
-
-  def getBlockVar(block: Block): Variable = {
-    if (!(blockVars contains block))
-      blockVars += (block -> freshLocalVar("$blockctx" + method.body.blocks.indexOf(block), LiftUtils.fexprclasstype))
-    blockVars(block)
-  }
-
-  def getBlockVarVIdx(block: Block): Int = getVarIdx(getBlockVar(block))
+  def getBlockVarVIdx(block: Block): Int = getVarIdx(getVBlockVar(block))
 
   def getLocalVariables() = localVars
 
@@ -217,5 +249,26 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   //////////////////////////////////////////////////
   Statistics.collectLiftingRatio(method.name, instructionTags.count(_ != 0), instructionTags.length)
 
-  val exceptionVar: LocalVar = freshLocalVar(name = "$exceptionVar", desc = LiftUtils.vclasstype)
+  /** graphviz graph for debugging purposes */
+  def toDot: String = {
+    def blockname(b: Block) = "\"B" + getBlockIdx(b) + "\""
+    def blocklabel(b: Block) = "B" + getBlockIdx(b) + ": v" + vblocks.indexOf(getVBlock(b)) + "\\n" +
+      getExpectingVars(b).mkString("stack_load ", ", ", "\\n") +
+      b.instr.mkString("\\n") + "\\n" +
+      getLeftVars(b).mkString("stack_store ", ", ", "\\n")
+
+    var result = "digraph G {\n"
+    for (b <- blocks)
+      result += s"  ${blockname(b)} [ shape=box label = " + "\"" + blocklabel(b) + "\" " + (if (isExceptionHandlerBlock(b)) " color=\"blue\"" else "") + "];\n"
+    for (b <- blocks;
+         succ <- getSuccessors(b))
+      result += s"  ${blockname(b)} -> ${blockname(succ)}" +
+        (if (isVariationalJump(b, succ)) "[ color=\"red\" label=\"V\" ]" else "") + ";\n"
+    for (b <- blocks;
+         (ex, handler) <- getExceptionHandlers(b))
+      result += s"  ${blockname(b)} -> ${blockname(handler)}" +
+        " [ color=\"blue\" label=\"" + ex + "\" ];\n"
+
+    result + "}"
+  }
 }

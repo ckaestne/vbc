@@ -53,7 +53,7 @@ class Loader {
 
   def adaptMethod(owner: String, m: MethodNode): VBCMethodNode = {
     //    println("\tMethod: " + m.name)
-    val methodAnalyzer = new MethodAnalyzer(owner, m)
+    val methodAnalyzer = new MethodCFGAnalyzer(owner, m)
     methodAnalyzer.analyze()
     methodAnalyzer.validate()
     val ordered = methodAnalyzer.blocks.toArray :+ m.instructions.size()
@@ -107,7 +107,7 @@ class Loader {
       val instrList = for (instrIdx <- start until end;
                            if m.instructions.get(instrIdx).getOpcode >= 0 || m.instructions.get(instrIdx).isInstanceOf[LineNumberNode])
         yield adaptBytecodeInstruction(m.instructions.get(instrIdx), methodAnalyzer.label2BlockIdx.apply, lookupVariable)
-      new Block(instrList: _*)
+      Block(instrList, methodAnalyzer.getBlockException(start))
     }
 
 

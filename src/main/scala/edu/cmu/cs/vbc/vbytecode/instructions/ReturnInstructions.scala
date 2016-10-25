@@ -70,7 +70,7 @@ case class InstrARETURN() extends ReturnInstruction {
     */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     // $result should be on top of operand stack already
-    LiftUtils.loadFExpr(mv, env, env.getBlockVar(block))
+    LiftUtils.loadFExpr(mv, env, env.getVBlockVar(block))
     mv.visitInsn(SWAP)
     mv.visitVarInsn(ALOAD, env.getVarIdx(env.exceptionVar))
     LiftUtils.callVCreateChoice(mv)

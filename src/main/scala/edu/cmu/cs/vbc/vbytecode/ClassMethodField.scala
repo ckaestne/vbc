@@ -170,7 +170,32 @@ class Parameter(val idx: Int, val name: String, val desc: TypeDesc) extends Vari
 /**
   * the name and description are used solely for debugging purposes
   */
-class LocalVar(val name: String, val desc: String, val is64bit: Boolean = false) extends Variable
+class LocalVar(
+                val name: String,
+                val desc: String,
+                val vinitialize: (MethodVisitor, VMethodEnv, LocalVar) => Unit = LocalVar.initOneNull,
+                val is64bit: Boolean = false
+                ) extends Variable {
+  override def toString = name
+}
+
+object LocalVar {
+  import LiftUtils._
+  def initNull(mv: MethodVisitor, env: VMethodEnv, v: LocalVar) = {
+    mv.visitInsn(ACONST_NULL)
+    mv.visitVarInsn(ASTORE, env.getVarIdx(v))
+  }
+  def initOneNull(mv: MethodVisitor, env: VMethodEnv, v: LocalVar) = {
+    mv.visitInsn(ACONST_NULL)
+    callVCreateOne(mv, loadFExpr(_, env, env.ctxParameter))
+    storeV(mv, env, v)
+  }
+  def initFalse(mv: MethodVisitor, env: VMethodEnv, v: LocalVar) = {
+    pushConstantFALSE(mv)
+    storeFExpr(mv, env, v)
+  }
+  def noInit(mv: MethodVisitor, env: VMethodEnv, v: LocalVar) = {}
+}
 
 
 case class VBCClassNode(
@@ -268,7 +293,7 @@ case class VBCClassNode(
       MethodDesc("()V"),
       None,
       List.empty,
-      CFG(List(Block(instrs: _*)))
+      CFG(List(Block(instrs, Nil)))
     )
     rewriter(Rewrite.rewriteV(vbcMtd)).toVByteCode(cv, this)
 
