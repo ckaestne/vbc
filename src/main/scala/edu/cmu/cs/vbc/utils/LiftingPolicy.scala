@@ -19,6 +19,8 @@ object LiftingPolicy {
     case x if x.endsWith("java/lang/StringBuilder") => true
     case x if x.endsWith("java/lang/AbstractStringBuilder") => true
     case x if x.endsWith("java/util/ArrayList") => true
+    case x if x.endsWith("java/util/AbstractList") => true
+    case x if x.endsWith("java/util/AbstractCollection") => true
     case _ => false
   }
 
@@ -38,6 +40,8 @@ object LiftingPolicy {
         case (Owner("java/lang/String"), _, _) => false
         case (Owner("java/lang/Object"), _, _) => false
         case (Owner("java/io/PrintStream"), _, _) => false
+        case (Owner("java/lang/Math"), _, _) => false
+        case (Owner("java/util/Arrays"), _, _) => false
         case (o, _, _) if o.name.endsWith("Exception") => false
         case _ => true
       }

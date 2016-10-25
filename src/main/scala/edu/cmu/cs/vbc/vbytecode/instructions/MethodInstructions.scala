@@ -105,6 +105,7 @@ trait MethodInstruction extends Instruction {
         mv.visitMethodInsn(INVOKESTATIC, Owner.getBoolean, MethodName("valueOf"), MethodDesc(s"(Z)${TypeDesc.getBoolean}"), false)
       case Type.OBJECT => // do nothing
       case Type.VOID => // do nothing
+      case Type.ARRAY => // do nothing
       case _ => ???
     }
   }

@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc
 
 import de.fosd.typechef.featureexpr.FeatureExprFactory
-import edu.cmu.cs.vbc.prog.{ExceptionExample, InitExample, LinkedListExample, StringBuilderExample}
+import edu.cmu.cs.vbc.prog._
 import org.scalatest.FunSuite
 
 
@@ -88,5 +88,9 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
 
   test("StringBuilderExample") {
     testMain(classOf[StringBuilderExample], compareTraceAgainstBruteForce = false)
+  }
+
+  test("ArrayListExample") {
+    testMain(classOf[ArrayListExample], compareTraceAgainstBruteForce = false)
   }
 }

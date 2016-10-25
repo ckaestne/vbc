@@ -53,6 +53,9 @@ class MethodCFGAnalyzer(owner: String, mn: MethodNode) extends Analyzer[BasicVal
     analyze(owner, mn)
 //    splitForMethodInvocations() // ignored for now
     analyzeExceptions()
+    if (blocks.nonEmpty && blocks.last >= instructions.size()) {
+      blocks = blocks.init
+    }
   }
 
   override protected def newControlFlowEdge(insn: Int, successor: Int): Unit = {

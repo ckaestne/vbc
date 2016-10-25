@@ -379,7 +379,7 @@ case class InstrIFNULL(targetBlockIdx: Int) extends JumpInstruction {
 case class InstrIFLE(targetBlockIdx: Int) extends JumpInstruction {
   override def getSuccessor(): (Option[Int], Option[Int]) = (None, Some(targetBlockIdx))
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitJumpInsn(IFEQ, env.getBlockLabel(env.getBlock(targetBlockIdx)))
+    mv.visitJumpInsn(IFLE, env.getBlockLabel(env.getBlock(targetBlockIdx)))
   }
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this))

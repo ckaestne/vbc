@@ -181,6 +181,9 @@ case class InstrINSTANCEOF(owner: Owner) extends Instruction {
       env.setLift(this)
       (frame.push(V_TYPE(), Set(this)), Set())
     }
+    else if (env.shouldLiftInstr(this)) {
+      (frame, objBacktrack)
+    }
     else {
       (frame.push(INT_TYPE(), Set(this)), Set())
     }
