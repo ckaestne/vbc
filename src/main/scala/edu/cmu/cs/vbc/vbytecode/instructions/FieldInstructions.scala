@@ -145,10 +145,6 @@ case class InstrGETFIELD(owner: Owner, name: FieldName, desc: TypeDesc) extends 
         val label = new Label()
         visitor.visitVarInsn(ALOAD, 1) //obj ref
         visitor.visitFieldInsn(GETFIELD, owner, name, vclasstype)
-        visitor.visitInsn(DUP)
-        visitor.visitJumpInsn(IFNONNULL, label)
-        callVCreateOne(visitor, (m) => pushConstantTRUE(m))
-        visitor.visitLabel(label)
         visitor.visitInsn(ARETURN)
       }
     }
@@ -187,15 +183,6 @@ case class InstrPUTFIELD(owner: Owner, name: FieldName, desc: TypeDesc) extends 
         mv.visitInsn(SWAP) // stack: ..., val, this
         mv.visitInsn(DUP_X1) // stack: .., this, val, this
         mv.visitFieldInsn(GETFIELD, owner, name, "Ledu/cmu/cs/varex/V;") // stack: ..., this, val, oldval OR null
-
-        //by default, fields should never be "null", but this can happen when they are not initialized yet
-        //to preserve our invariant that no V value shall ever be null, this will explicitly check for null
-        //and wrap the null in a One if necessary.
-        val label = new Label()
-        mv.visitInsn(DUP)
-        mv.visitJumpInsn(IFNONNULL, label) // this is a nonvariational jump within this block, which does not interfere with out control flow strategyy
-        callVCreateOne(mv, (m) => pushConstantTRUE(m))
-        mv.visitLabel(label)
 
         /* put FE, new value and old value */
         loadContext(mv) // stack: ..., this, val, oldval, ctx

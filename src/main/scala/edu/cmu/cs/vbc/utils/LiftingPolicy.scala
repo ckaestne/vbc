@@ -18,9 +18,12 @@ object LiftingPolicy {
     case x if x.startsWith("edu/cmu/cs/vbc/prog/") => true
     case x if x.endsWith("java/lang/StringBuilder") => true
     case x if x.endsWith("java/lang/AbstractStringBuilder") => true
-    case x if x.endsWith("java/util/ArrayList") => true
+    case x if x.contains("java/util/ArrayList") => true // so that inner classes could be included.
     case x if x.endsWith("java/util/AbstractList") => true
     case x if x.endsWith("java/util/AbstractCollection") => true
+    case x if x.endsWith("java/lang/Enum") => true
+    case x if x.endsWith("java/util/Collection") => true
+    case x if x.endsWith("java/util/Iterator") => true
     case _ => false
   }
 

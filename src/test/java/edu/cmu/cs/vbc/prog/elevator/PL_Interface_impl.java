@@ -86,17 +86,23 @@ public  class  PL_Interface_impl  {
 	// this method is used as hook for the liveness properties.
 	public void test(int specification, int variation) {
 		if (variation==-1) {
-			switch (specification) {
-			case 1: Specification1();break;
-			case 2: Specification2();break;
-			case 3: Specification3();break;
-			case 8: /*Specification8();*/isAbortedRun=true;break;
-			case 9: Specification9();break;
-			case 10: /*Specification10();*/isAbortedRun=true;break;
-			case 11: /*Specification11();*/isAbortedRun=true;break;
-			case 13: Specification13();break;
-			case 14: Specification14();break;
-			}
+//            Specification1();
+//			Specification2();
+//			Specification3();
+//			Specification9();
+//			Specification13();
+			Specification14();
+//			switch (specification) {
+//			case 1: Specification1();break;
+//			case 2: Specification2();break;
+//			case 3: Specification3();break;
+//			case 8: /*Specification8();*/isAbortedRun=true;break;
+//			case 9: Specification9();break;
+//			case 10: /*Specification10();*/isAbortedRun=true;break;
+//			case 11: /*Specification11();*/isAbortedRun=true;break;
+//			case 13: Specification13();break;
+//			case 14: Specification14();break;
+//			}
 		} else {
 			
 			randomSequenceOfActions(variation);
@@ -125,25 +131,47 @@ public  class  PL_Interface_impl  {
 			counter++;
 			int action = getIntegerMinMax(0, 7); 
 			String actionName = "";
-			switch (action) {
-			case 0:	a.bobCall(); actionName = "bobCall"; break;
-			case 1: a.aliceCall(); actionName = "aliceCall"; break;
-			case 2:	a.angelinaCall(); actionName = "angelinaCall"; break;
-			case 3:	a.chuckCall(); actionName = "chuckCall"; break;
-			case 4:	a.monicaCall();	actionName = "monicaCall"; break;
-			case 5:	a.bigMacCall();	actionName = "bigMacCall"; break;
-			case 6: e.timeShift(); actionName = "1TS"; break; // execute one timestep
-			case 7:
-				actionName = "3TS";// execute three timesteps
+            if (action == 0) {
+				a.bobCall(); actionName = "bobCall";
+			} else if (action == 1) {
+				a.aliceCall(); actionName = "aliceCall";
+			} else if (action == 2) {
+				a.angelinaCall(); actionName = "angelinaCall";
+			} else if (action == 3) {
+				a.chuckCall(); actionName = "chuckCall";
+			} else if (action == 4) {
+				a.monicaCall(); actionName = "monicaCall";
+			} else if (action == 5) {
+				a.bigMacCall(); actionName = "bigMacCall";
+			} else if (action == 6) {
+				e.timeShift(); actionName = "1TS";
+			} else if (action == 7) {
+				actionName = "3TS";
 				for (int i = 0; i < 3; i++) {
 					e.timeShift();
 				}
-				// nobody calls
-				break;
-			default:
-				throw new InternalError(
-						"getIntegerMinMax produced illegal value:" + action);
+			} else {
+				throw new InternalError("getIntegerMinMax produced illegal value:" + action);
 			}
+//			switch (action) {
+//			case 0:	a.bobCall(); actionName = "bobCall"; break;
+//			case 1: a.aliceCall(); actionName = "aliceCall"; break;
+//			case 2:	a.angelinaCall(); actionName = "angelinaCall"; break;
+//			case 3:	a.chuckCall(); actionName = "chuckCall"; break;
+//			case 4:	a.monicaCall();	actionName = "monicaCall"; break;
+//			case 5:	a.bigMacCall();	actionName = "bigMacCall"; break;
+//			case 6: e.timeShift(); actionName = "1TS"; break; // execute one timestep
+//			case 7:
+//				actionName = "3TS";// execute three timesteps
+//				for (int i = 0; i < 3; i++) {
+//					e.timeShift();
+//				}
+//				// nobody calls
+//				break;
+//			default:
+//				throw new InternalError(
+//						"getIntegerMinMax produced illegal value:" + action);
+//			}
 			actionHistory.add(actionName);
 			//System.out.println(listToString(actionHistory));
 			if (e.isBlocked()) {

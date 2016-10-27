@@ -269,6 +269,7 @@ case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, 
         // e.g. passing V<Integer> into String constructor
         loadCurrentCtx(mv, env, block)
         invokeInitWithVs(liftedCall, itf, mv, env)
+        return  // avoid redundant One wrapping in the end.
       }
       else if (name.contentEquals("<init>") && liftedCall.isLifting && hasVArgs) {
         pushNulls(mv, desc)
@@ -277,12 +278,13 @@ case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, 
       }
       else {
         mv.visitMethodInsn(INVOKESPECIAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+        boxReturnValue(liftedCall.desc, mv)
         //cpwtodo: for now, ignore the exceptions on stack
         if (!name.contentEquals("<init>") && liftedCall.isLifting && desc.isReturnVoid) mv.visitInsn(POP)
       }
 
-      if (env.getTag(this, env.TAG_WRAP_DUPLICATE)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
-      if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+      if (env.getTag(this, env.TAG_WRAP_DUPLICATE) || env.getTag(this, env.TAG_NEED_V))
+        callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
   }
 

@@ -220,11 +220,12 @@ case class VBCClassNode(
   import LiftUtils._
 
   def toByteCode(cv: ClassVisitor, rewriter: VBCMethodNode => VBCMethodNode = a => a) = {
-    cv.visit(version, access, name, signature.getOrElse(null), superName, interfaces.toArray)
+    val liftedSuperName = liftSuperName(Owner(superName))
+    cv.visit(version, access, name, signature.getOrElse(null), liftedSuperName, interfaces.toArray)
     commonToByteCode(cv)
     //        innerClasses.foreach(_.toByteCode(cv))
     fields.foreach(_.toByteCode(cv))
-    methods.foreach(m => rewriter(Rewrite.rewrite(m)).toByteCode(cv, this))
+    methods.foreach(m => rewriter(Rewrite.rewrite(m, this)).toByteCode(cv, this))
     cv.visitEnd()
   }
 
@@ -243,7 +244,7 @@ case class VBCClassNode(
     commonToByteCode(cv)
     //        innerClasses.foreach(_.toVByteCode(cv))
     fields.foreach(_.toVByteCode(cv))
-    methods.foreach(m => rewriter(Rewrite.rewriteV(m)).toVByteCode(cv, this))
+    methods.foreach(m => rewriter(Rewrite.rewriteV(m, this)).toVByteCode(cv, this))
     //if the class has a main method, create also an unlifted main method
     if (methods.exists(_.isMain))
       createUnliftedMain(cv)
@@ -295,7 +296,7 @@ case class VBCClassNode(
       List.empty,
       CFG(List(Block(instrs, Nil)))
     )
-    rewriter(Rewrite.rewriteV(vbcMtd)).toVByteCode(cv, this)
+    rewriter(Rewrite.rewriteV(vbcMtd, this)).toVByteCode(cv, this)
 
     val mv = cv.visitMethod(ACC_STATIC, "<clinit>", "()V", null, Array.empty)
     mv.visitCode()

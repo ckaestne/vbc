@@ -48,7 +48,14 @@ trait ArrayInstructions extends Instruction {
         visitor.visitVarInsn(ALOAD, 3) //index
         visitor.visitMethodInsn(INVOKEVIRTUAL, IntClass, "intValue", "()I", false)
         visitor.visitVarInsn(ALOAD, 0) //new value
-        visitor.visitInsn(AASTORE)
+        visitor.visitVarInsn(ALOAD, 2) // FE
+        visitor.visitMethodInsn(
+          INVOKESTATIC,
+          Owner.getArrayOps,
+          MethodName("aastore"),
+          MethodDesc(s"([${vclasstype}I${vclasstype}${fexprclasstype})V"),
+          false
+        )
         visitor.visitInsn(RETURN)
       }
     }
@@ -257,7 +264,14 @@ case class InstrAASTORE() extends ArrayInstructions {
       storeOperation(mv, env, block)
     }
     else {
-      mv.visitInsn(AASTORE)
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(
+        INVOKESTATIC,
+        Owner.getArrayOps,
+        MethodName("aastore"),
+        MethodDesc(s"([${vclasstype}I${vclasstype}${fexprclasstype})V"),
+        false
+      )
     }
   }
 
@@ -349,6 +363,7 @@ case class InstrIASTORE() extends ArrayInstructions {
       storeOperation(mv, env, block)
     }
     else {
+      ???
       mv.visitInsn(AASTORE)
     }
   }
@@ -389,6 +404,7 @@ case class InstrCASTORE() extends ArrayInstructions {
       storeBCSI(mv, env, block, PrimitiveType.char)
     }
     else {
+      ???
       mv.visitInsn(AASTORE)
     }
   }

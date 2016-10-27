@@ -47,7 +47,7 @@ public   class  Elevator {
 
 	
 	//@Symbolic("false")
-	boolean[] floorButtons;
+	int[] floorButtons;
 
 	
 	
@@ -57,7 +57,7 @@ public   class  Elevator {
 		this.currentFloorID = 0;
 		this.doors = DoorState.open;
 		this.env = env;
-		this.floorButtons = new boolean[env.floors.length];
+		this.floorButtons = new int[env.floors.length];
 	}
 
 	
@@ -67,7 +67,7 @@ public   class  Elevator {
 		this.currentFloorID = floor;
 		this.doors = DoorState.open;
 		this.env = env;
-		this.floorButtons = new boolean[env.floors.length];
+		this.floorButtons = new int[env.floors.length];
 	}
 
 	
@@ -159,7 +159,7 @@ leaveElevator__before__empty(Person p) {
 	public boolean  leaveElevator__role__empty(Person p) { // empty
 		if (leaveElevator__before__empty(p)) {
 			if (this.persons.isEmpty())
-				Arrays.fill(this.floorButtons, false);
+				Arrays.fill(this.floorButtons, 0);
 			return true;
 		} else return false;
 	}
@@ -183,12 +183,12 @@ leaveElevator(Person p) {
 	 * @param floorID
 	 */
 	public void pressInLiftFloorButton(int floorID) {
-		floorButtons[floorID] = true;
+		floorButtons[floorID] = 1;
 	}
 
 	
 	private void resetFloorButton(int floorID) {
-		floorButtons[floorID] = false;
+		floorButtons[floorID] = 1;
 	}
 
 	
@@ -202,18 +202,27 @@ leaveElevator(Person p) {
 		return doors == DoorState.open;
 	}
 
-	
-	// pre: elevator arrived at the current floor, next actions to be done
-	public void  timeShift__before__overloaded() {
+
+	public void
+timeShift() {
+    if (FeatureSwitches.__SELECTED_FEATURE_overloaded) {
+		if (areDoorsOpen() && weight > maximumWeight) {
+			blocked = true;
+			if (verbose) System.out.println("Elevator blocked due to overloading (weight:" + weight + " > maximumWeight:" + maximumWeight + ")");
+            return;
+		} else {
+			blocked = false;
+		}
+	}
 		//System.out.println("--");
-		
+
 		if (stopRequestedAtCurrentFloor()) {
 			//System.out.println("Arriving at " +  currentFloorID + ", Doors opening");
 			doors = DoorState.open;
 			// iterate over a copy of the original list, avoids concurrent modification exception
 			for (Person p: new ArrayList<Person>(persons)) {
 				if (p.getDestination() == currentFloorID) {
-					leaveElevator(p);					
+					leaveElevator(p);
 				}
 			}
 			env.getFloor(currentFloorID).processWaitingPersons(this);
@@ -239,72 +248,24 @@ leaveElevator(Person p) {
 		}
 	}
 
-	
-	// pre: elevator arrived at the current floor, next actions to be done
-	public void  timeShift__role__overloaded() {
-		if (areDoorsOpen() && weight > maximumWeight) {
-			blocked = true;
-			if (verbose) System.out.println("Elevator blocked due to overloading (weight:" + weight + " > maximumWeight:" + maximumWeight + ")");
-		} else {
-			blocked = false;
-			timeShift__before__overloaded();
-		}
-	}
 
-	
-	public void
-timeShift() {
-    if (FeatureSwitches.__SELECTED_FEATURE_overloaded) {
-        timeShift__role__overloaded();
-    } else {
-        timeShift__before__overloaded();
-    }
-}
-
-
-
-	
-	private boolean  stopRequestedAtCurrentFloor__before__twothirdsfull() {
-		return env.getFloor(currentFloorID).hasCall() 
-				|| floorButtons[currentFloorID] == true;
-	}
-
-	
-	private boolean  stopRequestedAtCurrentFloor__role__twothirdsfull() {
-		if (weight > maximumWeight*2/3) {
-			return floorButtons[currentFloorID] == true;
-		} else return stopRequestedAtCurrentFloor__before__twothirdsfull();
-	}
-
-	
-	private boolean 
-stopRequestedAtCurrentFloor__before__executivefloor() {
-    if (FeatureSwitches.__SELECTED_FEATURE_twothirdsfull) {
-        return stopRequestedAtCurrentFloor__role__twothirdsfull();
-    } else {
-        return stopRequestedAtCurrentFloor__before__twothirdsfull();
-    }
-}
-
-
-
-	
-	private boolean  stopRequestedAtCurrentFloor__role__executivefloor() { //executive
-		if (isExecutiveFloorCalling() && !isExecutiveFloor(currentFloorID)) {
-			return false;
-		} else return stopRequestedAtCurrentFloor__before__executivefloor();
-	}
-
-	
 	// alternative implementation: subclass of "ExecutiveFloor extends Floor"
 	private boolean
 stopRequestedAtCurrentFloor() {
     if (FeatureSwitches.__SELECTED_FEATURE_executivefloor) {
-        return stopRequestedAtCurrentFloor__role__executivefloor();
-    } else {
-        return stopRequestedAtCurrentFloor__before__executivefloor();
-    }
-}
+		//executive
+		if (isExecutiveFloorCalling() && !isExecutiveFloor(currentFloorID)) {
+			return false;
+		}
+	}
+		if (FeatureSwitches.__SELECTED_FEATURE_twothirdsfull) {
+			if (weight > maximumWeight*2/3) {
+                return floorButtons[currentFloorID] == 1;
+            }
+		}
+		return env.getFloor(currentFloorID).hasCall()
+				|| floorButtons[currentFloorID] == 1;
+	}
 
 
 
@@ -335,7 +296,7 @@ stopRequestedAtCurrentFloor() {
 	
 	private boolean isAnyLiftButtonPressed() {
 		for (int i = 0; i < this.floorButtons.length; i++) {
-			if (floorButtons[i]) return true;
+			if (floorButtons[i] == 1) return true;
 		}
 		return false;
 	}
@@ -348,14 +309,14 @@ stopRequestedAtCurrentFloor() {
 			if (env.isTopFloor(currentFloorID)) return false;
 			for (int i = currentFloorID+1; i < floors.length; i++) {
 				if (respectFloorCalls && floors[i].hasCall()) return true;
-				if (respectInLiftCalls && this.floorButtons[i]) return true; 
+				if (respectInLiftCalls && this.floorButtons[i] == 1) return true;
 			}
 			return false;
 		} else {
 			if (currentFloorID == 0) return false;
 			for (int i = currentFloorID-1; i >= 0; i--) {
 				if (respectFloorCalls && floors[i].hasCall()) return true;
-				if (respectInLiftCalls && this.floorButtons[i]) return true;
+				if (respectInLiftCalls && this.floorButtons[i] == 1) return true;
 			}
 			return false;
 		}
@@ -408,7 +369,7 @@ stopRequestedInDirection(Direction dir, boolean respectFloorCalls, boolean respe
 		Floor[] floors = env.getFloors();
 		for (int i = 0; i < floors.length; i++) {
 			if (floors[i].hasCall()) return true;
-			else if (this.floorButtons[i]) return true; 
+			else if (this.floorButtons[i] == 1) return true;
 		}
 		return false;		
 	}
@@ -416,7 +377,7 @@ stopRequestedInDirection(Direction dir, boolean respectFloorCalls, boolean respe
 	
 
 	public boolean buttonForFloorIsPressed(int floorID) {
-		return this.floorButtons[floorID];
+		return this.floorButtons[floorID] == 1;
 	}
 
 	

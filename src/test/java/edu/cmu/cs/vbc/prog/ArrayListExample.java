@@ -11,19 +11,54 @@ public class ArrayListExample {
 
     @VConditional
     boolean A;
-    ArrayList<Integer> array;
+    private ArrayList<MyInteger> array;
 
-    ArrayListExample() {
+    private ArrayListExample() {
         array = new ArrayList<>();
         if (A) {
-            array.add(1);
+            array.add(new MyInteger(1));
         } else {
-            array.add(2);
+            array.add(new MyInteger(2));
+        }
+    }
+
+    private void testIterator() {
+        if (A) {
+            array.add(new MyInteger(3));
+        }
+        for (MyInteger i : array) {
+                i.increment();
+                i.increment();
+        }
+        for (MyInteger i : array) {
+            System.out.println(i.toString());
         }
     }
 
     public static void main(String[] args) {
         ArrayListExample example = new ArrayListExample();
         System.out.println(example.array.get(0));
+        example.testIterator();
+    }
+}
+
+/**
+ * Wrapper for Integer.
+ *
+ * Add increment() method to check the side effect to array elements.
+ */
+class MyInteger {
+    private Integer v;
+    MyInteger(Integer v) {
+        this.v = v;
+    }
+    @Override
+    public String toString() {
+        return "MyInteger{" +
+                "v=" + v +
+                '}';
+    }
+    void increment() {
+        this.v += 1;
     }
 }

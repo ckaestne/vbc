@@ -2,7 +2,6 @@ package edu.cmu.cs.vbc.prog.elevator;
 //import gov.nasa.jpf.symbc.Symbolic;
 
 import java.util.ArrayList;
-import java.util.List; 
 
 
 public  class  Floor {
@@ -16,7 +15,7 @@ public  class  Floor {
 
 	
 	//@Symbolic("false")
-	private List<Person> waiting = new ArrayList<Person>();
+	private ArrayList<Person> waiting = new ArrayList<Person>();
 
 	
 	

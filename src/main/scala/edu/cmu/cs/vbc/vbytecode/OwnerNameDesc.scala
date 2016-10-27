@@ -208,7 +208,7 @@ case class MethodDesc(descString: String) extends TypeVerifier {
     *         transformed method descriptor
     */
   def toVs_AppendFE_AppendArgs: MethodDesc = {
-    val args = getArgs
+    val args = getArgs.map(_.toModel)
     assert(!args.exists(_.contentEquals(vclasstype)), "could not append V argument types")
     val argsString = (toVs.appendFE.getArgs ++ args).mkString("(", "", ")")
     val retString = "V" // because this is <init>

@@ -172,4 +172,13 @@ public class ArrayOps {
         }
     }
 
+    //////////////////////////////////////////////////
+    // Others
+    //////////////////////////////////////////////////
+
+    public static void aastore(V[] arrayref, int index, V newValue, FeatureExpr ctx) {
+        V oldValue = arrayref[index];
+        V choice = V.choice(ctx, newValue, oldValue);
+        arrayref[index] = choice;
+    }
 }

@@ -2,6 +2,7 @@ package edu.cmu.cs.vbc
 
 import de.fosd.typechef.featureexpr.FeatureExprFactory
 import edu.cmu.cs.vbc.prog._
+import edu.cmu.cs.vbc.prog.elevator.PL_Interface_impl
 import org.scalatest.FunSuite
 
 
@@ -92,5 +93,9 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
 
   test("ArrayListExample") {
     testMain(classOf[ArrayListExample], compareTraceAgainstBruteForce = false)
+  }
+
+  test("Elevator") {
+    testMain(classOf[PL_Interface_impl], compareTraceAgainstBruteForce = false)
   }
 }
