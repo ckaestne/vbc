@@ -26,6 +26,13 @@ public class ArrayListExample {
         if (A) {
             array.add(new MyInteger(3));
         }
+        // stress test
+        // disabled by default, otherwise takes too much time to run the test suite
+//        if (A) {
+//            for (int i = 0; i < 1000000; i++) {
+//                array.add(new MyInteger(i));
+//            }
+//        }
         for (MyInteger i : array) {
                 i.increment();
                 i.increment();
@@ -37,7 +44,7 @@ public class ArrayListExample {
 
     public static void main(String[] args) {
         ArrayListExample example = new ArrayListExample();
-        System.out.println(example.array.get(0));
+        System.out.println(example.array.get(0).toString());
         example.testIterator();
     }
 }

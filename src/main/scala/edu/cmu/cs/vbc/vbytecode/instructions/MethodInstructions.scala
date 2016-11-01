@@ -453,8 +453,17 @@ case class InstrINVOKESTATIC(owner: Owner, name: MethodName, desc: MethodDesc, i
     val vCall = if (liftedCall.desc.isReturnVoid) VCall.sforeach else VCall.sflatMap
     val lambdaName = "helper$invokestaticWithVs$" + env.clazz.lambdaMethods.size
     val args = liftedCall.desc.getArgs.map(_.castInt).map(_.toObject)
-    val invokeDesc = args.head.desc + s"(${args.tail.map(_.desc).mkString("")})" + (if (liftedCall.desc.isReturnVoid) "V" else vclasstype)
-    InvokeDynamicUtils.invoke(vCall, mv, env, loadCurrentCtx(_, env, block), lambdaName, invokeDesc, nExplodeArgs = args.size - 1) {
+    val invokeDesc = args.head.desc + s"(${args.tail.map(_.desc).mkString("")})" + liftedCall.desc.getReturnType.map(_.desc).getOrElse("V")
+    InvokeDynamicUtils.invoke(
+      vCall,
+      mv,
+      env,
+      loadCurrentCtx(_, env, block),
+      lambdaName,
+      invokeDesc,
+      nExplodeArgs = args.length - 1,
+      expandArgArray = true
+    ) {
       (m: MethodVisitor) => {
         0 to args.length - 2 foreach { i => loadVar(i, liftedCall.desc, i, m) } // first args.size - 1 arguments
         loadVar(args.size, liftedCall.desc, args.size - 1, m) // last argument

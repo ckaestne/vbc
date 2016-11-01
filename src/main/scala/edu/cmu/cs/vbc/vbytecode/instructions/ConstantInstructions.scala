@@ -73,7 +73,7 @@ case class InstrLDC(o: Object) extends Instruction {
       mv.visitLdcInsn(o)
       o match {
         case s: String => wrapString(mv)
-        case i: Integer => mv.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
+        case i: Integer =>  // do nothing
         case _ => throw new UnsupportedOperationException("Unsupported LDC type")
       }
     }

@@ -111,7 +111,10 @@ public class ArrayOps {
      * Transform V<T>[] to V<T[]>
      */
     public static <T> V<?> expandArray(V<T>[] array, FeatureExpr ctx) {
-        return expandArrayElements(array, ctx, 0, new ArrayList<T>());
+        if (array.length == 0)
+            return V.one(ctx, new Object[]{});
+        else
+            return expandArrayElements(array, ctx, 0, new ArrayList<T>());
     }
 
     /**
