@@ -203,4 +203,16 @@ public class VOps {
         });
         return compare.when(c -> c);
     }
+
+    public static V<? extends Integer> iushr(V<? extends Integer> value1, V<? extends Integer> value2) {
+        return value1.flatMap(v1 -> value2.map(v2 -> v1 >>> v2));
+    }
+
+    public static V<? extends Integer> irem(V<? extends Integer> value1, V<? extends Integer> value2) {
+        return value1.flatMap(v1 -> value2.map(v2 -> v1 % v2));
+    }
+
+    public static V<? extends Integer> ior(V<? extends Integer> value1, V<? extends Integer> value2) {
+        return value1.flatMap(v1 -> value2.map(v2 -> v1 | v2));
+    }
 }

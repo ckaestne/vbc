@@ -24,6 +24,10 @@ object LiftingPolicy {
     case x if x.endsWith("java/lang/Enum") => true
     case x if x.endsWith("java/util/Collection") => true
     case x if x.endsWith("java/util/Iterator") => true
+    case x if x.endsWith("java/util/List") => true
+    case x if x.contains("java/util/Collections") => true
+    case x if x.endsWith("java/util/AbstractSet") => true
+    case x if x.endsWith("java/util/AbstractMap") => true
     case _ => false
   }
 

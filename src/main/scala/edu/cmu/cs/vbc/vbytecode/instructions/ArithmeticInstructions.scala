@@ -355,14 +355,21 @@ case class InstrIAND() extends Instruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
 }
 
-case class InstrIOR() extends Instruction {
+/** Boolean OR int
+  *
+  * ..., value1(int), value2(int) -> result(int)
+  */
+case class InstrIOR() extends BinOpInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(IOR)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this))
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, MethodName("ior"), MethodDesc(s"($vclasstype$vclasstype)$vclasstype"), false)
+    else
+      mv.visitInsn(IOR)
+}
 }
 
 case class InstrLSUB() extends Instruction {
@@ -373,4 +380,32 @@ case class InstrLSUB() extends Instruction {
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+}
+
+/** Logical shift right int
+  *
+  * ..., value1(int), value2(int) -> ..., result(int)
+  */
+case class InstrIUSHR() extends BinOpInstruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(IUSHR)
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit =
+    if (env.shouldLiftInstr(this))
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, MethodName("iushr"), MethodDesc(s"($vclasstype$vclasstype)$vclasstype"), false)
+    else
+      mv.visitInsn(IUSHR)
+}
+
+/** Remainder int
+  *
+  * ..., value1(int), value2(int) -> ..., result(int)
+  */
+case class InstrIREM() extends BinOpInstruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(IREM)
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit =
+    if (env.shouldLiftInstr(this))
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, MethodName("irem"), MethodDesc(s"($vclasstype$vclasstype)$vclasstype"), false)
+    else
+      mv.visitInsn(IREM)
 }

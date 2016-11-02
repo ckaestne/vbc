@@ -96,6 +96,7 @@ object Owner {
   def getFloat = Owner("java/lang/Float")
   def getDouble = Owner("java/lang/Double")
   def getArrayOps = Owner("edu/cmu/cs/varex/ArrayOps")
+  def getVOps = Owner("edu/cmu/cs/varex/VOps")
   def getChar = Owner("java/lang/Character")
 }
 
@@ -119,9 +120,9 @@ case class MethodName(name: String) {
     name match {
       case "<init>" | "<clinit>" | "___clinit___" | "______clinit______" => this
       case _ =>
-        val args = desc.getArgs
+        val args = desc.getArgs.map(_.toModel)
         val argsString = replace(args.mkString("__", "_", "__"))
-        val retString = replace(desc.getReturnType.map(_.toString).getOrElse("V"))
+        val retString = replace(desc.getReturnType.map(_.toModel).map(_.toString).getOrElse("V"))
         MethodName(name + argsString + retString)
     }
   }

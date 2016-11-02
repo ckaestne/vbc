@@ -28,7 +28,7 @@ trait MethodInstruction extends Instruction {
       }
     }
     else {
-      LiftedCall(owner.toModel, name, desc, isLifting = false)
+      LiftedCall(owner.toModel, name, desc.toModels, isLifting = false)
     }
   }
 
