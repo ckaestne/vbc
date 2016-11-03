@@ -17,6 +17,11 @@ public class StaticFieldsWithClinit {
     public static boolean C = false;
 
     public static void main(String[] args) {
+        StaticFieldsWithClinit example = new StaticFieldsWithClinit();
+        example.test();
+    }
+
+    public void test() {
         System.out.println("start.");
 
         if (A)

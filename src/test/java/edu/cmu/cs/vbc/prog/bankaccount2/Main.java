@@ -12,6 +12,8 @@ public class Main {
 
     private Application b;
 
+    private FM fm = new FM();   // we need to call the <init> of FM in order to set features for plain executions.
+
     public Main() {
         a = new Application();
         b = new Application();

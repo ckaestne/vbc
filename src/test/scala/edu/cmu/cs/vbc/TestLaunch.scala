@@ -31,30 +31,27 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
   }
 
   test("bankaccount") {
-    testMain(classOf[edu.cmu.cs.vbc.prog.bankaccount.Main], compareTraceAgainstBruteForce = false)
+    testMain(classOf[edu.cmu.cs.vbc.prog.bankaccount.Main])
   }
 
   test("static fields") {
-    //    testMain(classOf[edu.cmu.cs.vbc.prog.StaticFieldsExample])  //todo
-    testMain(classOf[edu.cmu.cs.vbc.prog.StaticFieldsExample], compareTraceAgainstBruteForce = false)
+    testMain(classOf[edu.cmu.cs.vbc.prog.StaticFieldsExample])
   }
 
   test("static fields with clinit") {
-    //    testMain(classOf[edu.cmu.cs.vbc.prog.StaticFieldsWithClinit]) //todo
-    testMain(classOf[edu.cmu.cs.vbc.prog.StaticFieldsWithClinit], compareTraceAgainstBruteForce = false)
+    testMain(classOf[edu.cmu.cs.vbc.prog.StaticFieldsWithClinit])
   }
 
   test("bankaccout2") {
-    //    testMain(classOf[edu.cmu.cs.vbc.prog.bankaccount2.Main])
-    testMain(classOf[edu.cmu.cs.vbc.prog.bankaccount2.Main], compareTraceAgainstBruteForce = false)
+    testMain(classOf[edu.cmu.cs.vbc.prog.bankaccount2.Main])
   }
 
   test("conditional field assignment") {
-    testMain(classOf[edu.cmu.cs.vbc.prog.FieldTest], true, false)
+    testMain(classOf[edu.cmu.cs.vbc.prog.FieldTest])
   }
 
   test("conditional method invocations") {
-    testMain(classOf[edu.cmu.cs.vbc.prog.MethodTest], true, false)
+    testMain(classOf[edu.cmu.cs.vbc.prog.MethodTest])
   }
 
   test("reference array") {
@@ -88,11 +85,11 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
   }
 
   test("StringBuilderExample") {
-    testMain(classOf[StringBuilderExample], compareTraceAgainstBruteForce = false)
+    testMain(classOf[StringBuilderExample])
   }
 
   test("ArrayListExample") {
-    testMain(classOf[ArrayListExample], compareTraceAgainstBruteForce = false)
+    testMain(classOf[ArrayListExample])
   }
 
   test("Elevator") {

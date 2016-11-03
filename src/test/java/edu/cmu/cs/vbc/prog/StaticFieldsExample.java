@@ -13,6 +13,11 @@ public class StaticFieldsExample {
     public static boolean B;
 
     public static void main(String[] args) {
+        StaticFieldsExample example = new StaticFieldsExample();
+        example.test();
+    }
+
+    public void test() {
         System.out.println("start.");
 
         if (A)

@@ -16,7 +16,15 @@ trait DiffLaunchTestInfrastructure {
     *
     * also change the way that conditional fields are initialized
     */
-  def instrumentMethod(method: VBCMethodNode): VBCMethodNode = instrumentCustomInit(method.copy(body = CFG(method.body.blocks.map(instrumentBlock))))
+  def instrumentMethod(method: VBCMethodNode): VBCMethodNode = {
+    instrumentCustomInit(
+      // we introduce extra method invocation instructions and return instructions while handling <clinit>.
+      if (!method.name.contains("clinit"))
+        method.copy(body = CFG(method.body.blocks.map(instrumentBlock)))
+      else
+        method
+    )
+  }
 
   def instrumentBlock(block: Block): Block =
     Block((
@@ -25,8 +33,8 @@ trait DiffLaunchTestInfrastructure {
         case InstrINVOKEVIRTUAL(Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(Ljava/lang/Object;)V"), _) => List(vbc.TraceInstr_Print(), instr)
         case InstrINVOKEVIRTUAL(owner, name, desc, _) => List(vbc.TraceInstr_S("INVK_VIRT: " + owner + ";" + name + ";" + desc), instr)
         case InstrGETFIELD(owner, name, desc) if desc.contentEquals("I") || desc.contentEquals("Z") => List(instr, vbc.TraceInstr_GetField("GETFIELD: " + owner + ";" + name + ";" + desc, desc))
-        case InstrRETURN() => List(vbc.TraceInstr_S("RETURN"), instr)
-        case InstrIRETURN() => List(vbc.TraceInstr_S("IRETURN"), instr)
+//        case InstrRETURN() => List(vbc.TraceInstr_S("RETURN"), instr)
+//        case InstrIRETURN() => List(vbc.TraceInstr_S("IRETURN"), instr)
         case instr => List(instr)
       }
       ).flatten, block.exceptionHandlers

@@ -42,10 +42,15 @@ public class ArrayListExample {
         }
     }
 
+    private void printSize() {
+        System.out.println(array.size());
+    }
+
     public static void main(String[] args) {
         ArrayListExample example = new ArrayListExample();
         System.out.println(example.array.get(0).toString());
         example.testIterator();
+        example.printSize();
     }
 }
 
