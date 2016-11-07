@@ -98,6 +98,7 @@ object Owner {
   def getArrayOps = Owner("edu/cmu/cs/varex/ArrayOps")
   def getVOps = Owner("edu/cmu/cs/varex/VOps")
   def getChar = Owner("java/lang/Character")
+  def getSystem = Owner("java/lang/System")
 }
 
 

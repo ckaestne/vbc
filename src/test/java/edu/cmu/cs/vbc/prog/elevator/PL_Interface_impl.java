@@ -4,7 +4,9 @@ import java.util.List;
 import java.util.Random;
 
 public  class  PL_Interface_impl  {
-	
+
+	// to trigger the <init> of FeatureSwitches
+	private FeatureSwitches fs = new FeatureSwitches();
 
 //	@FilterField
 	//@Symbolic("false")
@@ -38,7 +40,7 @@ public  class  PL_Interface_impl  {
 		try {
 			PL_Interface_impl impl = new PL_Interface_impl();
 			
-			verbose = false;
+			verbose = true;
 //			int specification = Integer.parseInt(args[0]);
 //			int variation = Integer.parseInt(args[1]);
 			impl.start(1, -1);
@@ -55,7 +57,7 @@ public  class  PL_Interface_impl  {
 	public void start(int specification, int variation) throws Throwable {
 	try {
 		if (verbose) 
-			System.out.println("Started Elevator PL with Specification " + specification +  ", Variation: " +variation);
+			System.out.println("Started Elevator PL with Specification " + String.valueOf(specification) +  ", Variation: " +String.valueOf(variation));
 		test(specification, variation);
 	} catch (Throwable e) {
 		throw e;
@@ -85,6 +87,7 @@ public  class  PL_Interface_impl  {
 
 	// this method is used as hook for the liveness properties.
 	public void test(int specification, int variation) {
+		if (!FeatureSwitches.valid_product()) return;
 		if (variation==-1) {
 //            Specification1();
 //			Specification2();
@@ -153,25 +156,6 @@ public  class  PL_Interface_impl  {
 			} else {
 				throw new InternalError("getIntegerMinMax produced illegal value:" + action);
 			}
-//			switch (action) {
-//			case 0:	a.bobCall(); actionName = "bobCall"; break;
-//			case 1: a.aliceCall(); actionName = "aliceCall"; break;
-//			case 2:	a.angelinaCall(); actionName = "angelinaCall"; break;
-//			case 3:	a.chuckCall(); actionName = "chuckCall"; break;
-//			case 4:	a.monicaCall();	actionName = "monicaCall"; break;
-//			case 5:	a.bigMacCall();	actionName = "bigMacCall"; break;
-//			case 6: e.timeShift(); actionName = "1TS"; break; // execute one timestep
-//			case 7:
-//				actionName = "3TS";// execute three timesteps
-//				for (int i = 0; i < 3; i++) {
-//					e.timeShift();
-//				}
-//				// nobody calls
-//				break;
-//			default:
-//				throw new InternalError(
-//						"getIntegerMinMax produced illegal value:" + action);
-//			}
 			actionHistory.add(actionName);
 			//System.out.println(listToString(actionHistory));
 			if (e.isBlocked()) {
@@ -325,7 +309,7 @@ public  class  PL_Interface_impl  {
 	
 	public void Specification14() {
 		Environment env = new Environment(5);
-		Elevator e = new Elevator(env, false);
+		Elevator e = new Elevator(env, true);
 		Actions a = new Actions(env, e);
 
 		Person bm = a.bigMacCall();

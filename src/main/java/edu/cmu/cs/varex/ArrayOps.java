@@ -3,6 +3,7 @@ package edu.cmu.cs.varex;
 import de.fosd.typechef.featureexpr.FeatureExpr;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -12,6 +13,8 @@ import java.util.function.Function;
  * @author chupanw
  */
 public class ArrayOps {
+
+    private static HashMap<V[], V> cached = new HashMap<>();
 
     //////////////////////////////////////////////////
     // int
@@ -30,6 +33,54 @@ public class ArrayOps {
         return initIArray(Integer.valueOf(length), ctx);
     }
 
+    public static V<?> expandIArray(V<Integer>[] array, FeatureExpr ctx) {
+        return expandIArrayElements(array, ctx, 0, new ArrayList<>());
+    }
+
+    private static V<?> expandIArrayElements(V<Integer>[] array, FeatureExpr ctx, Integer index, ArrayList<Integer> soFar) {
+        return array[index].sflatMap(ctx, new BiFunction<FeatureExpr, Integer, V<?>>() {
+            @Override
+            public V<?> apply(FeatureExpr featureExpr, Integer t) {
+                ArrayList<Integer> newArray = new ArrayList<Integer>(soFar);
+                newArray.add(t);
+                if (index == array.length - 1) {
+                    int[] result = new int[array.length];
+                    for (int i = 0; i < array.length; i++) {
+                        result[i] = newArray.get(i);
+                    }
+                    return V.one(featureExpr, result);
+                } else {
+                    return expandIArrayElements(array, ctx, index + 1, newArray);
+                }
+            }
+        });
+    }
+
+    public static V<?>[] compressIArray(V<int[]> arrays) {
+        V<?> sizes = arrays.map(new Function<int[], Integer>() {
+            @Override
+            public Integer apply(int[] t) {
+                return t.length;
+            }
+        });
+        Integer size = (Integer) sizes.getOne(); // if results in a choice, exceptions will be thrown.
+        ArrayList<V<?>> array = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            array.add(compressIArrayElement(arrays, i));
+        }
+        V<?>[] result = new V<?>[size];
+        array.toArray(result);
+        return result;
+    }
+
+    private static V<?> compressIArrayElement(V<int[]> arrays, Integer index) {
+        return arrays.map(new Function<int[], Integer>() {
+            @Override
+            public Integer apply(int[] ts) {
+                return ts[index];
+            }
+        });
+    }
     //////////////////////////////////////////////////
     // char
     //////////////////////////////////////////////////
@@ -107,14 +158,39 @@ public class ArrayOps {
     // Object
     //////////////////////////////////////////////////
 
+    public static V<?>[] initArray(Integer length, FeatureExpr ctx) {
+        V<?>[] array = new V<?>[length];
+        ArrayList<V> arrayList = new ArrayList<>();
+        for (int i = 0; i < length; i++) {
+            arrayList.add(i, V.one(ctx, null));
+        }
+        return arrayList.toArray(array);
+    }
+
+    public static V<?>[] initArray(int length, FeatureExpr ctx) {
+        return initArray(Integer.valueOf(length), ctx);
+    }
+
     /**
      * Transform V<T>[] to V<T[]>
      */
     public static <T> V<?> expandArray(V<T>[] array, FeatureExpr ctx) {
-        if (array.length == 0)
-            return V.one(ctx, new Object[]{});
-        else
-            return expandArrayElements(array, ctx, 0, new ArrayList<T>());
+        if (cached.containsKey(array)) {
+            return cached.get(array);
+        }
+        V result;
+        if (array.length == 0) {
+            result = V.one(ctx, new Object[]{});
+        }
+        else {
+            result = expandArrayElements(array, ctx, 0, new ArrayList<T>());
+        }
+        cached.put(array, result);
+        return result;
+    }
+
+    public static void clearCache() {
+        cached.clear();
     }
 
     /**
@@ -183,5 +259,9 @@ public class ArrayOps {
         V oldValue = arrayref[index];
         V choice = V.choice(ctx, newValue, oldValue);
         arrayref[index] = choice;
+    }
+
+    public static void arraycopy(Object[] src, int srcPos, Object[] dest, int destPos, int length) {
+        System.arraycopy(src, srcPos, dest, destPos, length);
     }
 }

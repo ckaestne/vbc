@@ -28,7 +28,13 @@ trait MethodInstruction extends Instruction {
       }
     }
     else {
-      LiftedCall(owner.toModel, name, desc.toModels, isLifting = false)
+      // Quick fix for System.arraycopy call (we need a more systematic way of rewriting method calls)
+      // We need array argument type in order to trigger array expansions and compressions.
+      if (owner == Owner.getSystem && name == MethodName("arraycopy")) {
+        LiftedCall(Owner.getArrayOps, MethodName("arraycopy"), MethodDesc(s"([${TypeDesc.getObject}I[${TypeDesc.getObject}II)V"), isLifting = false)
+      }
+      else
+        LiftedCall(owner.toModel, name, desc.toModels, isLifting = false)
     }
   }
 
@@ -454,6 +460,8 @@ case class InstrINVOKESTATIC(owner: Owner, name: MethodName, desc: MethodDesc, i
     val lambdaName = "helper$invokestaticWithVs$" + env.clazz.lambdaMethods.size
     val args = liftedCall.desc.getArgs.map(_.castInt).map(_.toObject)
     val invokeDesc = args.head.desc + s"(${args.tail.map(_.desc).mkString("")})" + liftedCall.desc.getReturnType.map(_.desc).getOrElse("V")
+    // clear the cache of ArrayOps
+    mv.visitMethodInsn(INVOKESTATIC, Owner.getArrayOps, MethodName("clearCache"), MethodDesc("()V"), false)
     InvokeDynamicUtils.invoke(
       vCall,
       mv,

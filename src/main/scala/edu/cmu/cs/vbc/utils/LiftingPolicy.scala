@@ -49,6 +49,7 @@ object LiftingPolicy {
         case (Owner("java/io/PrintStream"), _, _) => false
         case (Owner("java/lang/Math"), _, _) => false
         case (Owner("java/util/Arrays"), _, _) => false
+        case (Owner("java/lang/System"), _, _) => false
         case (o, _, _) if o.name.endsWith("Exception") => false
         case _ => true
       }

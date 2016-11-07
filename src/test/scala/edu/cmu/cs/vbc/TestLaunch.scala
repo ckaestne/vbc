@@ -93,6 +93,6 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
   }
 
   test("Elevator") {
-    testMain(classOf[PL_Interface_impl], compareTraceAgainstBruteForce = false)
+    testMain(classOf[PL_Interface_impl])
   }
 }

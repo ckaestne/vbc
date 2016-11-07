@@ -14,7 +14,7 @@ public class ArrayListExample {
     private ArrayList<MyInteger> array;
 
     private ArrayListExample() {
-        array = new ArrayList<>();
+        array = new ArrayList<>(10);
         if (A) {
             array.add(new MyInteger(1));
         } else {
@@ -46,11 +46,52 @@ public class ArrayListExample {
         System.out.println(array.size());
     }
 
+    private void printCopiedArrayListSize() {
+        ArrayList copied = new ArrayList(array);
+        System.out.println(copied.size());
+    }
+
+    private void testRemove() {
+        for (MyInteger i : new ArrayList<>(array)) {
+            i.increment();
+            System.out.println(i.toString());
+            if (i.v == 2) array.remove(i);
+        }
+    }
+
+    private void testRemove2() {
+        array.clear();
+        MyInteger i1 = new MyInteger(1);
+        MyInteger i2 = new MyInteger(2);
+        if (A) {
+            array.add(i1);
+        } else {
+            array.add(i2);
+        }
+        if (A) {
+            array.add(i2);
+        }
+        MyInteger toBeRemoved = null;
+        if (A)
+            toBeRemoved = i1;
+        array.remove(toBeRemoved);
+        System.out.println(array.size());
+        for (MyInteger i : array) {
+            i.increment();
+        }
+        for (MyInteger i : array) {
+            System.out.println(i.toString());
+        }
+    }
+
     public static void main(String[] args) {
         ArrayListExample example = new ArrayListExample();
         System.out.println(example.array.get(0).toString());
+        example.testRemove();
         example.testIterator();
         example.printSize();
+        example.printCopiedArrayListSize();
+        example.testRemove2();
     }
 }
 
@@ -60,7 +101,7 @@ public class ArrayListExample {
  * Add increment() method to check the side effect to array elements.
  */
 class MyInteger {
-    private Integer v;
+    Integer v;
     MyInteger(Integer v) {
         this.v = v;
     }

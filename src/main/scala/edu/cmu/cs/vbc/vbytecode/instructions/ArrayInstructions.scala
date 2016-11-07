@@ -17,8 +17,14 @@ trait ArrayInstructions extends Instruction {
     InvokeDynamicUtils.invoke(VCall.smap, mv, env, loadCurrentCtx(_, env, block), "anewarray", s"$IntType()[$vclasstype") {
       (visitor: MethodVisitor) => {
         visitor.visitVarInsn(ALOAD, 1)
-        visitor.visitMethodInsn(INVOKEVIRTUAL, IntClass, "intValue", "()I", false) // JVM specification requires an int
-        visitor.visitTypeInsn(ANEWARRAY, "edu/cmu/cs/varex/V")
+        visitor.visitVarInsn(ALOAD, 0)
+        visitor.visitMethodInsn(
+          INVOKESTATIC,
+          Owner.getArrayOps,
+          MethodName("initArray"),
+          MethodDesc(s"(${TypeDesc.getInt}${fexprclasstype})[$vclasstype"),
+          false
+        )
         visitor.visitInsn(ARETURN)
       }
     }
@@ -225,7 +231,8 @@ case class InstrANEWARRAY(owner: Owner) extends ArrayInstructions {
       createVArray(mv, env, block)
     }
     else {
-      mv.visitTypeInsn(ANEWARRAY, "edu/cmu/cs/varex/V")
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getArrayOps, MethodName("initArray"), MethodDesc(s"(I$fexprclasstype)[$vclasstype"), false)
       if (env.getTag(this, env.TAG_NEED_V)) {
         callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
       }

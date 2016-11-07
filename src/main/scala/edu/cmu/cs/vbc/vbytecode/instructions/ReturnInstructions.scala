@@ -2,7 +2,6 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, V_TYPE}
-import edu.cmu.cs.vbc.utils.LiftUtils
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
@@ -70,10 +69,7 @@ case class InstrARETURN() extends ReturnInstruction {
     */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     // $result should be on top of operand stack already
-    LiftUtils.loadFExpr(mv, env, env.getVBlockVar(block))
-    mv.visitInsn(SWAP)
-    mv.visitVarInsn(ALOAD, env.getVarIdx(env.exceptionVar))
-    LiftUtils.callVCreateChoice(mv)
+    // For ARETURN, exceptions are stored into $result, so $exceptionVar is useless.
     mv.visitInsn(ARETURN)
   }
 
