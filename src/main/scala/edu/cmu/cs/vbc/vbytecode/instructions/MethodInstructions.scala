@@ -62,7 +62,7 @@ trait MethodInstruction extends Instruction {
     val invokeType = getInvokeType
     assert(invokeType != INVOKESTATIC)
 
-    InvokeDynamicUtils.invoke(
+    InvokeDynamicUtils.invokeWithCacheClear(
       vCall,
       mv,
       env,
@@ -460,9 +460,7 @@ case class InstrINVOKESTATIC(owner: Owner, name: MethodName, desc: MethodDesc, i
     val lambdaName = "helper$invokestaticWithVs$" + env.clazz.lambdaMethods.size
     val args = liftedCall.desc.getArgs.map(_.castInt).map(_.toObject)
     val invokeDesc = args.head.desc + s"(${args.tail.map(_.desc).mkString("")})" + liftedCall.desc.getReturnType.map(_.desc).getOrElse("V")
-    // clear the cache of ArrayOps
-    mv.visitMethodInsn(INVOKESTATIC, Owner.getArrayOps, MethodName("clearCache"), MethodDesc("()V"), false)
-    InvokeDynamicUtils.invoke(
+    InvokeDynamicUtils.invokeWithCacheClear(
       vCall,
       mv,
       env,

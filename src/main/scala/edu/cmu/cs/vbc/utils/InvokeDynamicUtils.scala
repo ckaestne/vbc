@@ -38,6 +38,23 @@ object InvokeDynamicUtils {
   val biFuncType = "Ljava/util/function/BiFunction;"
   val biConsumerType = "Ljava/util/function/BiConsumer;"
 
+  def invokeWithCacheClear(
+                            vCall: VCall.Value,
+                            mv: MethodVisitor,
+                            env: VMethodEnv,
+                            loadCtx: MethodVisitor => Unit,
+                            lambdaName: String,
+                            desc: String,
+                            nExplodeArgs: Int = 0,
+                            expandArgArray: Boolean
+                          )
+                          (lambdaOp: MethodVisitor => Unit): Unit = {
+    // clear the cache of ArrayOps
+    if (expandArgArray)
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getArrayOps, MethodName("clearCache"), MethodDesc("()V"), false)
+    invoke(vCall, mv, env, loadCtx, lambdaName, desc, nExplodeArgs, expandArgArray = expandArgArray)(lambdaOp)
+  }
+
   /**
     * Perform the sMap operation
     *
