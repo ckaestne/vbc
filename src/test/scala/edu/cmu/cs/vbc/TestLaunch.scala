@@ -95,4 +95,8 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
   test("Elevator") {
     testMain(classOf[PL_Interface_impl])
   }
+
+  test("Email") {
+    testMain(classOf[email.PL_Interface_impl])
+  }
 }

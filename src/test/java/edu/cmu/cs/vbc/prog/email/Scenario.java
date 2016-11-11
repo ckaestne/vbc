@@ -1,15 +1,23 @@
 package edu.cmu.cs.vbc.prog.email;
 
+import java.util.ArrayList;
+
 public class Scenario {
 	public static boolean abortedRun = false;
 
 	public static void test() {
 
-		Test_Actions.setup();
-		Test_Actions.bobKeyAdd();
-		Test_Actions.bobSetAddressBook();
-		// Test_Actions.bobToRjh();
-		Test_Actions.bobToAlias();
+		if (!FeatureSwitches.valid_product()) {
+			return;
+		}
+		new Scenario();
+//		Test_Actions.setup();
+//		Test_Actions.bobKeyAdd();
+//		Test_Actions.bobSetAddressBook();
+//		// Test_Actions.bobToRjh();
+//		Test_Actions.bobToAlias();
+		Email.emailCounter = 1;
+		Test_Actions.actionHistory = new ArrayList<>();
 	}
 
 	public static void main(String[] args) {

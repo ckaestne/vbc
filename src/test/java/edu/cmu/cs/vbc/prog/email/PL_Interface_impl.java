@@ -3,7 +3,10 @@ package edu.cmu.cs.vbc.prog.email;
 import java.util.List;
 
 public  class  PL_Interface_impl {
-	
+
+	// trigger <init> of FeatureSwitches, so that options can be set while comparing traces.
+	private FeatureSwitches fs = new FeatureSwitches();
+
 	public static void main(String[] args) {
 		try {
 			(new PL_Interface_impl()).start(-1,2);

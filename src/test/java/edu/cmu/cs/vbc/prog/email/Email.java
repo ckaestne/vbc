@@ -19,7 +19,7 @@ public   class  Email {
 
 	
 	
-	static int emailCounter = 1;
+	public static int emailCounter = 1;
 
 	
 
@@ -69,8 +69,8 @@ isReadable() {
 	
 
 	static void  printMail__before__encrypt(Email msg) {
-		Util.prompt("ID:  " + msg.getId());
-		Util.prompt("FROM: " + msg.getEmailFrom().getId());
+		Util.prompt("ID:  " + String.valueOf(msg.getId()));
+		Util.prompt("FROM: " + String.valueOf(msg.getEmailFrom().getId()));
 		Util.prompt("TO: " + msg.getEmailTo());
 		Util.prompt("SUBJECT: " + msg.getEmailSubject());
 		Util.prompt("IS_READABLE " + msg.isReadable());
@@ -103,7 +103,7 @@ printMail__before__sign(Email msg) {
 	static void  printMail__role__sign(Email msg) {
 		printMail__before__sign(msg);
 		Util.prompt("SIGNED " + msg.isSigned());
-		Util.prompt("SIGNATURE " + msg.getEmailSignKey());
+		Util.prompt("SIGNATURE " + String.valueOf(msg.getEmailSignKey()));
 	}
 
 	

@@ -84,8 +84,13 @@ case class InstrPUTSTATIC(owner: Owner, name: FieldName, desc: TypeDesc) extends
       mv.visitInsn(POP)
     }
     else {
-      if (env.shouldLiftInstr(this))
+      if (env.shouldLiftInstr(this)) {
+        loadCurrentCtx(mv, env, block)
+        mv.visitInsn(SWAP)
+        mv.visitFieldInsn(GETSTATIC, owner, name, vclasstype)
+        callVCreateChoice(mv)
         mv.visitFieldInsn(PUTSTATIC, owner, name, "Ledu/cmu/cs/varex/V;")
+      }
       else
         mv.visitFieldInsn(PUTSTATIC, owner, name, desc)
     }
