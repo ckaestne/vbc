@@ -174,7 +174,7 @@ public class ArrayOps {
     /**
      * Transform V<T>[] to V<T[]>
      */
-    public static <T> V<?> expandArray(V<T>[] array, FeatureExpr ctx) {
+    public static <T> V<T[]> expandArray(V<T>[] array, FeatureExpr ctx) {
         if (cached.containsKey(array)) {
             return cached.get(array);
         }
@@ -261,7 +261,4 @@ public class ArrayOps {
         arrayref[index] = choice;
     }
 
-    public static void arraycopy(Object[] src, int srcPos, Object[] dest, int destPos, int length) {
-        System.arraycopy(src, srcPos, dest, destPos, length);
-    }
 }

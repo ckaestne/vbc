@@ -22,12 +22,28 @@ import scala.collection.JavaConversions._
 class VBCModel(fqName: String) extends LazyLogging {
 
   require(fqName.startsWith(VBCModel.prefix), "Cannot create model class for: " + fqName)
-  logger.info(s"Generating model class: " + fqName)
 
   val modelClsName: String = fqName.replace('.', '/')
   val originalClsName: String = modelClsName.substring(VBCModel.prefix.length + 1)
 
-  def getModelClassBytes(): Array[Byte] = {
+  def getModelClassBytes: Array[Byte] = {
+    val eis = this.getClass.getClassLoader.getResourceAsStream(modelClsName + ".class")
+    if (eis != null) {
+      logger.info(s"Using existing model class: " + fqName)
+      val cr = new ClassReader(eis)
+      val cn = new ClassNode(ASM5)
+      cr.accept(cn, 0)
+      val cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES)
+      cn.accept(cw)
+      cw.toByteArray
+    }
+    else {
+      logger.info(s"Creating model class: " + fqName)
+      generateModelClass()
+    }
+  }
+
+  def generateModelClass(): Array[Byte] = {
     val resource: String = originalClsName + ".class"
     val is: InputStream = ClassLoader.getSystemResourceAsStream(resource)
     assert(is != null, s"class $originalClsName not found")

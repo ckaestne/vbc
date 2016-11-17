@@ -71,9 +71,8 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
     //    testMain(classOf[edu.cmu.cs.vbc.prog.gpl.Main]) //todo
   }
 
-  ignore("LinkedList") {
-    //    testMain(classOf[edu.cmu.cs.vbc.prog.LinkedListTest]) //todo
-    testMain(classOf[LinkedListExample], compareTraceAgainstBruteForce = false)
+  test("LinkedList") {
+    testMain(classOf[LinkedListExample])
   }
 
   test("Different ways of superclass initialization") {

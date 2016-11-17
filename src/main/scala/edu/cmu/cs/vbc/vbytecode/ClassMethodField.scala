@@ -221,7 +221,7 @@ case class VBCClassNode(
 
   def toByteCode(cv: ClassVisitor, rewriter: VBCMethodNode => VBCMethodNode = a => a) = {
     val liftedSuperName = liftSuperName(Owner(superName))
-    cv.visit(version, access, name, signature.getOrElse(null), liftedSuperName, interfaces.toArray)
+    cv.visit(version, access, name, signature.getOrElse(null), liftedSuperName, interfaces.map(i => Owner(i).toModel.toString).toArray)
     commonToByteCode(cv)
     //        innerClasses.foreach(_.toByteCode(cv))
     fields.foreach(_.toByteCode(cv))
@@ -240,7 +240,7 @@ case class VBCClassNode(
 
   def toVByteCode(cv: ClassVisitor, rewriter: VBCMethodNode => VBCMethodNode = a => a) = {
     val liftedSuperName = liftSuperName(Owner(superName))
-    cv.visit(version, access, name, signature.getOrElse(null), liftedSuperName, interfaces.toArray)
+    cv.visit(version, access, name, signature.getOrElse(null), liftedSuperName, interfaces.map(i => Owner(i).toModel.toString).toArray)
     commonToByteCode(cv)
     //        innerClasses.foreach(_.toVByteCode(cv))
     fields.foreach(_.toVByteCode(cv))

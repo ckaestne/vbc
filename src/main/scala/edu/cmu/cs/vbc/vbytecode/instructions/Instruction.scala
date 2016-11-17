@@ -77,7 +77,7 @@ case class UNKNOWN(opCode: Int = -1) extends Instruction {
 
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame =
-    throw new RuntimeException("Unknown Instruction: " + OpcodePrint.print(opCode))
+    throw new RuntimeException("Unknown Instruction: " + OpcodePrint.print(opCode) + s" in ${env.method.name} of ${env.clazz.name}")
 }
 
 trait EmptyInstruction extends Instruction

@@ -31,6 +31,11 @@ object LiftingPolicy {
     case x if x.endsWith("java/util/Collections$EmptyMap") => true
     case x if x.endsWith("java/util/AbstractSet") => true
     case x if x.endsWith("java/util/AbstractMap") => true
+    case x if x.endsWith("java/util/LinkedList") => true
+    case x if x.endsWith("java/util/LinkedList$Node") => true
+    case x if x.endsWith("java/util/LinkedList$ListItr") => true
+    case x if x.endsWith("java/util/ListIterator") => true
+    case x if x.endsWith("java/util/AbstractSequentialList") => true
     case _ => false
   }
 
@@ -42,18 +47,17 @@ object LiftingPolicy {
   def shouldLiftMethodCall(owner: Owner, name: MethodName, desc: MethodDesc): Boolean = {
     if (shouldLiftClass(owner)) true
     else {
-      (owner, name, desc) match {
-        case (Owner("java/lang/Integer"), _, _) => false
-        case (Owner("java/lang/Character"), _, _) => false
-        case (Owner("java/lang/Short"), _, _) => false
-        case (Owner("java/lang/Byte"), _, _) => false
-        case (Owner("java/lang/String"), _, _) => false
-        case (Owner("java/lang/Object"), _, _) => false
-        case (Owner("java/io/PrintStream"), _, _) => false
-        case (Owner("java/lang/Math"), _, _) => false
-        case (Owner("java/util/Arrays"), _, _) => false
-        case (Owner("java/lang/System"), _, _) => false
-        case (o, _, _) if o.name.endsWith("Exception") => false
+      owner match {
+        case Owner("java/lang/Integer") => false
+        case Owner("java/lang/Character") => false
+        case Owner("java/lang/Short") => false
+        case Owner("java/lang/Byte") => false
+        case Owner("java/lang/String") => false
+        case Owner("java/lang/Object") => false
+        case Owner("java/io/PrintStream") => false
+        case Owner("java/lang/Math") => false
+        case Owner("java/lang/System") => false
+        case o if o.name.endsWith("Exception") => false
         case _ => true
       }
     }
@@ -68,6 +72,41 @@ object LiftingPolicy {
     (owner, name, desc) match {
       case (Owner("java/lang/System"), FieldName("out"), _) => false
       case _ => true
+    }
+  }
+
+  case class LiftedCall(owner: Owner, name: MethodName, desc: MethodDesc, isLifting: Boolean)
+
+  def liftCall(owner: Owner, name: MethodName, desc: MethodDesc): LiftedCall = {
+    val shouldLiftMethod = LiftingPolicy.shouldLiftMethodCall(owner, name, desc)
+    if (shouldLiftMethod) {
+      if (name.contentEquals("<init>")) {
+        // cpwtodo: handle exception in <init>
+        LiftedCall(owner.toModel, name, desc.toVs_AppendFE_AppendArgs, isLifting = true)
+      } else {
+        LiftedCall(owner.toModel, name.rename(desc.toModels), desc.toVs.appendFE.toVReturnType, isLifting = true)
+      }
+    }
+    else {
+      replaceCall(owner, name, desc, isVE = true)
+    }
+  }
+
+  def replaceCall(owner: Owner, name: MethodName, desc: MethodDesc, isVE: Boolean): LiftedCall = {
+    // Although we are not lifting this method call, we might replace this call with our specialized
+    // call because:
+    //  (1) avoid native
+    //  (2) activate our array expanding by changing the signature of System.arraycopy.
+    //  (3) package access method
+    (owner.name, name.name, desc.descString) match {
+      case ("java/lang/System", "arraycopy", _) if isVE =>
+        // We need array argument type in order to trigger array expansions and compressions.
+        LiftedCall(Owner(VBCModel.prefix + "/java/lang/System"), name, MethodDesc(s"([${TypeDesc.getObject}I[${TypeDesc.getObject}II)V"), isLifting = false)
+      case ("java/lang/Integer", "stringSize", _) =>
+        LiftedCall(Owner(VBCModel.prefix + "/java/lang/Integer"), name, desc, isLifting = false)
+      case ("java/lang/Integer", "getChars", _) =>
+        LiftedCall(Owner(VBCModel.prefix + "/java/lang/Integer"), name, desc, isLifting = false)
+      case _ => LiftedCall(owner.toModel, name, desc.toModels, isLifting = false)
     }
   }
 }

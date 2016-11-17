@@ -29,7 +29,7 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
   override def loadClass(name: String): Class[_] = {
     if (name.startsWith(VBCModel.prefix)) {
       val model = new VBCModel(name)
-      val bytes = model.getModelClassBytes()
+      val bytes = model.getModelClassBytes
       if (shouldLift(name)) {
         val clazz = loader.loadClass(bytes)
         liftClass(name, clazz)

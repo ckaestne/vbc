@@ -41,13 +41,17 @@ public class LinkedListExample {
     }
 
     void printElements() {
+        System.out.print("[");
         for (int i = 0; i < list.size(); i++) {
-            System.out.println(list.get(i));
+            System.out.print(list.get(i));
+            if (i != list.size() - 1)
+                System.out.print(",");
         }
+        System.out.println("]");
     }
 
     void printSize() {
-        System.out.println(list.size());
+        System.out.println("size: " + list.size());
     }
 
     void sort() {

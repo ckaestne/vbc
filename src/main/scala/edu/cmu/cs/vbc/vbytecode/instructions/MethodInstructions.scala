@@ -4,6 +4,7 @@ import edu.cmu.cs.vbc.OpcodePrint
 import edu.cmu.cs.vbc.analysis.VBCFrame.{FrameEntry, UpdatedFrame}
 import edu.cmu.cs.vbc.analysis._
 import edu.cmu.cs.vbc.utils.LiftUtils._
+import edu.cmu.cs.vbc.utils.LiftingPolicy.{LiftedCall, liftCall, replaceCall}
 import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftingPolicy, VCall}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
@@ -15,28 +16,6 @@ import org.objectweb.asm.{ClassVisitor, MethodVisitor, Type}
 
 trait MethodInstruction extends Instruction {
 
-  case class LiftedCall(owner: Owner, name: MethodName, desc: MethodDesc, isLifting: Boolean)
-
-  def liftCall(owner: Owner, name: MethodName, desc: MethodDesc): LiftedCall = {
-    val shouldLiftMethod = LiftingPolicy.shouldLiftMethodCall(owner, name, desc)
-    if (shouldLiftMethod) {
-      if (name.contentEquals("<init>")) {
-        // cpwtodo: handle exception in <init>
-        LiftedCall(owner.toModel, name, desc.toVs_AppendFE_AppendArgs, isLifting = true)
-      } else {
-        LiftedCall(owner.toModel, name.rename(desc.toModels), desc.toVs.appendFE.toVReturnType, isLifting = true)
-      }
-    }
-    else {
-      // Quick fix for System.arraycopy call (we need a more systematic way of rewriting method calls)
-      // We need array argument type in order to trigger array expansions and compressions.
-      if (owner == Owner.getSystem && name == MethodName("arraycopy")) {
-        LiftedCall(Owner.getArrayOps, MethodName("arraycopy"), MethodDesc(s"([${TypeDesc.getObject}I[${TypeDesc.getObject}II)V"), isLifting = false)
-      }
-      else
-        LiftedCall(owner.toModel, name, desc.toModels, isLifting = false)
-    }
-  }
 
   def invokeDynamic(
                      owner: Owner,
@@ -434,7 +413,8 @@ case class InstrINVOKEVIRTUAL(owner: Owner, name: MethodName, desc: MethodDesc, 
   */
 case class InstrINVOKESTATIC(owner: Owner, name: MethodName, desc: MethodDesc, itf: Boolean) extends MethodInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitMethodInsn(INVOKESTATIC, owner.toModel, name, desc.toModels, itf)
+    val replaced = replaceCall(owner, name, desc, isVE = false)
+    mv.visitMethodInsn(INVOKESTATIC, replaced.owner, replaced.name, replaced.desc, itf)
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
