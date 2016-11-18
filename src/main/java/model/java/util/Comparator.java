@@ -14,8 +14,9 @@ public interface Comparator {
     default int compare(Object a, Object b) {
         FeatureExpr ctx = Contexts.model_java_util_Comparator_compare;
         V<?> compareResult = compare__Ljava_lang_Object_Ljava_lang_Object__I(V.one(ctx, a), V.one(ctx, b), ctx);
-        assert compareResult.getOne() instanceof Integer : "compare returns non-Integer";
-        return ((java.lang.Integer) compareResult.getOne());
+        V<?> selected = compareResult.select(ctx);
+        assert selected.getOne() instanceof Integer : "compare returns non-Integer";
+        return ((java.lang.Integer) selected.getOne());
     }
     V<?> compare__Ljava_lang_Object_Ljava_lang_Object__I(V a, V b, FeatureExpr fe);
 }

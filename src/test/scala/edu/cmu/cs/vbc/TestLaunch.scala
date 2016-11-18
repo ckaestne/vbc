@@ -66,9 +66,8 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
     testMain(classOf[edu.cmu.cs.vbc.prog.CharArrayExample])
   }
 
-  ignore("gpl") {
-    testMain(classOf[edu.cmu.cs.vbc.prog.gpl.Main], compareTraceAgainstBruteForce = false)
-    //    testMain(classOf[edu.cmu.cs.vbc.prog.gpl.Main]) //todo
+  test("gpl") {
+    testMain(classOf[edu.cmu.cs.vbc.prog.gpl.Main])
   }
 
   test("LinkedList") {

@@ -19,6 +19,7 @@ public class Main {
     }
 
     public static void main( String[] args ) throws IOException {
+        new Main();
         splStart___();
         mainBody___(args);
         splEnd___();

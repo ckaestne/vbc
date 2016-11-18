@@ -58,7 +58,10 @@ case class Owner(name: String) extends TypeVerifier {
     // Integer call a package access method from java/lang/Class
     "java/lang/Integer", "java/lang/Short", "java/lang/Byte", "java/lang/Float", "java/lang/Double", "java/lang/Character",
     // Native
-    "java/lang/Math"
+    "java/lang/Math",
+    // I/O natives
+    "java/io/UnixFileSystem", "java/io/FileSystem", "java/io/DefaultFileSystem", "java/io/File", "java/net/URL",
+    "java/io/FileInputStream", "java/io/InputStream"
   )
 
   /** Get the corresponding model class

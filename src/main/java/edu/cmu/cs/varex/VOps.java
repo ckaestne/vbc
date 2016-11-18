@@ -77,8 +77,19 @@ public class VOps {
         });
     }
 
-    public static FeatureExpr whenGT(V<? extends Integer> a) {
-        return a.when(v -> v.intValue() > 0);
+    public static FeatureExpr whenGT(V a) {
+        return a.when(v -> {
+            if (v == null)
+                return false;
+            else {
+                if (v instanceof Boolean)
+                    return (Boolean) v;
+                else if (v instanceof Integer)
+                    return (Integer) v > 0;
+                else
+                    throw new RuntimeException("Unsupported type in whenGT");
+            }
+        });
     }
 
     public static FeatureExpr whenGE(V<? extends Integer> a) {
@@ -205,7 +216,18 @@ public class VOps {
     }
 
     public static V<? extends Integer> iushr(V<? extends Integer> value1, V<? extends Integer> value2) {
-        return value1.flatMap(v1 -> value2.map(v2 -> v1 >>> v2));
+        return value1.flatMap(v1 -> {
+            if (v1 == null)
+                return V.one(null);
+            else {
+                return value2.map(v2 -> {
+                    if (v2 == null)
+                        return null;
+                    else
+                        return v1 >>> v2;
+                });
+            }
+        });
     }
 
     public static V<? extends Integer> irem(V<? extends Integer> value1, V<? extends Integer> value2) {

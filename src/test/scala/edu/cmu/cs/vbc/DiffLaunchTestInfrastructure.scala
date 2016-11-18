@@ -1,5 +1,7 @@
 package edu.cmu.cs.vbc
 
+import java.io.{File, FileWriter}
+
 import edu.cmu.cs.vbc
 import edu.cmu.cs.vbc.vbytecode._
 import edu.cmu.cs.vbc.vbytecode.instructions._
@@ -76,7 +78,7 @@ trait DiffLaunchTestInfrastructure {
       val loader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, false, instrumentMethod, toFileDebugging = false)
       val cls: Class[_] = loader.loadClass(classname)
       //run against brute force instrumented execution and compare traces
-      for ((sel, desel) <- explode(usedOptions.toList)) {
+      for ((sel, desel) <- scala.util.Random.shuffle(explode(usedOptions.toList)).take(1000)) {
         println("executing config [" + sel.mkString(", ") + "]")
         TestTraceOutput.trace = Nil
         TraceConfig.config = configToMap((sel, desel))
@@ -120,10 +122,19 @@ trait DiffLaunchTestInfrastructure {
     r
   }
 
-  def compareTraces(ctx: List[Feature], expected: List[String], actual: List[String]): Unit =
-    assert(expected == actual,
-      "mismatch between plain execution and variational execution in config [" + ctx.mkString(", ") + "]:\n" +
-        "EXPECTED (plain execution):\n" + expected.mkString("\n") + "\nFOUND (variational execution in [" + ctx.mkString(", ") + "]):\n" + actual.mkString("\n") + "\n")
+  def compareTraces(ctx: List[Feature], expected: List[String], actual: List[String]): Unit = {
+    if (expected != actual) {
+      val expectedOut = new FileWriter(new File("expected"))
+      val foundOut = new FileWriter(new File("found"))
+      expectedOut.write("EXPECTED (plain execution): \n")
+      expectedOut.write(expected.mkString("\n"))
+      foundOut.write("FOUND (variational execution in [" + ctx.mkString(", ") + "]):\n")
+      foundOut.write(actual.mkString("\n"))
+      expectedOut.close()
+      foundOut.close()
+      throw new RuntimeException("mismatch between plain execution and variational execution in config [" + ctx.mkString(", ") + "], check the log files")
+    }
+  }
 
 
   def benchmark(classname: String, testVClass: Class[_], testClass: Class[_], configOptions: Set[String]): Unit = {
@@ -145,7 +156,7 @@ trait DiffLaunchTestInfrastructure {
 
     //measure brute-force execution
     val configs = explode(configOptions.toList)
-    val bftimes = for ((sel, desel) <- configs)
+    val bftimes = for ((sel, desel) <- scala.util.Random.shuffle(configs).take(1000))
       yield config(
         Key.exec.benchRuns -> 20
       ) withWarmer {
