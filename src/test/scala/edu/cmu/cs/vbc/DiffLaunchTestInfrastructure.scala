@@ -39,6 +39,7 @@ trait DiffLaunchTestInfrastructure {
           // reduce output
 //          List(vbc.TraceInstr_Print(), instr)
           List(vbc.TraceInstr_Print(), InstrPOP(), InstrPOP())
+        case InstrINVOKEVIRTUAL(Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(I)V"), _) => List(vbc.TraceInstr_PrintI(), InstrPOP(), InstrPOP())
         case InstrINVOKEVIRTUAL(owner, name, desc, _) => List(vbc.TraceInstr_S("INVK_VIRT: " + owner + ";" + name + ";" + desc), instr)
         case InstrGETFIELD(owner, name, desc) if desc.contentEquals("I") || desc.contentEquals("Z") => List(instr, vbc.TraceInstr_GetField("GETFIELD: " + owner + ";" + name + ";" + desc, desc))
 //        case InstrRETURN() => List(vbc.TraceInstr_S("RETURN"), instr)
@@ -48,6 +49,18 @@ trait DiffLaunchTestInfrastructure {
       ).flatten, block.exceptionHandlers
     )
 
+  def prepareBenchmark(method: VBCMethodNode): VBCMethodNode = instrumentCustomInit(avoidOutput(method))
+  def avoidOutput(method: VBCMethodNode): VBCMethodNode = method.copy(body = CFG(method.body.blocks.map(avoidOutput)))
+  def avoidOutput(block: Block): Block =
+    Block((
+      for (instr <- block.instr) yield instr match {
+        case InstrINVOKEVIRTUAL(Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(Ljava/lang/String;)V"), _) => List(InstrPOP(), InstrPOP())
+        case InstrINVOKEVIRTUAL(Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(Ljava/lang/Object;)V"), _) => List(InstrPOP(), InstrPOP())
+        case InstrINVOKEVIRTUAL(Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(I)V"), _) => List(InstrPOP(), InstrPOP())
+        case instr => List(instr)
+      }
+      ).flatten, block.exceptionHandlers
+    )
 
   def instrumentCustomInit(method: VBCMethodNode): VBCMethodNode = method.copy(body = CFG(method.body.blocks.map(instrumentCustomInit)))
 
@@ -66,7 +79,10 @@ trait DiffLaunchTestInfrastructure {
   def testMain(clazz: Class[_], compareTraceAgainstBruteForce: Boolean = true, runBenchmark: Boolean = true): Unit = {
     //test uninstrumented variational execution to see whether it crashes
     val classname = clazz.getName
-    VBCLauncher.launch(classname)
+    //VBCLauncher.launch(classname)
+    val testCrashLoader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, true, avoidOutput)
+    val testCrash = testCrashLoader.loadClass(classname)
+    VBCLauncher.invokeMain(testCrash, new Array[String](0))
 
     //test instrumented version, executed variationally
     TestTraceOutput.trace = Nil
@@ -99,9 +115,9 @@ trait DiffLaunchTestInfrastructure {
 
     if (runBenchmark) {
       //run benchmark (without instrumentation)
-      val vbenchmarkloader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, true, instrumentCustomInit)
+      val vbenchmarkloader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, true, prepareBenchmark)
       val vbenchmarkcls: Class[_] = vbenchmarkloader.loadClass(classname)
-      val benchmarkloader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, false, instrumentCustomInit)
+      val benchmarkloader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, false, prepareBenchmark)
       val benchmarkcls: Class[_] = benchmarkloader.loadClass(classname)
       benchmark(classname, vbenchmarkcls, benchmarkcls, usedOptions)
     }

@@ -9,5 +9,5 @@ script:
   - sbt ++$TRAVIS_SCALA_VERSION test-only edu.cmu.cs.vbc.prog.BankAccountTest
   - sbt ++$TRAVIS_SCALA_VERSION test-only edu.cmu.cs.vbc.prog.ElevatorTest
   - sbt ++$TRAVIS_SCALA_VERSION test-only edu.cmu.cs.vbc.prog.EmailTest
-  - sbt ++$TRAVIS_SCALA_VERSION test-only edu.cmu.cs.vbc.prog.GPLTest
+#  - sbt ++$TRAVIS_SCALA_VERSION test-only edu.cmu.cs.vbc.prog.GPLTest
   - sbt ++$TRAVIS_SCALA_VERSION test-only edu.cmu.cs.vbc.prog.SmallExampleTest
