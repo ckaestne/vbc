@@ -1,15 +1,12 @@
 package edu.cmu.cs.vbc
 
-import java.io.PrintWriter
-
 import de.fosd.typechef.conditional.{ConditionalLib, Opt}
 import de.fosd.typechef.featureexpr.{FeatureExpr, FeatureExprFactory}
 import edu.cmu.cs.vbc.TestOutput.TOpt
 import edu.cmu.cs.vbc.vbytecode._
 import edu.cmu.cs.vbc.vbytecode.instructions._
+import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes._
-import org.objectweb.asm.util.TraceClassVisitor
-import org.objectweb.asm.{ClassReader, ClassWriter}
 
 /**
   * compares the execution of two methods
@@ -51,14 +48,14 @@ trait DiffMethodTestInfrastructure {
     val cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS)
     clazz.toByteCode(cw)
     val byte = cw.toByteArray
-    val printer = new TraceClassVisitor(new PrintWriter(System.out))
-    println(
-      """
-        |  ------------------
-        | | Unlifted version |
-        |  ------------------
-      """.stripMargin)
-    new ClassReader(byte).accept(printer, 0)
+//    val printer = new TraceClassVisitor(new PrintWriter(System.out))
+//    println(
+//      """
+//        |  ------------------
+//        | | Unlifted version |
+//        |  ------------------
+//      """.stripMargin)
+//    new ClassReader(byte).accept(printer, 0)
     val myClassLoader = new MyClassLoader
     myClassLoader.defineClass("Test", byte)
   }
@@ -68,14 +65,14 @@ trait DiffMethodTestInfrastructure {
     clazz.toVByteCode(vcw)
     val vbyte = vcw.toByteArray
 
-    val printer = new TraceClassVisitor(new PrintWriter(System.out))
-    println(
-      """
-        |  ----------------
-        | | Lifted version |
-        |  ----------------
-      """.stripMargin)
-    new ClassReader(vbyte).accept(printer, 0)
+//    val printer = new TraceClassVisitor(new PrintWriter(System.out))
+//    println(
+//      """
+//        |  ----------------
+//        | | Lifted version |
+//        |  ----------------
+//      """.stripMargin)
+//    new ClassReader(vbyte).accept(printer, 0)
     val myVClassLoader = new MyClassLoader
     myVClassLoader.defineClass("Test", vbyte)
   }
