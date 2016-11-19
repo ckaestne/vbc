@@ -43,6 +43,10 @@ object TestTraceOutput {
     trace ::=(t, s + ";" + v)
   }
 
+  def trace_printlnI(v: Int): Unit = {
+    trace ::=(t, v.toString)
+  }
+
   def vtrace_int(v: V[Any], ctx: FeatureExpr, s: String): Unit = {
     assert(ctx.isInstanceOf[FeatureExpr], "ctx not FeatureExpr but " + ctx.getClass)
     assert(v.isInstanceOf[V[_]], "v not V[Int] but " + v.getClass)
@@ -199,6 +203,29 @@ case class TraceInstr_Print() extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(DUP)
     mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/TestTraceOutput", "trace_string", "(Ljava/lang/Object;)V", false)
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    mv.visitInsn(DUP)
+    loadFExpr(mv, env, env.getVBlockVar(block))
+    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/TestTraceOutput", "vtrace_string", "(Ledu/cmu/cs/varex/V;Lde/fosd/typechef/featureexpr/FeatureExpr;)V", false)
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
+    val backtrack =
+      if (s.stack.head._1 != V_TYPE()) s.stack.head._2
+      else Set[Instruction]()
+    (s, backtrack)
+  }
+}
+
+/**
+  * trace a print instruction, getting the string value on top of the stack
+  */
+case class TraceInstr_PrintI() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitInsn(DUP)
+    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/TestTraceOutput", "trace_printlnI", "(I)V", false)
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
