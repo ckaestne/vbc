@@ -2,3 +2,12 @@ language: scala
 scala: 2.11.7
 jdk: oraclejdk8
 sudo: false
+
+script:
+  - sbt ++$TRAVIS_SCALA_VERSION test-only edu.cmu.cs.vbc.analysis.*Test edu.cmu.cs.vbc.utils.*Test
+  - sbt ++$TRAVIS_SCALA_VERSION test-only edu.cmu.cs.vbc.vbytecode.*Test
+  - sbt ++$TRAVIS_SCALA_VERSION test-only edu.cmu.cs.vbc.prog.BankAccountTest
+  - sbt ++$TRAVIS_SCALA_VERSION test-only edu.cmu.cs.vbc.prog.ElevatorTest
+  - sbt ++$TRAVIS_SCALA_VERSION test-only edu.cmu.cs.vbc.prog.EmailTest
+  - sbt ++$TRAVIS_SCALA_VERSION test-only edu.cmu.cs.vbc.prog.GPLTest
+  - sbt ++$TRAVIS_SCALA_VERSION test-only edu.cmu.cs.vbc.prog.SmallExampleTest

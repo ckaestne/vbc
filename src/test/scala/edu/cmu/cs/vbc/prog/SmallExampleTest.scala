@@ -1,15 +1,14 @@
-package edu.cmu.cs.vbc
+package edu.cmu.cs.vbc.prog
 
 import de.fosd.typechef.featureexpr.FeatureExprFactory
-import edu.cmu.cs.vbc.prog._
-import edu.cmu.cs.vbc.prog.elevator.PL_Interface_impl
+import edu.cmu.cs.vbc.DiffLaunchTestInfrastructure
 import org.scalatest.FunSuite
 
 
 /**
   * simple starter, checks for successful execution without crashes, no assertion checking
   */
-class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
+class SmallExampleTest extends FunSuite with DiffLaunchTestInfrastructure {
 
   FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
 
@@ -30,9 +29,6 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
     testMain(classOf[edu.cmu.cs.vbc.prog.UnbalancedStackExample])
   }
 
-  test("bankaccount") {
-    testMain(classOf[edu.cmu.cs.vbc.prog.bankaccount.Main])
-  }
 
   test("static fields") {
     testMain(classOf[edu.cmu.cs.vbc.prog.StaticFieldsExample])
@@ -40,10 +36,6 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
 
   test("static fields with clinit") {
     testMain(classOf[edu.cmu.cs.vbc.prog.StaticFieldsWithClinit])
-  }
-
-  test("bankaccout2") {
-    testMain(classOf[edu.cmu.cs.vbc.prog.bankaccount2.Main])
   }
 
   test("conditional field assignment") {
@@ -66,10 +58,6 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
     testMain(classOf[edu.cmu.cs.vbc.prog.CharArrayExample])
   }
 
-  test("gpl") {
-    testMain(classOf[edu.cmu.cs.vbc.prog.gpl.Main])
-  }
-
   test("LinkedList") {
     testMain(classOf[LinkedListExample])
   }
@@ -88,13 +76,5 @@ class TestLaunch extends FunSuite with DiffLaunchTestInfrastructure {
 
   test("ArrayListExample") {
     testMain(classOf[ArrayListExample])
-  }
-
-  test("Elevator") {
-    testMain(classOf[PL_Interface_impl])
-  }
-
-  test("Email") {
-    testMain(classOf[email.PL_Interface_impl])
   }
 }
