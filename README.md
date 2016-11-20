@@ -1,5 +1,5 @@
 # Variational Byte Code (VarexC)
-[![Build Status](https://travis-ci.org/ckaestne/vbc.svg?branch=master)](https://travis-ci.org/ckaestne/vbc)
+[![Build Status](https://travis-ci.org/chupanw/vbc.svg?branch=master)](https://travis-ci.org/chupanw/vbc)
 
 Variational execute Java code by lifting the byte code. Work in progress. 
 

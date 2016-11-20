@@ -14,7 +14,7 @@ env:
   - TEST="test-only edu.cmu.cs.vbc.prog.SmallExampleTest"
   - TEST="test-only edu.cmu.cs.vbc.prog.BankAccountTest"
   - TEST="test-only edu.cmu.cs.vbc.prog.ElevatorTest"
-  - TEST="test-only edu.cmu.cs.vbc.prog.ElevatorTest"
+  - TEST="test-only edu.cmu.cs.vbc.prog.EmailTest"
   - TEST="test-only edu.cmu.cs.vbc.prog.GPLTest"
 script:
   - sbt ++$TRAVIS_SCALA_VERSION "$TEST"
