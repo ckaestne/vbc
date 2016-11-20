@@ -155,18 +155,8 @@ public class VOps {
         });
     }
 
-    public static V<? extends Integer> IMUL(V<? extends Integer> a, V<? extends Integer> b) {
-        return a.flatMap(aa -> {
-            if (aa == null)
-                return V.one(null);
-            else
-                return b.map(bb -> {
-                    if (bb == null)
-                        return null;
-                    else
-                        return aa.intValue() * bb.intValue();
-                });
-        });
+    public static V<? extends Integer> IMUL(V<? extends Integer> a, V<? extends Integer> b, FeatureExpr ctx) {
+        return a.sflatMap(ctx, (fe, aa) -> b.smap(fe, bb -> aa.intValue() * bb.intValue()));
     }
 
     public static V<? extends Integer> IDIV(V<? extends Integer> a, V<? extends Integer> b) {
