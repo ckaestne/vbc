@@ -2,8 +2,19 @@ language: scala
 scala: 2.11.7
 jdk: oraclejdk8
 sudo: false
-
+cache:
+    directories:
+        - $HOME/.ivy2/cache
+        - $HOME/.sbt/boot/
+before_cache:
+    - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
+    - find $HOME/.sbt -name "*.lock" -delete
+env:
+  - TEST="test-only edu.cmu.cs.vbc.analysis.*Test edu.cmu.cs.vbc.utils.*Test edu.cmu.cs.vbc.vbytecode.*Test"
+  - TEST="test-only edu.cmu.cs.vbc.prog.SmallExampleTest"
+  - TEST="test-only edu.cmu.cs.vbc.prog.BankAccountTest"
+  - TEST="test-only edu.cmu.cs.vbc.prog.ElevatorTest"
+  - TEST="test-only edu.cmu.cs.vbc.prog.ElevatorTest"
+  - TEST="test-only edu.cmu.cs.vbc.prog.GPLTest"
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION test-only edu.cmu.cs.vbc.analysis.*Test edu.cmu.cs.vbc.utils.*Test
-  - sbt ++$TRAVIS_SCALA_VERSION test-only edu.cmu.cs.vbc.vbytecode.*Test
-  - sbt ++$TRAVIS_SCALA_VERSION test-only edu.cmu.cs.vbc.prog.SmallExampleTest
+  - sbt ++$TRAVIS_SCALA_VERSION "$TEST"

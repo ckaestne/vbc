@@ -81,4 +81,13 @@ class ArithmeticInstructionsTest extends FlatSpec with DiffMethodTestInfrastruct
       Nil
     )
   }
+
+  "ISUB" can "subtract numbers" in {
+    methodWithBlocks(
+      createVint(tValue = 1, fValue = 2, startBlockIdx = 0) :::
+        createVint(tValue = 3, fValue = 4, startBlockIdx = 3) :::
+        Block(InstrISUB(), InstrDBGIPrint(), InstrRETURN()) ::
+        Nil
+    )
+  }
 }

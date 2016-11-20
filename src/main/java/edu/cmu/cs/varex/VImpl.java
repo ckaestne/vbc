@@ -170,7 +170,7 @@ class VImpl<T> implements V<T> {
         assert condition != null;
         FeatureExpr result = FeatureExprFactory.False();
         for (HashMap.Entry<T, FeatureExpr> e : values.entrySet())
-            if (condition.test(e.getKey()))
+            if (e.getKey() != null && condition.test(e.getKey()))
                 result = result.or(e.getValue());
         return result;
     }

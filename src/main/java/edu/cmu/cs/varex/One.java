@@ -74,7 +74,7 @@ public class One<T> implements V<T> {
     @Override
     public FeatureExpr when(@Nonnull Predicate<T> condition) {
         assert condition != null;
-        return condition.test(value) ? FeatureExprFactory.True() : FeatureExprFactory.False();
+        return value != null && condition.test(value) ? FeatureExprFactory.True() : FeatureExprFactory.False();
     }
 
     @Override
