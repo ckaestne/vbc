@@ -109,7 +109,8 @@ case class InstrIINC(variable: Variable, increment: Int) extends Instruction {
     if (env.shouldLiftInstr(this)) {
       loadV(mv, env, variable)
       pushConstant(mv, increment)
-      mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "IINC", "(Ledu/cmu/cs/varex/V;I)Ledu/cmu/cs/varex/V;", false)
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "IINC", s"(Ledu/cmu/cs/varex/V;I$fexprclasstype)Ledu/cmu/cs/varex/V;", false)
 
       //create a choice with the original value
       loadFExpr(mv, env, env.getVBlockVar(block))

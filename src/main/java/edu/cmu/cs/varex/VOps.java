@@ -7,28 +7,12 @@ import de.fosd.typechef.featureexpr.FeatureExpr;
  */
 public class VOps {
 
-    public static V<? extends Integer> IADD(V<? extends Integer> a, V<? extends Integer> b) {
-        return a.flatMap(aa -> {
-            if (aa == null)
-                return V.one(null);
-            else
-                return b.map(bb -> {
-                    if (bb == null)
-                        return null;
-                    else
-                        return aa.intValue() + bb.intValue();
-                });
-        });
+    public static V<? extends Integer> IADD(V<? extends Integer> a, V<? extends Integer> b, FeatureExpr ctx) {
+        return a.sflatMap(ctx, (fe, aa) -> b.smap(fe, bb -> aa.intValue() + bb.intValue()));
     }
 
-    public static V<? extends Integer> IINC(V<? extends Integer> a, int increment) {
-        return a.map(aa -> {
-            if (aa == null)
-                return null;
-            else {
-                return aa.intValue() + increment;
-            }
-        });
+    public static V<? extends Integer> IINC(V<? extends Integer> a, int increment, FeatureExpr ctx) {
+        return a.smap(ctx, aa -> aa.intValue() + increment);
     }
 
     /**
