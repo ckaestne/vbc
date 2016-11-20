@@ -21,8 +21,15 @@ public class VOps {
      * @param a
      * @return
      */
-    public static FeatureExpr whenEQ(V<? extends Integer> a) {
-        return a.when(v -> v == 0);
+    public static FeatureExpr whenEQ(V<?> a) {
+        return a.when(v -> {
+            if (v instanceof Boolean)
+                return !(Boolean) v ;
+            else if (v instanceof Integer)
+                return (Integer) v == 0;
+            else
+                throw new RuntimeException("Unsupported whenEQ type");
+        }, true);
     }
 
     /**
@@ -31,32 +38,39 @@ public class VOps {
      * @param a
      * @return
      */
-    public static FeatureExpr whenNE(V<? extends Integer> a) {
-        return a.when(v -> v != 0);
+    public static FeatureExpr whenNE(V<?> a) {
+        return a.when(v -> {
+            if (v instanceof Boolean)
+                return (Boolean) v;
+            else if (v instanceof Integer)
+                return (Integer) v != 0;
+            else
+                throw new RuntimeException("Unsupported whenNE type");
+        }, true);
     }
 
     public static FeatureExpr whenGT(V<? extends Integer> a) {
-        return a.when(v -> v > 0);
+        return a.when(v -> v > 0, true);
     }
 
     public static FeatureExpr whenGE(V<? extends Integer> a) {
-        return a.when(v -> v >= 0);
+        return a.when(v -> v >= 0, true);
     }
 
     public static FeatureExpr whenLT(V<? extends Integer> a) {
-        return a.when(v -> v < 0);
+        return a.when(v -> v < 0, true);
     }
 
     public static FeatureExpr whenLE(V<? extends Integer> a) {
-        return a.when(v -> v <= 0);
+        return a.when(v -> v <= 0, true);
     }
 
     public static FeatureExpr whenNONNULL(V<? extends Object> a) {
-        return a.when(v -> v != null);
+        return a.when(v -> v != null, false);
     }
 
     public static FeatureExpr whenNULL(V<? extends Object> a) {
-        return a.when(v -> v == null);
+        return a.when(v -> v == null, false);
     }
 
     public static FeatureExpr whenIEQ(V<? extends Integer> a, V<? extends Integer> b) {
@@ -130,7 +144,7 @@ public class VOps {
                 return aa == bb;
             });
         });
-        return compare.when(c -> c);
+        return compare.when(c -> c, true);
     }
 
     public static FeatureExpr whenANE(V<?> a, V<?> b) {
@@ -139,7 +153,7 @@ public class VOps {
                 return aa != bb;
             });
         });
-        return compare.when(c -> c);
+        return compare.when(c -> c, true);
     }
 
     public static V<? extends Integer> iushr(V<? extends Integer> value1, V<? extends Integer> value2, FeatureExpr ctx) {

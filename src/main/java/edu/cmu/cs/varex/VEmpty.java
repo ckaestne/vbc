@@ -56,7 +56,7 @@ public class VEmpty<T> implements V<T> {
     }
 
     @Override
-    public FeatureExpr when(Predicate<T> condition) {
+    public FeatureExpr when(Predicate<T> condition, boolean filterNull) {
         return FeatureExprFactory.False();
     }
 

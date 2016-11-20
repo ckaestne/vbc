@@ -109,6 +109,7 @@ case class InstrLINENUMBER(line: Int) extends EmptyInstruction {
   * Helper instruction for initializing conditional fields
   */
 case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
+  import InstrINIT_CONDITIONAL_FIELDS._
 
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     // do nothing
@@ -116,62 +117,65 @@ case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
 
-    import LiftUtils._
-    def createChoice(fName: String, mv: MethodVisitor): Unit = {
-      mv.visitLdcInsn(fName)
-      mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "createDefinedExternal", "(Ljava/lang/String;)Lde/fosd/typechef/featureexpr/SingleFeatureExpr;", false)
-      mv.visitInsn(ICONST_1)
-      mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", s"(I)${Owner.getInt.getTypeDesc}", false)
-      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
-      mv.visitInsn(ICONST_0)
-      mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", s"(I)${Owner.getInt.getTypeDesc}", false)
-      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
-      callVCreateChoice(mv)
-    }
-
-    def createOne(f: VBCFieldNode, fDesc: String, mv: MethodVisitor): Unit = {
-      Type.getType(fDesc).getSort match {
-        case Type.INT =>
-          if (f.value == null) mv.visitInsn(ICONST_0) else pushConstant(mv, f.value.asInstanceOf[Int])
-          mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", s"(I)${Owner.getInt.getTypeDesc}", false)
-        case Type.OBJECT => mv.visitInsn(ACONST_NULL)
-        case Type.BOOLEAN =>
-          if (f.value == null) mv.visitInsn(ICONST_0) else pushConstant(mv, f.value.asInstanceOf[Int])
-          mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", s"(I)${Owner.getInt.getTypeDesc}", false)
-        case Type.LONG =>
-          if (f.value == null) mv.visitInsn(LCONST_0) else pushLongConstant(mv, f.value.asInstanceOf[Long])
-          mv.visitMethodInsn(INVOKESTATIC, Owner.getLong, "valueOf", s"(J)${Owner.getLong.getTypeDesc}", false)
-        case Type.ARRAY => mv.visitInsn(ACONST_NULL)
-        case _ =>
-          ???
-      }
-      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
-    }
-
-    def inClinit = env.method.name == "___clinit___"
-    if (inClinit) {
+    if (env.method.name == "___clinit___") {
       env.clazz.fields.filter(f => f.isStatic && f.hasConditionalAnnotation()).foreach(f => {
-        createChoice(f.name, mv);
+        createChoice(f.name, mv, env, block)
         mv.visitFieldInsn(PUTSTATIC, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
       })
       env.clazz.fields.filter(f => f.isStatic && !f.hasConditionalAnnotation()).foreach(f => {
-        createOne(f, f.desc, mv);
+        createOne(f, mv, env, block)
         mv.visitFieldInsn(PUTSTATIC, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
       })
     }
     else {
       env.clazz.fields.filter(f => !f.isStatic && f.hasConditionalAnnotation()).foreach(f => {
         mv.visitVarInsn(ALOAD, 0)
-        createChoice(f.name, mv)
+        createChoice(f.name, mv, env, block)
         mv.visitFieldInsn(PUTFIELD, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
       })
       env.clazz.fields.filter(f => !f.isStatic && !f.hasConditionalAnnotation()).foreach(f => {
         mv.visitVarInsn(ALOAD, 0)
-        createOne(f, f.desc, mv)
+        createOne(f, mv, env, block)
         mv.visitFieldInsn(PUTFIELD, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
       })
     }
   }
 
+
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set())
+}
+
+case object InstrINIT_CONDITIONAL_FIELDS {
+  import LiftUtils._
+
+  def createChoice(fName: String, mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    mv.visitLdcInsn(fName)
+    mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "createDefinedExternal", "(Ljava/lang/String;)Lde/fosd/typechef/featureexpr/SingleFeatureExpr;", false)
+    mv.visitInsn(ICONST_1)
+    mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", s"(I)${Owner.getInt.getTypeDesc}", false)
+    callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+    mv.visitInsn(ICONST_0)
+    mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", s"(I)${Owner.getInt.getTypeDesc}", false)
+    callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+    callVCreateChoice(mv)
+  }
+
+  def createOne(f: VBCFieldNode, mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    Type.getType(f.desc).getSort match {
+      case Type.INT =>
+        if (f.value == null) mv.visitInsn(ICONST_0) else pushConstant(mv, f.value.asInstanceOf[Int])
+        mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", s"(I)${Owner.getInt.getTypeDesc}", false)
+      case Type.OBJECT => mv.visitInsn(ACONST_NULL)
+      case Type.BOOLEAN =>
+        if (f.value == null) mv.visitInsn(ICONST_0) else pushConstant(mv, f.value.asInstanceOf[Int])
+        mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", s"(I)${Owner.getInt.getTypeDesc}", false)
+      case Type.LONG =>
+        if (f.value == null) mv.visitInsn(LCONST_0) else pushLongConstant(mv, f.value.asInstanceOf[Long])
+        mv.visitMethodInsn(INVOKESTATIC, Owner.getLong, "valueOf", s"(J)${Owner.getLong.getTypeDesc}", false)
+      case Type.ARRAY => mv.visitInsn(ACONST_NULL)
+      case _ =>
+        ???
+    }
+    callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+  }
 }

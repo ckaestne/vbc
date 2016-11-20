@@ -176,7 +176,7 @@ public interface V<T> {
         sforeach(ctx, fun);
     }
 
-    FeatureExpr when(@Nonnull Predicate<T> condition);
+    FeatureExpr when(@Nonnull Predicate<T> condition, boolean filterNull);
 
     /**
      * select a subconfiguration space of V

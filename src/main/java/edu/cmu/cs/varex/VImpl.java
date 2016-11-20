@@ -166,12 +166,14 @@ class VImpl<T> implements V<T> {
 
 
     @Override
-    public FeatureExpr when(@Nonnull Predicate<T> condition) {
+    public FeatureExpr when(@Nonnull Predicate<T> condition, boolean filterNull) {
         assert condition != null;
         FeatureExpr result = FeatureExprFactory.False();
-        for (HashMap.Entry<T, FeatureExpr> e : values.entrySet())
-            if (e.getKey() != null && condition.test(e.getKey()))
+        for (HashMap.Entry<T, FeatureExpr> e : values.entrySet()) {
+            if (filterNull && e.getKey() == null) continue;
+            if (condition.test(e.getKey()))
                 result = result.or(e.getValue());
+        }
         return result;
     }
 

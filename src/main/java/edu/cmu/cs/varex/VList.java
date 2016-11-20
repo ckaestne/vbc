@@ -47,7 +47,7 @@ public class VList {
                             op.apply(c.and(current.getCondition()), current.getValue(), r),
                             V.one(r)));
 
-            if (ctx.implies(result.when(t -> stopCriteria.test((T) t))).isTautology())
+            if (ctx.implies(result.when(t -> stopCriteria.test((T) t), false)).isTautology())
                 break;
         }
 
