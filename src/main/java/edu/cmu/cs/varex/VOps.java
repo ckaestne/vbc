@@ -189,19 +189,8 @@ public class VOps {
         return compare.when(c -> c);
     }
 
-    public static V<? extends Integer> iushr(V<? extends Integer> value1, V<? extends Integer> value2) {
-        return value1.flatMap(v1 -> {
-            if (v1 == null)
-                return V.one(null);
-            else {
-                return value2.map(v2 -> {
-                    if (v2 == null)
-                        return null;
-                    else
-                        return v1 >>> v2;
-                });
-            }
-        });
+    public static V<? extends Integer> iushr(V<? extends Integer> value1, V<? extends Integer> value2, FeatureExpr ctx) {
+        return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1 >>> v2));
     }
 
     public static V<? extends Integer> irem(V<? extends Integer> value1, V<? extends Integer> value2) {

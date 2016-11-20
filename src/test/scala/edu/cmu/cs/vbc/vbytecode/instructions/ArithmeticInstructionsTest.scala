@@ -72,4 +72,13 @@ class ArithmeticInstructionsTest extends FlatSpec with DiffMethodTestInfrastruct
       Nil
     )
   }
+
+  "IUSHR" can "logical shift right int" in {
+    methodWithBlocks(
+      createVint(tValue = 1, fValue = 2, startBlockIdx = 0) :::
+      createVint(tValue = 3, fValue = 4, startBlockIdx = 3) :::
+      Block(InstrIUSHR(), InstrDBGIPrint(), InstrRETURN()) ::
+      Nil
+    )
+  }
 }
