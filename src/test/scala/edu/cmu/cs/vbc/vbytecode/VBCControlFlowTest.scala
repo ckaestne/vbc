@@ -178,7 +178,7 @@ class VBCControlFlowTest extends FunSuite with DiffMethodTestInfrastructure {
     )
   }
 
-  ignore("unbalanced non-V value") {
+  test("unbalanced non-V value") {
     method(
       Block(InstrNEW("java/lang/Integer"), InstrDUP(), InstrICONST(3), InstrINVOKESPECIAL(Owner("java/lang/Integer"), MethodName("<init>"), MethodDesc("(I)V"), false)),
       Block(InstrINVOKEVIRTUAL(Owner("java/lang/Integer"), MethodName("toString"), MethodDesc("()Ljava/lang/String;"), false)),

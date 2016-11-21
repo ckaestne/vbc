@@ -49,7 +49,7 @@ class TypeInstructionsTest extends FlatSpec with DiffMethodTestInfrastructure {
     )
   }
 
-  ignore should "throw exception if checking primitive array type fails" in {
+  it should "throw exception if checking primitive array type fails" in {
     val caught = intercept[InvocationTargetException] {
       simpleMethod(
         InstrBIPUSH(10), InstrNEWARRAY(T_INT),
@@ -69,7 +69,7 @@ class TypeInstructionsTest extends FlatSpec with DiffMethodTestInfrastructure {
     )
   }
 
-  ignore should "throw exception if checking object array type fails" in {
+  it should "throw exception if checking object array type fails" in {
     val caught = intercept[InvocationTargetException] {
       simpleMethod(
         InstrBIPUSH(10), InstrANEWARRAY(Owner("java/lang/Integer")),
