@@ -26,9 +26,15 @@ class VBCModel(fqName: String) extends LazyLogging {
   val modelClsName: String = fqName.replace('.', '/')
   val originalClsName: String = modelClsName.substring(VBCModel.prefix.length + 1)
 
-  def getModelClassBytes: Array[Byte] = {
+  val alwaysUseModelClass: List[String] = List(
+    "model/java/lang/Integer",  // stringSize()
+    "model/java/lang/System", // arrayCopy()
+    "model/java/util/Arrays"  // native sorting methods
+  )
+
+  def getModelClassBytes(isLift: Boolean) : Array[Byte] = {
     val eis = this.getClass.getClassLoader.getResourceAsStream(modelClsName + ".class")
-    if (eis != null) {
+    if (eis != null && (isLift || alwaysUseModelClass.contains(modelClsName))) {
       logger.info(s"Using existing model class: " + fqName)
       val cr = new ClassReader(eis)
       val cn = new ClassNode(ASM5)

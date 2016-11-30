@@ -219,13 +219,13 @@ case class VBCClassNode(
 
   import LiftUtils._
 
-  def toByteCode(cv: ClassVisitor, rewriter: VBCMethodNode => VBCMethodNode = a => a) = {
+  def toByteCode(cv: ClassVisitor, rewriter: (VBCMethodNode, VBCClassNode) => VBCMethodNode = (a, b) => a) = {
     val liftedSuperName = liftSuperName(Owner(superName))
     cv.visit(version, access, name, signature.getOrElse(null), liftedSuperName, interfaces.map(i => Owner(i).toModel.toString).toArray)
     commonToByteCode(cv)
     //        innerClasses.foreach(_.toByteCode(cv))
     fields.foreach(_.toByteCode(cv))
-    methods.foreach(m => rewriter(Rewrite.rewrite(m, this)).toByteCode(cv, this))
+    methods.foreach(m => rewriter(Rewrite.rewrite(m, this), this).toByteCode(cv, this))
     cv.visitEnd()
   }
 
@@ -238,13 +238,13 @@ case class VBCClassNode(
       superName
   }
 
-  def toVByteCode(cv: ClassVisitor, rewriter: VBCMethodNode => VBCMethodNode = a => a) = {
+  def toVByteCode(cv: ClassVisitor, rewriter: (VBCMethodNode, VBCClassNode) => VBCMethodNode = (a, b) => a) = {
     val liftedSuperName = liftSuperName(Owner(superName))
     cv.visit(version, access, name, signature.getOrElse(null), liftedSuperName, interfaces.map(i => Owner(i).toModel.toString).toArray)
     commonToByteCode(cv)
     //        innerClasses.foreach(_.toVByteCode(cv))
     fields.foreach(_.toVByteCode(cv))
-    methods.foreach(m => rewriter(Rewrite.rewriteV(m, this)).toVByteCode(cv, this))
+    methods.foreach(m => rewriter(Rewrite.rewriteV(m, this), this).toVByteCode(cv, this))
     //if the class has a main method, create also an unlifted main method
     if (methods.exists(_.isMain))
       createUnliftedMain(cv)
@@ -278,7 +278,7 @@ case class VBCClassNode(
     * @param cv
     * @param rewriter
     */
-  def createCLINIT(cv: ClassVisitor, rewriter: VBCMethodNode => VBCMethodNode = a => a) = {
+  def createCLINIT(cv: ClassVisitor, rewriter: (VBCMethodNode, VBCClassNode) => VBCMethodNode = (a, b) => a) = {
     val instrs: Array[Instruction] =
       if (hasCLINIT)
         Array(
@@ -296,7 +296,7 @@ case class VBCClassNode(
       List.empty,
       CFG(List(Block(instrs, Nil)))
     )
-    rewriter(Rewrite.rewriteV(vbcMtd, this)).toVByteCode(cv, this)
+    rewriter(Rewrite.rewriteV(vbcMtd, this), this).toVByteCode(cv, this)
 
     val mv = cv.visitMethod(ACC_STATIC, "<clinit>", "()V", null, Array.empty)
     mv.visitCode()

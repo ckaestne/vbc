@@ -21,7 +21,7 @@ import org.objectweb.asm.{ClassReader, ClassVisitor, ClassWriter}
   */
 class VBCClassLoader(parentClassLoader: ClassLoader,
                      isLift: Boolean = true,
-                     rewriter: VBCMethodNode => VBCMethodNode = a => a,
+                     rewriter: (VBCMethodNode, VBCClassNode) => VBCMethodNode = (a, b) => a,
                      toFileDebugging: Boolean = true) extends ClassLoader(parentClassLoader) with LazyLogging {
 
   val loader = new Loader()
@@ -29,7 +29,7 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
   override def loadClass(name: String): Class[_] = {
     if (name.startsWith(VBCModel.prefix)) {
       val model = new VBCModel(name)
-      val bytes = model.getModelClassBytes
+      val bytes = model.getModelClassBytes(isLift)
       if (shouldLift(name)) {
         val clazz = loader.loadClass(bytes)
         liftClass(name, clazz)

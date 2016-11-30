@@ -18,10 +18,16 @@ trait DiffLaunchTestInfrastructure {
     *
     * also change the way that conditional fields are initialized
     */
-  def instrumentMethod(method: VBCMethodNode): VBCMethodNode = {
+  def instrumentMethod(method: VBCMethodNode, clazz: VBCClassNode): VBCMethodNode = {
     instrumentCustomInit(
+      // Avoid comparing java classes because we might have model classes.
+      // For brute-force execution, we don't use model class (to avoid writing wrapper methods in model classes),
+      // so invokevirtual and getfield will be recorded. However, for V execution, we are using model class, which
+      // makes it difficult to compare the traces.
+      if (clazz.name.startsWith("model/java"))
+        method
       // we introduce extra method invocation instructions and return instructions while handling <clinit>.
-      if (!method.name.contains("clinit"))
+      else if (!method.name.contains("clinit"))
         method.copy(body = CFG(method.body.blocks.map(instrumentBlock)))
       else
         method
@@ -49,8 +55,8 @@ trait DiffLaunchTestInfrastructure {
       ).flatten, block.exceptionHandlers
     )
 
-  def prepareBenchmark(method: VBCMethodNode): VBCMethodNode = instrumentCustomInit(avoidOutput(method))
-  def avoidOutput(method: VBCMethodNode): VBCMethodNode = method.copy(body = CFG(method.body.blocks.map(avoidOutput)))
+  def prepareBenchmark(method: VBCMethodNode, clazz: VBCClassNode): VBCMethodNode = instrumentCustomInit(avoidOutput(method, clazz))
+  def avoidOutput(method: VBCMethodNode, clazz: VBCClassNode): VBCMethodNode = method.copy(body = CFG(method.body.blocks.map(avoidOutput)))
   def avoidOutput(block: Block): Block =
     Block((
       for (instr <- block.instr) yield instr match {
