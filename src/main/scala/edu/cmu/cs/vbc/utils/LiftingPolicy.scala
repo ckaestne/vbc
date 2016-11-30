@@ -18,24 +18,26 @@ object LiftingPolicy {
     case x if x.startsWith("edu/cmu/cs/vbc/prog/") => true
     case x if x.endsWith("java/lang/StringBuilder") => true
     case x if x.endsWith("java/lang/AbstractStringBuilder") => true
-//    case x if x.contains("java/util/ArrayList") => true // so that inner classes could be included.
     case x if x.endsWith("java/util/AbstractList") => true
     case x if x.endsWith("java/util/AbstractCollection") => true
     case x if x.endsWith("java/lang/Enum") => true
-//    case x if x.contentEquals("model/java/util/Collection") => true
-//    case x if x.endsWith("java/util/Iterator") => true
-//    case x if x.endsWith("java/util/List") => true
     case x if x.endsWith("java/util/Collections") => true
     case x if x.endsWith("java/util/Collections$EmptySet") => true
     case x if x.endsWith("java/util/Collections$EmptyList") => true
     case x if x.endsWith("java/util/Collections$EmptyMap") => true
     case x if x.endsWith("java/util/AbstractSet") => true
     case x if x.endsWith("java/util/AbstractMap") => true
+    case x if x.endsWith("java/util/ListIterator") => true
+    case x if x.endsWith("java/util/AbstractSequentialList") => true
+      // List related classes, uncomment these if we are not using model classes for
+      // LinkedList and ArrayList.
+//    case x if x.contains("java/util/ArrayList") => true // so that inner classes could be included.
+//    case x if x.contentEquals("model/java/util/Collection") => true
+//    case x if x.endsWith("java/util/Iterator") => true
+//    case x if x.endsWith("java/util/List") => true
 //    case x if x.endsWith("java/util/LinkedList") => true
 //    case x if x.endsWith("java/util/LinkedList$Node") => true
 //    case x if x.endsWith("java/util/LinkedList$ListItr") => true
-    case x if x.endsWith("java/util/ListIterator") => true
-    case x if x.endsWith("java/util/AbstractSequentialList") => true
     case _ => false
   }
 
@@ -63,7 +65,6 @@ object LiftingPolicy {
         case Owner("java/io/FileReader") => false
         case Owner("java/io/Reader") => false
         case Owner("java/util/Iterator") => false
-//        case Owner("model/java/util/LinkedList") => false
         case o if o.name.endsWith("Exception") => false
         case _ => true
       }
