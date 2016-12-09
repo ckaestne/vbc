@@ -3,6 +3,7 @@ package edu.cmu.cs.vbc
 import java.io.{File, FileWriter}
 
 import edu.cmu.cs.vbc
+import edu.cmu.cs.vbc.utils.Profiler
 import edu.cmu.cs.vbc.vbytecode._
 import edu.cmu.cs.vbc.vbytecode.instructions._
 
@@ -106,7 +107,7 @@ trait DiffLaunchTestInfrastructure {
       val loader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, false, instrumentMethod, toFileDebugging = false)
       val cls: Class[_] = loader.loadClass(classname)
       //run against brute force instrumented execution and compare traces
-      for ((sel, desel) <- scala.util.Random.shuffle(explode(usedOptions.toList)).take(1000)) {
+      for ((sel, desel) <- scala.util.Random.shuffle(explode(usedOptions.toList)).take(10)) {
         println("executing config [" + sel.mkString(", ") + "]")
         TestTraceOutput.trace = Nil
         TraceConfig.config = configToMap((sel, desel))
@@ -177,14 +178,16 @@ trait DiffLaunchTestInfrastructure {
       TestTraceOutput.trace = Nil
       TraceConfig.config = Map()
     } measure {
+      Profiler.reset()
       VBCLauncher.invokeMain(testVClass, new Array[String](0))
+      Profiler.report()
     }
     //        println(s"Total time V: $time")
 
 
     //measure brute-force execution
     val configs = explode(configOptions.toList)
-    val bftimes = for ((sel, desel) <- scala.util.Random.shuffle(configs).take(1000))
+    val bftimes = for ((sel, desel) <- scala.util.Random.shuffle(configs).take(10))
       yield config(
         Key.exec.benchRuns -> 20
       ) withWarmer {

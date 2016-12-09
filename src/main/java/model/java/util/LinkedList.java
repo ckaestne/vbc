@@ -2,6 +2,7 @@ package model.java.util;
 
 import de.fosd.typechef.featureexpr.FeatureExpr;
 import edu.cmu.cs.varex.V;
+import edu.cmu.cs.vbc.utils.Profiler;
 import model.Contexts;
 
 import java.util.Collection;
@@ -37,12 +38,20 @@ public class LinkedList implements List {
 
     @Override
     public V<?> size____I(FeatureExpr ctx) {
-        return vActual.smap(ctx, MyLinkedList::size);
+        String id = "LinkedList#size#";
+        Profiler.startTimer(id);
+        V res = vActual.smap(ctx, MyLinkedList::size);
+        Profiler.stopTimer(id);
+        return res;
     }
 
     @Override
     public V<?> get__I__Ljava_lang_Object(V<? extends Integer> index, FeatureExpr ctx) {
-        return vActual.sflatMap(ctx, (fe, list) -> index.smap(fe, i -> list.get(i)));
+        String id = "LinkedList#get#";
+        Profiler.startTimer(id);
+        V res = vActual.sflatMap(ctx, (fe, list) -> index.smap(fe, i -> list.get(i)));
+        Profiler.stopTimer(id);
+        return res;
     }
 
     @Override

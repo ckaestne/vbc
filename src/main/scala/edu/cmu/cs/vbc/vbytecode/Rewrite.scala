@@ -19,17 +19,38 @@ object Rewrite {
 
   def rewriteV(m: VBCMethodNode, cls: VBCClassNode): VBCMethodNode = {
     if (m.body.blocks.nonEmpty) {
-      initializeConditionalFields(
-        appendGOTO(
-          ensureUniqueReturnInstr(
-            replaceAthrowWithAreturn(m)
-          )
-        ), cls
-      )
+      profiling(
+        initializeConditionalFields(
+          appendGOTO(
+            ensureUniqueReturnInstr(
+              replaceAthrowWithAreturn(m)
+            )
+          ), cls
+      ), cls)
     }
     else {
       m
     }
+  }
+
+  var idCount = 0
+  private def profiling(m: VBCMethodNode, cls: VBCClassNode): VBCMethodNode = {
+    val id = cls.name + "#" + m.name + "#" + idCount
+    idCount += 1
+    val newBlocks = m.body.blocks.map(b =>
+      if (b == m.body.blocks.head)
+        Block(InstrStartTimer(id) +: b.instr, b.exceptionHandlers)
+      else if (b == m.body.blocks.last)
+        Block(b.instr.flatMap(i =>
+          if (i.isReturnInstr)
+            List(InstrStopTimer(id), i)
+          else
+            List(i)
+        ), b.exceptionHandlers)
+      else
+        b
+    )
+    m.copy(body = CFG(newBlocks))
   }
 
   private def appendGOTO(m: VBCMethodNode): VBCMethodNode = {

@@ -179,3 +179,25 @@ case object InstrINIT_CONDITIONAL_FIELDS {
     callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
   }
 }
+
+case class InstrStartTimer(id: String) extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {}
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    mv.visitLdcInsn(id)
+    mv.visitMethodInsn(INVOKESTATIC, Owner("edu/cmu/cs/vbc/utils/Profiler"), MethodName("startTimer"), MethodDesc("(Ljava/lang/String;)V"), false)
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = (s, Set())
+}
+
+case class InstrStopTimer(id: String) extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {}
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    mv.visitLdcInsn(id)
+    mv.visitMethodInsn(INVOKESTATIC, Owner("edu/cmu/cs/vbc/utils/Profiler"), MethodName("stopTimer"), MethodDesc("(Ljava/lang/String;)V"), false)
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = (s, Set())
+}
