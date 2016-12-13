@@ -74,36 +74,36 @@ public class VOps {
     }
 
     public static FeatureExpr whenIEQ(V<? extends Integer> a, V<? extends Integer> b) {
-        V<? extends Integer> sub = subtract(a, b);
+        V<? extends Integer> sub = compareInt(a, b);
         return whenEQ(sub);
     }
 
     public static FeatureExpr whenIGE(V<? extends Integer> a, V<? extends Integer> b) {
-        V<? extends Integer> sub = subtract(a, b);
+        V<? extends Integer> sub = compareInt(a, b);
         return whenGE(sub);
     }
 
     public static FeatureExpr whenILT(V<? extends Integer> a, V<? extends Integer> b) {
-        V<? extends Integer> sub = subtract(a, b);
+        V<? extends Integer> sub = compareInt(a, b);
         return whenLT(sub);
     }
 
     public static FeatureExpr whenILE(V<? extends Integer> a, V<? extends Integer> b) {
-        V<? extends Integer> sub = subtract(a, b);
+        V<? extends Integer> sub = compareInt(a, b);
         return whenLE(sub);
     }
 
     public static FeatureExpr whenINE(V<? extends Integer> a, V<? extends Integer> b) {
-        V<? extends Integer> sub = subtract(a, b);
+        V<? extends Integer> sub = compareInt(a, b);
         return whenNE(sub);
     }
 
     public static FeatureExpr whenIGT(V<? extends Integer> a, V<? extends Integer> b) {
-        V<? extends Integer> sub = subtract(a, b);
+        V<? extends Integer> sub = compareInt(a, b);
         return whenGT(sub);
     }
 
-    private static V<? extends Integer> subtract(V<? extends Integer> a, V<? extends Integer> b) {
+    private static V<? extends Integer> compareInt(V<? extends Integer> a, V<? extends Integer> b) {
         return a.flatMap(aa -> {
             if (aa == null)
                 return V.one(null);
@@ -111,8 +111,15 @@ public class VOps {
                 return b.map(bb -> {
                     if (bb == null)
                         return null;
-                    else
-                        return aa.intValue() - bb.intValue();
+                    else {
+                        // avoid Integer overflow
+                        if (aa.intValue() > 0 && bb.intValue() < 0)
+                           return 1;
+                        else if (aa.intValue() < 0 && bb.intValue() > 0)
+                            return -1;
+                        else
+                            return aa.intValue() - bb.intValue();
+                    }
                 });
         });
     }

@@ -6,7 +6,6 @@ import edu.cmu.cs.vbc.utils.Profiler;
 import model.Contexts;
 
 import java.util.Collection;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -29,11 +28,10 @@ public class LinkedList implements List {
     }
 
     public V<?> add__Ljava_lang_Object__Z(V<?> elem, FeatureExpr ctx) {
-        split(ctx);
-        return vActual.sflatMap(ctx, (BiFunction<FeatureExpr, MyLinkedList, V<?>>) (fe, list) ->
-                elem.sflatMap(fe, (BiFunction<FeatureExpr, Object, V<? extends Boolean>>) (featureExpr, o) ->
-                        V.one(featureExpr, list.add(o))
-                ) );
+        return elem.sflatMap(ctx, (fe, e) -> {
+            split(fe);
+            return vActual.smap(fe, (fe2, l) -> l.add(e));
+        });
     }
 
     @Override
@@ -56,11 +54,13 @@ public class LinkedList implements List {
 
     @Override
     public V<?> sort__Lmodel_java_util_Comparator__V(V<Comparator> vComparator, FeatureExpr ctx) {
-        split(ctx);
-        vActual.sforeach(ctx, (fe, list) -> vComparator.sforeach(fe, (fe2, comparator) -> {
-            Contexts.model_java_util_Comparator_compare = fe2;
-            list.sort(comparator::compare);
-        }));
+        vComparator.sforeach(ctx, (fe, comparator) -> {
+            split(fe);
+            vActual.sforeach(fe, (fe2, list) -> {
+                Contexts.model_java_util_Comparator_compare = fe2;
+                list.sort(comparator::compare);
+            });
+        });
         return null;    // dummy value, will never use
     }
 
@@ -75,8 +75,10 @@ public class LinkedList implements List {
     }
 
     public V<?> addFirst__Ljava_lang_Object__V(V<?> vElem, FeatureExpr ctx) {
-        split(ctx);
-        vActual.sforeach(ctx, (fe, list) -> vElem.sforeach(fe, (fe2, e) -> list.addFirst(e)));
+        vElem.sforeach(ctx, (fe, e) -> {
+            split(fe);
+            vActual.sforeach(fe, (fe2, list) -> list.addFirst(e));
+        });
         return null;    // dummy value, will never use
     }
 
@@ -91,19 +93,19 @@ public class LinkedList implements List {
 
 
     public V<?> remove__I__Ljava_lang_Object(V<? extends Integer> vIndex, FeatureExpr ctx) {
-        split(ctx);
-        return vActual.sflatMap(ctx, (fe, list) -> vIndex.smap(fe, i -> list.remove(i.intValue())));
+        return vIndex.sflatMap(ctx, (fe, i) -> {
+            split(fe);
+            return vActual.smap(fe, list -> list.remove(i.intValue()));
+        });
     }
 
 
     public V<?> add__I_Ljava_lang_Object__V(V<? extends Integer> vIndex, V<?> vElem, FeatureExpr ctx) {
-        split(ctx);
-        vActual.sforeach(ctx, (fe, list) ->
-                vIndex.sforeach(fe, (fe2, i) ->
-                        vElem.sforeach(fe2, e ->
-                                list.add(i.intValue(), e)
-                        )
-                )
+        vIndex.sforeach(ctx, (fe, i) ->
+                vElem.sforeach(fe, (fe2, e) -> {
+                    split(fe2);
+                    vActual.sforeach(fe2, list -> list.add(i.intValue(), e));
+                })
         );
         return null;    // dummy value, will never use
     }
@@ -121,7 +123,10 @@ public class LinkedList implements List {
 
     @Override
     public V<?> remove__Ljava_lang_Object__Z(V<?> vO, FeatureExpr ctx) {
-        return vActual.sflatMap(ctx, (fe, l) -> vO.smap(fe, o -> l.remove(o)));
+        return vO.sflatMap(ctx, (fe, o) -> {
+            split(fe);
+            return vActual.smap(fe, l -> l.remove(o));
+        });
     }
 
     @Override

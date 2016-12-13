@@ -3,7 +3,6 @@ package edu.cmu.cs.vbc
 import java.io.{File, FileWriter}
 
 import edu.cmu.cs.vbc
-import edu.cmu.cs.vbc.utils.Profiler
 import edu.cmu.cs.vbc.vbytecode._
 import edu.cmu.cs.vbc.vbytecode.instructions._
 
@@ -83,7 +82,7 @@ trait DiffLaunchTestInfrastructure {
 
   def checkCrash(clazz: Class[_]): Unit = testMain(clazz, false)
 
-  def testMain(clazz: Class[_], compareTraceAgainstBruteForce: Boolean = true, runBenchmark: Boolean = true): Unit = {
+  def testMain(clazz: Class[_], compareTraceAgainstBruteForce: Boolean = true, runBenchmark: Boolean = true, fm: (Map[String, Boolean]) => Boolean = _ => true): Unit = {
     //test uninstrumented variational execution to see whether it crashes
     val classname = clazz.getName
     //VBCLauncher.launch(classname)
@@ -107,7 +106,7 @@ trait DiffLaunchTestInfrastructure {
       val loader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, false, instrumentMethod, toFileDebugging = false)
       val cls: Class[_] = loader.loadClass(classname)
       //run against brute force instrumented execution and compare traces
-      for ((sel, desel) <- scala.util.Random.shuffle(explode(usedOptions.toList)).take(10)) {
+      for ((sel, desel) <- explode(usedOptions.toList) if fm(configToMap((sel, desel)))) {
         println("executing config [" + sel.mkString(", ") + "]")
         TestTraceOutput.trace = Nil
         TraceConfig.config = configToMap((sel, desel))
@@ -126,7 +125,7 @@ trait DiffLaunchTestInfrastructure {
       val vbenchmarkcls: Class[_] = vbenchmarkloader.loadClass(classname)
       val benchmarkloader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, false, prepareBenchmark)
       val benchmarkcls: Class[_] = benchmarkloader.loadClass(classname)
-      benchmark(classname, vbenchmarkcls, benchmarkcls, usedOptions)
+      benchmark(classname, vbenchmarkcls, benchmarkcls, usedOptions, fm)
     }
   }
 
@@ -166,7 +165,7 @@ trait DiffLaunchTestInfrastructure {
   }
 
 
-  def benchmark(classname: String, testVClass: Class[_], testClass: Class[_], configOptions: Set[String]): Unit = {
+  def benchmark(classname: String, testVClass: Class[_], testClass: Class[_], configOptions: Set[String], fm: (Map[String, Boolean]) => Boolean): Unit = {
     import org.scalameter._
 
     //measure V execution
@@ -178,16 +177,16 @@ trait DiffLaunchTestInfrastructure {
       TestTraceOutput.trace = Nil
       TraceConfig.config = Map()
     } measure {
-      Profiler.reset()
+//      Profiler.reset()
       VBCLauncher.invokeMain(testVClass, new Array[String](0))
-      Profiler.report()
+//      Profiler.report()
     }
     //        println(s"Total time V: $time")
 
 
     //measure brute-force execution
     val configs = explode(configOptions.toList)
-    val bftimes = for ((sel, desel) <- scala.util.Random.shuffle(configs).take(10))
+    val bftimes = for ((sel, desel) <- configs if fm(configToMap((sel, desel))))
       yield config(
         Key.exec.benchRuns -> 20
       ) withWarmer {

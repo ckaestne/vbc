@@ -19,14 +19,15 @@ object Rewrite {
 
   def rewriteV(m: VBCMethodNode, cls: VBCClassNode): VBCMethodNode = {
     if (m.body.blocks.nonEmpty) {
-      profiling(
+//      profiling(
         initializeConditionalFields(
           appendGOTO(
             ensureUniqueReturnInstr(
               replaceAthrowWithAreturn(m)
             )
           ), cls
-      ), cls)
+      )
+//        , cls)
     }
     else {
       m

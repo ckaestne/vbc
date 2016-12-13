@@ -50,8 +50,10 @@ public class ArrayList implements List {
     public V<?> add__Ljava_lang_Object__Z(V<?> elem, FeatureExpr ctx) {
         String id = "ArrayList#add#";
         Profiler.startTimer(id);
-        split(ctx);
-        V res = vActual.sflatMap(ctx, (fe, list) -> elem.sflatMap(fe, (featureExpr, o) -> V.one(featureExpr, list.add(o)) ) );
+        V res = elem.sflatMap(ctx, (fe, e) -> {
+            split(fe);
+            return vActual.smap(fe, (featureExpr, l) -> l.add(e));
+        });
         Profiler.stopTimer(id);
         return res;
     }
@@ -75,8 +77,10 @@ public class ArrayList implements List {
     public V<?> sort__Lmodel_java_util_Comparator__V(V<Comparator> vComparator, FeatureExpr ctx) {
         String id = "ArrayList#sort#";
         Profiler.startTimer(id);
-        split(ctx);
-        vActual.sforeach(ctx, (fe, list) -> vComparator.sforeach(fe, c -> list.sort(c::compare)));
+        vComparator.sforeach(ctx, (fe, c) -> {
+            split(fe);
+            vActual.sforeach(fe, l -> l.sort(c::compare));
+        });
         Profiler.stopTimer(id);
         return null;
     }
@@ -100,8 +104,10 @@ public class ArrayList implements List {
     public V<? extends Boolean> remove__Ljava_lang_Object__Z(V<?> vo, FeatureExpr ctx) {
         String id = "ArrayList#remove#";
         Profiler.startTimer(id);
-        split(ctx);
-        V res = vActual.sflatMap(ctx, (fe, l) -> vo.smap(fe, o -> l.remove(o)));
+        V res = vo.sflatMap(ctx, (fe, o) -> {
+            split(fe);
+            return vActual.smap(fe, l -> l.remove(o));
+        });
         Profiler.stopTimer(id);
         return res;
     }
@@ -127,8 +133,10 @@ public class ArrayList implements List {
     public V<?> set__I_Ljava_lang_Object__Ljava_lang_Object(V<Integer> vI, V<?> vO, FeatureExpr ctx) {
         String id = "ArrayList#set#";
         Profiler.startTimer(id);
-        split(ctx);
-        V res = vActual.sflatMap(ctx, (fe1, l) -> vI.sflatMap(fe1, (fe2, i) -> vO.smap(fe2, o -> l.set(i, o))));
+        V res = vI.sflatMap(ctx, (fe, i) -> vO.sflatMap(fe, (fe2, o) -> {
+            split(fe2);
+            return vActual.smap(fe2, (fe3, l) -> l.set(i, o));
+        }));
         Profiler.stopTimer(id);
         return res;
     }
