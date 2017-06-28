@@ -102,9 +102,6 @@ case class InstrILOAD(variable: Variable) extends Instruction {
   * @param increment
   */
 case class InstrIINC(variable: Variable, increment: Int) extends Instruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
-    mv.visitIincInsn(env.getVarIdx(variable), increment)
-
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
       loadV(mv, env, variable)
@@ -123,6 +120,9 @@ case class InstrIINC(variable: Variable, increment: Int) extends Instruction {
     else
       toByteCode(mv, env, block)
   }
+
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
+    mv.visitIincInsn(env.getVarIdx(variable), increment)
 
   override def getVariables() = {
     variable match {
@@ -367,4 +367,18 @@ case class InstrDLOAD(variable: Variable) extends Instruction {
         Set()
     (newFrame, backtrack)
   }
+}
+
+
+/** Store long into local variable
+  *
+  * ..., value -> ...
+  */
+case class InstrLSTORE(variable: Variable) extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
+    mv.visitVarInsn(LSTORE, env.getVarIdx(variable))
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
 }

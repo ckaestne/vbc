@@ -95,3 +95,17 @@ case class InstrATHROW() extends Instruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) =
     throw new RuntimeException("ATHROW should not appear in lifted bytecode")
 }
+
+
+/** Return long from method
+  *
+  * ..., value(long) -> [empty]
+  */
+case class InstrLRETURN() extends ReturnInstruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
+    mv.visitInsn(LRETURN)
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+}

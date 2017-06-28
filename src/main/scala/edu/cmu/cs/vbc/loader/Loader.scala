@@ -24,13 +24,6 @@ class Loader {
     adaptClass(classNode)
   }
 
-  def loadClass(bytes: Array[Byte]): VBCClassNode = {
-    val cr = new ClassReader(bytes)
-    val classNode = new ClassNode(ASM5)
-    cr.accept(classNode, 0)
-    adaptClass(classNode)
-  }
-
   def adaptClass(cl: ClassNode): VBCClassNode = new VBCClassNode(
     cl.version,
     cl.access,
@@ -49,7 +42,6 @@ class Loader {
     if (cl.attrs == null) Nil else cl.attrs.toList,
     if (cl.innerClasses == null) Nil else cl.innerClasses.map(adaptInnerClass).toList
   )
-
 
   def adaptMethod(owner: String, m: MethodNode): VBCMethodNode = {
     //    println("\tMethod: " + m.name)
@@ -126,27 +118,6 @@ class Loader {
     )
   }
 
-  def adaptField(field: FieldNode): VBCFieldNode = new VBCFieldNode(
-    field.access,
-    field.name,
-    field.desc,
-    field.signature,
-    field.value,
-    if (field.visibleAnnotations == null) Nil else field.visibleAnnotations.toList,
-    if (field.invisibleAnnotations == null) Nil else field.invisibleAnnotations.toList,
-    if (field.visibleTypeAnnotations == null) Nil else field.visibleTypeAnnotations.toList,
-    if (field.invisibleTypeAnnotations == null) Nil else field.invisibleTypeAnnotations.toList,
-    if (field.attrs == null) Nil else field.attrs.toList
-  )
-
-  def adaptInnerClass(m: InnerClassNode): VBCInnerClassNode = new VBCInnerClassNode(
-    m.name,
-    m.outerName,
-    m.innerName,
-    m.access
-  )
-
-
   def adaptBytecodeInstruction(inst: AbstractInsnNode, labelLookup: LabelNode => Int, variables: (Int, Int) => Variable): Instruction =
     inst.getOpcode match {
       case NOP => UNKNOWN()
@@ -206,7 +177,10 @@ class Loader {
         val i = inst.asInstanceOf[VarInsnNode]
         InstrISTORE(variables(i.`var`, ISTORE))
       }
-      case LSTORE => UNKNOWN(LSTORE)
+      case LSTORE => {
+        val i = inst.asInstanceOf[VarInsnNode]
+        InstrLSTORE(variables(i.`var`, LSTORE))
+      }
       case FSTORE => UNKNOWN(FSTORE)
       case DSTORE => UNKNOWN(DSTORE)
       case ASTORE => {
@@ -231,7 +205,7 @@ class Loader {
       case DUP2_X2 => UNKNOWN(DUP2_X2)
       case SWAP => UNKNOWN(SWAP)
       case IADD => InstrIADD()
-      case LADD => UNKNOWN(LADD)
+      case LADD => InstrLADD()
       case FADD => UNKNOWN(FADD)
       case DADD => UNKNOWN(DADD)
       case ISUB => InstrISUB()
@@ -243,7 +217,7 @@ class Loader {
       case FMUL => UNKNOWN(FMUL)
       case DMUL => UNKNOWN(DMUL)
       case IDIV => InstrIDIV()
-      case LDIV => UNKNOWN(LDIV)
+      case LDIV => InstrLDIV()
       case FDIV => UNKNOWN(FDIV)
       case DDIV => UNKNOWN(DDIV)
       case IREM => InstrIREM()
@@ -259,12 +233,12 @@ class Loader {
       case ISHR => InstrISHR()
       case LSHR => UNKNOWN(LSHR)
       case IUSHR => InstrIUSHR()
-      case LUSHR => UNKNOWN(LUSHR)
+      case LUSHR => InstrLUSHR()
       case IAND => InstrIAND()
       case LAND => UNKNOWN(LAND)
       case IOR => InstrIOR()
       case LOR => UNKNOWN(LOR)
-      case IXOR => UNKNOWN(IXOR)
+      case IXOR => InstrIXOR()
       case LXOR => UNKNOWN(LXOR)
       case IINC => {
         val i = inst.asInstanceOf[IincInsnNode]
@@ -273,7 +247,7 @@ class Loader {
       case I2L => InstrI2L()
       case I2F => UNKNOWN(I2F)
       case I2D => UNKNOWN(I2D)
-      case L2I => UNKNOWN(L2I)
+      case L2I => InstrL2I()
       case L2F => UNKNOWN(L2F)
       case L2D => UNKNOWN(L2D)
       case F2I => UNKNOWN(F2I)
@@ -354,7 +328,7 @@ class Loader {
       case TABLESWITCH => UNKNOWN(TABLESWITCH)
       case LOOKUPSWITCH => UNKNOWN(LOOKUPSWITCH)
       case IRETURN => InstrIRETURN()
-      case LRETURN => UNKNOWN(LRETURN)
+      case LRETURN => InstrLRETURN()
       case FRETURN => UNKNOWN(FRETURN)
       case DRETURN => UNKNOWN(DRETURN)
       case ARETURN => InstrARETURN()
@@ -434,6 +408,33 @@ class Loader {
         UNKNOWN()
       }
     }
+
+  def adaptField(field: FieldNode): VBCFieldNode = new VBCFieldNode(
+    field.access,
+    field.name,
+    field.desc,
+    field.signature,
+    field.value,
+    if (field.visibleAnnotations == null) Nil else field.visibleAnnotations.toList,
+    if (field.invisibleAnnotations == null) Nil else field.invisibleAnnotations.toList,
+    if (field.visibleTypeAnnotations == null) Nil else field.visibleTypeAnnotations.toList,
+    if (field.invisibleTypeAnnotations == null) Nil else field.invisibleTypeAnnotations.toList,
+    if (field.attrs == null) Nil else field.attrs.toList
+  )
+
+  def adaptInnerClass(m: InnerClassNode): VBCInnerClassNode = new VBCInnerClassNode(
+    m.name,
+    m.outerName,
+    m.innerName,
+    m.access
+  )
+
+  def loadClass(bytes: Array[Byte]): VBCClassNode = {
+    val cr = new ClassReader(bytes)
+    val classNode = new ClassNode(ASM5)
+    cr.accept(classNode, 0)
+    adaptClass(classNode)
+  }
 
 
 }

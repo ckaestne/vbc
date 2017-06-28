@@ -32,9 +32,9 @@ trait Instruction {
 
   def getVariables: Set[LocalVar] = Set()
 
-  def getJumpInstr: Option[JumpInstruction] = None
-
   final def isJumpInstr: Boolean = getJumpInstr.isDefined
+
+  def getJumpInstr: Option[JumpInstruction] = None
 
   def isReturnInstr: Boolean = false
   def isATHROW: Boolean = false
@@ -68,7 +68,7 @@ trait Instruction {
 
 case class UNKNOWN(opCode: Int = -1) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    throw new RuntimeException("Unknown Instruction: " + OpcodePrint.print(opCode))
+    throw new RuntimeException("Unknown Instruction in " + s"${env.clazz.name}#${env.method.name}" + ": " + OpcodePrint.print(opCode))
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
@@ -83,23 +83,23 @@ case class UNKNOWN(opCode: Int = -1) extends Instruction {
 trait EmptyInstruction extends Instruction
 
 case class InstrNOP() extends EmptyInstruction {
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = toByteCode(mv, env, block)
+
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(NOP)
   }
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = toByteCode(mv, env, block)
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set.empty[Instruction])
 }
 
 case class InstrLINENUMBER(line: Int) extends EmptyInstruction {
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = toByteCode(mv, env, block)
+
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     val l = new Label()
     mv.visitLabel(l)
     mv.visitLineNumber(line, l)
   }
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = toByteCode(mv, env, block)
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set())
 }

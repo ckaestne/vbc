@@ -417,3 +417,68 @@ case class InstrIREM() extends BinOpInstruction {
     else
       mv.visitInsn(IREM)
 }
+
+/** Boolean XOR int
+  *
+  * ..., value1, value2 -> ..., result
+  */
+case class InstrIXOR() extends BinOpInstruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(IXOR)
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+}
+
+
+/** Convert long to int
+  *
+  * ..., value -> ..., result
+  */
+case class InstrL2I() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
+    mv.visitInsn(L2I)
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+}
+
+/** Logical shift right long
+  *
+  * ..., value1(long), value2(int) -> ..., result(long)
+  */
+case class InstrLUSHR() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
+    mv.visitInsn(LUSHR)
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+}
+
+/** Divide long
+  *
+  * ..., value1(long), value2(long) -> ..., result(long)
+  */
+case class InstrLDIV() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
+    mv.visitInsn(LDIV)
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+}
+
+
+/** Add long
+  *
+  * ..., value1(long), value2(long) -> ..., result(long)
+  * todo: should extend BinOps
+  */
+case class InstrLADD() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
+    mv.visitInsn(LADD)
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+}
