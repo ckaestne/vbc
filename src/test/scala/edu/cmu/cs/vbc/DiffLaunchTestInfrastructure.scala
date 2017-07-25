@@ -39,24 +39,26 @@ trait DiffLaunchTestInfrastructure {
       for (instr <- block.instr) yield instr match {
         case InstrINVOKEVIRTUAL(Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(Ljava/lang/String;)V"), _) =>
           // reduce output
-//          List(vbc.TraceInstr_Print(), instr)
-            List(vbc.TraceInstr_Print(), InstrPOP(), InstrPOP())
+          //          List(vbc.TraceInstr_Print(), instr)
+          List(vbc.TraceInstr_Print(), InstrPOP(), InstrPOP())
         case InstrINVOKEVIRTUAL(Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(Ljava/lang/Object;)V"), _) =>
           // reduce output
-//          List(vbc.TraceInstr_Print(), instr)
+          //          List(vbc.TraceInstr_Print(), instr)
           List(vbc.TraceInstr_Print(), InstrPOP(), InstrPOP())
         case InstrINVOKEVIRTUAL(Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(I)V"), _) => List(vbc.TraceInstr_PrintI(), InstrPOP(), InstrPOP())
         case InstrINVOKEVIRTUAL(owner, name, desc, _) => List(vbc.TraceInstr_S("INVK_VIRT: " + owner + ";" + name + ";" + desc), instr)
         case InstrGETFIELD(owner, name, desc) if desc.contentEquals("I") || desc.contentEquals("Z") => List(instr, vbc.TraceInstr_GetField("GETFIELD: " + owner + ";" + name + ";" + desc, desc))
-//        case InstrRETURN() => List(vbc.TraceInstr_S("RETURN"), instr)
-//        case InstrIRETURN() => List(vbc.TraceInstr_S("IRETURN"), instr)
+        //        case InstrRETURN() => List(vbc.TraceInstr_S("RETURN"), instr)
+        //        case InstrIRETURN() => List(vbc.TraceInstr_S("IRETURN"), instr)
         case instr => List(instr)
       }
       ).flatten, block.exceptionHandlers
     )
 
   def prepareBenchmark(method: VBCMethodNode, clazz: VBCClassNode): VBCMethodNode = instrumentCustomInit(avoidOutput(method, clazz))
+
   def avoidOutput(method: VBCMethodNode, clazz: VBCClassNode): VBCMethodNode = method.copy(body = CFG(method.body.blocks.map(avoidOutput)))
+
   def avoidOutput(block: Block): Block =
     Block((
       for (instr <- block.instr) yield instr match {
@@ -141,6 +143,24 @@ trait DiffLaunchTestInfrastructure {
     }
   }
 
+  /**
+    * Randomly assign true or false to each option
+    *
+    * @param fs  List of options in the program.
+    * @param num Number of selections.
+    * @return List of pairs, each pair consists of a list selected options and a list of deselected options. Might
+    *         contain duplicate pairs because of the randomness.
+    */
+  def selectOptRandomly(fs: List[Feature], num: Int): List[Config] = {
+    import scala.util.Random
+    require(num > 0)
+    if (fs.isEmpty) List((Nil, Nil))
+    else {
+      (0 to num).toList.map(_ => Random.shuffle(fs).splitAt(Random.nextInt(fs.size)))
+    }
+  }
+
+
   def configToMap(c: Config): Map[String, Boolean] = {
     var r = Map[String, Boolean]()
     for (sel <- c._1)
@@ -177,15 +197,19 @@ trait DiffLaunchTestInfrastructure {
       TestTraceOutput.trace = Nil
       TraceConfig.config = Map()
     } measure {
-//      Profiler.reset()
+      //      Profiler.reset()
       VBCLauncher.invokeMain(testVClass, new Array[String](0))
-//      Profiler.report()
+      //      Profiler.report()
     }
     //        println(s"Total time V: $time")
 
 
     //measure brute-force execution
-    val configs = explode(configOptions.toList)
+    val configs =
+      if (configOptions.size < 20)
+        explode(configOptions.toList)
+      else
+        selectOptRandomly(configOptions.toList, 1000000)  // close to 2^20
     val bftimes = for ((sel, desel) <- configs if fm(configToMap((sel, desel))))
       yield config(
         Key.exec.benchRuns -> 20
