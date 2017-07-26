@@ -7,6 +7,7 @@ libraryDependencies += "de.fosd.typechef" % "featureexprlib_2.11" % "0.4.1"
 libraryDependencies += "de.fosd.typechef" % "conditionallib_2.11" % "0.4.1"
 
 libraryDependencies += "org.scalatest" % "scalatest_2.11" % "3.0.0" % "test"
+libraryDependencies += "org.pegdown" % "pegdown" % "1.6.0" % "test"
 
 libraryDependencies += "com.storm-enroute" %% "scalameter" % "0.7" % "test"
 
@@ -26,3 +27,7 @@ initialize := {
     if (sys.props("java.specification.version") != "1.8")
         sys.error("Java 8 is required for this project.")
 }
+
+testOptions in Test ++= Seq(
+  Tests.Argument(TestFrameworks.ScalaTest, "-h", "target/html")
+)
