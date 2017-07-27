@@ -260,34 +260,31 @@ public class ZipInputStream extends InflaterInputStream implements ZipConstants 
         if (entry == null)
             return -1;
         boolean finished = false;
-        switch (method) {
-            case ZipOutputStream.DEFLATED:
-                len = super.read(b, off, len);
-                if (len < 0) {
-                    if (!inf.finished())
-                        throw new ZipException("Inflater not finished!?");
-                    avail = inf.getRemaining();
-                    if ((flags & 8) != 0)
-                        readDataDescr();
-                    if (inf.getTotalIn() != csize || inf.getTotalOut() != size)
-                        throw new ZipException("size mismatch: " + csize + ";" + size + " <-> " + inf.getTotalIn() + ";" + inf.getTotalOut());
-                    inf.reset();
-                    finished = true;
-                }
-                break;
-            case ZipOutputStream.STORED:
-                if (len > csize && csize >= 0)
-                    len = csize;
-                len = readBuf(b, off, len);
-                if (len > 0) {
-                    csize -= len;
-                    size -= len;
-                }
-                if (csize == 0)
-                    finished = true;
-                else if (len < 0)
-                    throw new ZipException("EOF in stored block");
-                break;
+        if (method == ZipOutputStream.DEFLATED) {
+            len = super.read(b, off, len);
+            if (len < 0) {
+                if (!inf.finished())
+                    throw new ZipException("Inflater not finished!?");
+                avail = inf.getRemaining();
+                if ((flags & 8) != 0)
+                    readDataDescr();
+                if (inf.getTotalIn() != csize || inf.getTotalOut() != size)
+                    throw new ZipException("size mismatch: " + csize + ";" + size + " <-> " + inf.getTotalIn() + ";" + inf.getTotalOut());
+                inf.reset();
+                finished = true;
+            }
+        } else if (method == ZipOutputStream.STORED) {
+            if (len > csize && csize >= 0)
+                len = csize;
+            len = readBuf(b, off, len);
+            if (len > 0) {
+                csize -= len;
+                size -= len;
+            }
+            if (csize == 0)
+                finished = true;
+            else if (len < 0)
+                throw new ZipException("EOF in stored block");
         }
         this.hook37(b, off, len);
         if (finished) {
