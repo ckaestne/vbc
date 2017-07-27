@@ -333,9 +333,9 @@ case class VBCClassNode(
     )
 
     // cpwtodo: improve the way we report exception, for now just print them out
-    mv.visitFieldInsn(GETSTATIC, Owner("java/lang/System"), FieldName("out"), TypeDesc("Ljava/io/PrintStream;"))
-    mv.visitInsn(SWAP)
-    mv.visitMethodInsn(INVOKEVIRTUAL, Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(Ljava/lang/Object;)V"), false)
+//    mv.visitFieldInsn(GETSTATIC, Owner("java/lang/System"), FieldName("out"), TypeDesc("Ljava/io/PrintStream;"))
+//    mv.visitInsn(SWAP)
+//    mv.visitMethodInsn(INVOKEVIRTUAL, Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(Ljava/lang/Object;)V"), false)
 
     mv.visitInsn(RETURN)
     mv.visitMaxs(2, 0)
