@@ -451,6 +451,19 @@ case class InstrL2I() extends Instruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
 }
 
+/** Convert int to short
+  *
+  * ..., value -> ..., result
+  */
+case class InstrI2S() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
+    mv.visitInsn(I2S)
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+}
+
 /** Logical shift right long
   *
   * ..., value1(long), value2(int) -> ..., result(long)

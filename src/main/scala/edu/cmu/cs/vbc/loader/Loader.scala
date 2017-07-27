@@ -267,7 +267,7 @@ class Loader {
       case D2F => UNKNOWN(D2F)
       case I2B => InstrI2B()
       case I2C => InstrI2C()
-      case I2S => UNKNOWN(I2S)
+      case I2S => InstrI2S()
       case LCMP => InstrLCMP()
       case FCMPL => UNKNOWN(FCMPL)
       case FCMPG => UNKNOWN(FCMPG)
