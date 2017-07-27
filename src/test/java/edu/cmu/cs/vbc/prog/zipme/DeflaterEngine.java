@@ -128,30 +128,26 @@ public class DeflaterEngine implements DeflaterConstants {
         if (DeflaterConstants.COMPR_FUNC[lvl] != comprFunc) {
             if (DeflaterConstants.DEBUGGING)
                 System.err.println("Change from " + comprFunc + " to " + DeflaterConstants.COMPR_FUNC[lvl]);
-            switch (comprFunc) {
-                case DEFLATE_STORED:
-                    if (strstart > blockStart) {
-                        huffman.flushStoredBlock(window, blockStart, strstart - blockStart, false);
-                        blockStart = strstart;
-                    }
-                    updateHash();
-                    break;
-                case DEFLATE_FAST:
-                    if (strstart > blockStart) {
-                        huffman.flushBlock(window, blockStart, strstart - blockStart, false);
-                        blockStart = strstart;
-                    }
-                    break;
-                case DEFLATE_SLOW:
-                    if (prevAvailable)
-                        huffman.tallyLit(window[strstart - 1] & 0xff);
-                    if (strstart > blockStart) {
-                        huffman.flushBlock(window, blockStart, strstart - blockStart, false);
-                        blockStart = strstart;
-                    }
-                    prevAvailable = false;
-                    matchLen = MIN_MATCH - 1;
-                    break;
+            if (comprFunc == DEFLATE_STORED) {
+                if (strstart > blockStart) {
+                    huffman.flushStoredBlock(window, blockStart, strstart - blockStart, false);
+                    blockStart = strstart;
+                }
+                updateHash();
+            } else if (comprFunc == DEFLATE_FAST) {
+                if (strstart > blockStart) {
+                    huffman.flushBlock(window, blockStart, strstart - blockStart, false);
+                    blockStart = strstart;
+                }
+            } else if (comprFunc == DEFLATE_SLOW) {
+                if (prevAvailable)
+                    huffman.tallyLit(window[strstart - 1] & 0xff);
+                if (strstart > blockStart) {
+                    huffman.flushBlock(window, blockStart, strstart - blockStart, false);
+                    blockStart = strstart;
+                }
+                prevAvailable = false;
+                matchLen = MIN_MATCH - 1;
             }
             comprFunc = COMPR_FUNC[lvl];
         }
