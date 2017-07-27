@@ -432,18 +432,14 @@ public class DeflaterEngine implements DeflaterConstants {
             boolean canFlush = flush && inputOff == inputEnd;
             if (DeflaterConstants.DEBUGGING)
                 System.err.println("window: [" + blockStart + "," + strstart + "," + lookahead + "], " + comprFunc + "," + canFlush);
-            switch (comprFunc) {
-                case DEFLATE_STORED:
-                    progress = deflateStored(canFlush, finish);
-                    break;
-                case DEFLATE_FAST:
-                    progress = deflateFast(canFlush, finish);
-                    break;
-                case DEFLATE_SLOW:
-                    progress = deflateSlow(canFlush, finish);
-                    break;
-                default:
-                    throw new Error();
+            if (comprFunc == DEFLATE_STORED) {
+                progress = deflateStored(canFlush, finish);
+            } else if (comprFunc == DEFLATE_FAST) {
+                progress = deflateFast(canFlush, finish);
+            } else if (comprFunc == DEFLATE_SLOW) {
+                progress = deflateSlow(canFlush, finish);
+            } else {
+                throw new Error();
             }
         } while (pending.isFlushed() && progress);
         return progress;
