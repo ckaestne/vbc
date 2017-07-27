@@ -203,7 +203,7 @@ class Loader {
       case AASTORE => InstrAASTORE()
       case BASTORE => InstrBASTORE()
       case CASTORE => InstrCASTORE()
-      case SASTORE => UNKNOWN(SASTORE)
+      case SASTORE => InstrSASTORE()
       case POP => InstrPOP()
       case POP2 => UNKNOWN(POP2)
       case DUP => InstrDUP()
