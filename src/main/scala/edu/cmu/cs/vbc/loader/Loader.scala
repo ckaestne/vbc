@@ -51,24 +51,33 @@ class Loader {
     val ordered = methodAnalyzer.blocks.toArray :+ m.instructions.size()
 
     var varCache: Map[Int, Variable] = Map()
-    //    if (m.parameters != null)
-    //      for (paramIdx <- 0 until m.parameters.size())
-    //        varCache += (paramIdx -> new Parameter(paramIdx, m.parameters(paramIdx).name))
     val isStatic = (m.access & Opcodes.ACC_STATIC) > 0
-    val parameterRange = Type.getArgumentTypes(m.desc).size + (if (isStatic) 0 else 1) +
-      Type.getArgumentTypes(m.desc).count(t => t.getDescriptor == "J" || t.getDescriptor == "D") // long and double
+    val parameterRange = Type.getArgumentTypes(m.desc).size + // numbers of arguments
+        (if (isStatic) 0 else 1) +  // 'this' for nonstatic methods
+        Type.getArgumentTypes(m.desc).count(t => t.getDescriptor == "J" || t.getDescriptor == "D") // long and double
 
     // adding "this" explicitly, because it may not be included if it's the only parameter
     if (!isStatic)
       varCache += (0 -> new Parameter(0, "this", Owner(owner).getTypeDesc))
-    if (m.localVariables != null)
-      for (i <- 0 until m.localVariables.size()) {
-        val vIdx = m.localVariables(i).index
+    if (m.localVariables != null) {
+      val localVarList = m.localVariables.toList
+      for (i <- 0 until localVarList.size()) {
+        val vIdx = localVarList(i).index
         if (vIdx < parameterRange)
-          varCache += (vIdx -> new Parameter(vIdx, m.localVariables(i).name, TypeDesc(m.localVariables(i).desc)))
+          varCache += (vIdx -> new Parameter(
+            vIdx,
+            localVarList(i).name,
+            TypeDesc(localVarList(i).desc),
+            is2Bytes = TypeDesc(localVarList(i).desc).is2Bytes
+          ))
         else
-          varCache += (vIdx -> new LocalVar(m.localVariables(i).name, m.localVariables(i).desc))
+          varCache += (vIdx -> new LocalVar(
+            localVarList(i).name,
+            localVarList(i).desc,
+            is2Bytes = TypeDesc(localVarList(i).desc).is2Bytes
+          ))
       }
+    }
 
     // typically we initialize all variables and parameters from the table, but that table is technically optional,
     // so we need a fallback option and generate them on the fly with name "$unknown"
@@ -79,15 +88,15 @@ class Loader {
         val newVar =
           if (idx < parameterRange) {
             opCode match {
-              case LLOAD | LSTORE => new Parameter(idx, "$unknown", TypeDesc("J"))
-              case DLOAD | DSTORE => new Parameter(idx, "$unknown", TypeDesc("D"))
+              case LLOAD | LSTORE => new Parameter(idx, "$unknown", TypeDesc("J"), is2Bytes = true)
+              case DLOAD | DSTORE => new Parameter(idx, "$unknown", TypeDesc("D"), is2Bytes = true)
               case _ => new Parameter(idx, "$unknown", TypeDesc("Ljava/lang/Object;"))
             }
           }
           else {
             opCode match {
-              case LLOAD | LSTORE => new LocalVar("$unknown", TypeDesc("J"), is64bit = true)
-              case DLOAD | DSTORE => new LocalVar("$unknown", TypeDesc("D"), is64bit = true)
+              case LLOAD | LSTORE => new LocalVar("$unknown", TypeDesc("J"), is2Bytes = true)
+              case DLOAD | DSTORE => new LocalVar("$unknown", TypeDesc("D"), is2Bytes = true)
               case _ => new LocalVar("$unknown", "V")
             }
           }

@@ -147,7 +147,7 @@ case class VBCMethodNode(access: Int,
   * In contrast EnvVariable, EnvParameter, and EnvLocalVar are used
   * internally to refer to specific
   */
-sealed trait Variable {
+sealed abstract class Variable(val is2Bytes: Boolean) {
   def getIdx(): Option[Int] = None
 }
 
@@ -156,7 +156,10 @@ sealed trait Variable {
   *
   * equality by idx
   */
-class Parameter(val idx: Int, val name: String, val desc: TypeDesc) extends Variable {
+class Parameter(val idx: Int,
+                val name: String,
+                val desc: TypeDesc,
+                is2Bytes: Boolean = false) extends Variable(is2Bytes) {
   override def getIdx(): Option[Int] = Some(idx)
 
   override def hashCode = idx
@@ -170,12 +173,10 @@ class Parameter(val idx: Int, val name: String, val desc: TypeDesc) extends Vari
 /**
   * the name and description are used solely for debugging purposes
   */
-class LocalVar(
-                val name: String,
-                val desc: String,
-                val vinitialize: (MethodVisitor, VMethodEnv, LocalVar) => Unit = LocalVar.initOneNull,
-                val is64bit: Boolean = false
-                ) extends Variable {
+class LocalVar(val name: String,
+               val desc: String,
+               val vinitialize: (MethodVisitor, VMethodEnv, LocalVar) => Unit = LocalVar.initOneNull,
+               is2Bytes: Boolean = false) extends Variable(is2Bytes) {
   override def toString = name
 }
 

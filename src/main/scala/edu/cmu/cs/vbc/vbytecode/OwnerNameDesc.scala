@@ -295,6 +295,11 @@ case class TypeDesc(desc: String) extends TypeVerifier {
   def isPrimitive: Boolean = desc == "Z" || desc == "C" || desc == "B" || desc == "S" || desc == "I" || desc == "F" ||
     desc == "J" || desc == "D"
 
+  def is2Bytes: Boolean = desc match {
+    case "J" | "D" => true
+    case _ => false
+  }
+
   def toObject: TypeDesc = desc match {
     case "Z" => TypeDesc("Ljava/lang/Boolean;")
     case "C" => TypeDesc("Ljava/lang/Character;")
