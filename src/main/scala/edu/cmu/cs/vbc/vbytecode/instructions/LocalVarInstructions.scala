@@ -375,6 +375,15 @@ case class InstrDLOAD(variable: Variable) extends Instruction {
   * ..., value -> ...
   */
 case class InstrLSTORE(variable: Variable) extends Instruction {
+
+  /** Help env collect all local variables */
+  override def getVariables: Set[LocalVar] = {
+    variable match {
+      case p: Parameter => Set()
+      case lv: LocalVar => Set(lv)
+    }
+  }
+
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
     mv.visitVarInsn(LSTORE, env.getVarIdx(variable))
 
