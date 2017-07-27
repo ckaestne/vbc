@@ -244,7 +244,7 @@ class Loader {
       case IUSHR => InstrIUSHR()
       case LUSHR => InstrLUSHR()
       case IAND => InstrIAND()
-      case LAND => UNKNOWN(LAND)
+      case LAND => InstrLAND()
       case IOR => InstrIOR()
       case LOR => UNKNOWN(LOR)
       case IXOR => InstrIXOR()

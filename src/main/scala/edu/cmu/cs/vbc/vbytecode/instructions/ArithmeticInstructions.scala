@@ -361,6 +361,15 @@ case class InstrIAND() extends Instruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
 }
 
+case class InstrLAND() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
+    mv.visitInsn(LAND)
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+}
+
 /** Boolean OR int
   *
   * ..., value1(int), value2(int) -> result(int)
