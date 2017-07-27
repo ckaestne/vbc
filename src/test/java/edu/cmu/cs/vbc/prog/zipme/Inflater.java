@@ -443,64 +443,122 @@ public class Inflater {
         int free = outputWindow.getFreeSpace();
         while (free >= 258) {
             int symbol;
-            switch (mode) {
-                case DECODE_HUFFMAN:
-                    while (((symbol = litlenTree.getSymbol(input)) & ~0xff) == 0) {
-                        outputWindow.write(symbol);
-                        if (--free < 258)
-                            return true;
-                    }
-                    if (symbol < 257) {
-                        if (symbol < 0)
-                            return false;
-                        else {
-                            distTree = null;
-                            litlenTree = null;
-                            mode = DECODE_BLOCKS;
-                            return true;
-                        }
-                    }
-                    try {
-                        repLength = CPLENS[symbol - 257];
-                        neededBits = CPLEXT[symbol - 257];
-                    } catch (ArrayIndexOutOfBoundsException ex) {
-                        throw new DataFormatException("Illegal rep length code");
-                    }
-                case DECODE_HUFFMAN_LENBITS:
-                    if (neededBits > 0) {
-                        mode = DECODE_HUFFMAN_LENBITS;
-                        int i = input.peekBits(neededBits);
-                        if (i < 0)
-                            return false;
-                        input.dropBits(neededBits);
-                        repLength += i;
-                    }
-                    mode = DECODE_HUFFMAN_DIST;
-                case DECODE_HUFFMAN_DIST:
-                    symbol = distTree.getSymbol(input);
+            if (mode == DECODE_HUFFMAN) {
+                while (((symbol = litlenTree.getSymbol(input)) & ~0xff) == 0) {
+                    outputWindow.write(symbol);
+                    if (--free < 258)
+                        return true;
+                }
+                if (symbol < 257) {
                     if (symbol < 0)
                         return false;
-                    try {
-                        repDist = CPDIST[symbol];
-                        neededBits = CPDEXT[symbol];
-                    } catch (ArrayIndexOutOfBoundsException ex) {
-                        throw new DataFormatException("Illegal rep dist code");
+                    else {
+                        distTree = null;
+                        litlenTree = null;
+                        mode = DECODE_BLOCKS;
+                        return true;
                     }
-                case DECODE_HUFFMAN_DISTBITS:
-                    if (neededBits > 0) {
-                        mode = DECODE_HUFFMAN_DISTBITS;
-                        int i = input.peekBits(neededBits);
-                        if (i < 0)
-                            return false;
-                        input.dropBits(neededBits);
-                        repDist += i;
-                    }
-                    outputWindow.repeat(repLength, repDist);
-                    free -= repLength;
-                    mode = DECODE_HUFFMAN;
-                    break;
-                default:
-                    throw new IllegalStateException();
+                }
+                try {
+                    repLength = CPLENS[symbol - 257];
+                    neededBits = CPLEXT[symbol - 257];
+                } catch (ArrayIndexOutOfBoundsException ex) {
+                    throw new DataFormatException("Illegal rep length code");
+                }
+                if (neededBits > 0) {
+                    mode = DECODE_HUFFMAN_LENBITS;
+                    int i = input.peekBits(neededBits);
+                    if (i < 0)
+                        return false;
+                    input.dropBits(neededBits);
+                    repLength += i;
+                }
+                mode = DECODE_HUFFMAN_DIST;
+                symbol = distTree.getSymbol(input);
+                if (symbol < 0)
+                    return false;
+                try {
+                    repDist = CPDIST[symbol];
+                    neededBits = CPDEXT[symbol];
+                } catch (ArrayIndexOutOfBoundsException ex) {
+                    throw new DataFormatException("Illegal rep dist code");
+                }
+                if (neededBits > 0) {
+                    mode = DECODE_HUFFMAN_DISTBITS;
+                    int i = input.peekBits(neededBits);
+                    if (i < 0)
+                        return false;
+                    input.dropBits(neededBits);
+                    repDist += i;
+                }
+                outputWindow.repeat(repLength, repDist);
+                free -= repLength;
+                mode = DECODE_HUFFMAN;
+            } else if (mode == DECODE_HUFFMAN_LENBITS) {
+                if (neededBits > 0) {
+                    mode = DECODE_HUFFMAN_LENBITS;
+                    int i = input.peekBits(neededBits);
+                    if (i < 0)
+                        return false;
+                    input.dropBits(neededBits);
+                    repLength += i;
+                }
+                mode = DECODE_HUFFMAN_DIST;
+                symbol = distTree.getSymbol(input);
+                if (symbol < 0)
+                    return false;
+                try {
+                    repDist = CPDIST[symbol];
+                    neededBits = CPDEXT[symbol];
+                } catch (ArrayIndexOutOfBoundsException ex) {
+                    throw new DataFormatException("Illegal rep dist code");
+                }
+                if (neededBits > 0) {
+                    mode = DECODE_HUFFMAN_DISTBITS;
+                    int i = input.peekBits(neededBits);
+                    if (i < 0)
+                        return false;
+                    input.dropBits(neededBits);
+                    repDist += i;
+                }
+                outputWindow.repeat(repLength, repDist);
+                free -= repLength;
+                mode = DECODE_HUFFMAN;
+            } else if (mode == DECODE_HUFFMAN_DIST) {
+                symbol = distTree.getSymbol(input);
+                if (symbol < 0)
+                    return false;
+                try {
+                    repDist = CPDIST[symbol];
+                    neededBits = CPDEXT[symbol];
+                } catch (ArrayIndexOutOfBoundsException ex) {
+                    throw new DataFormatException("Illegal rep dist code");
+                }
+                if (neededBits > 0) {
+                    mode = DECODE_HUFFMAN_DISTBITS;
+                    int i = input.peekBits(neededBits);
+                    if (i < 0)
+                        return false;
+                    input.dropBits(neededBits);
+                    repDist += i;
+                }
+                outputWindow.repeat(repLength, repDist);
+                free -= repLength;
+                mode = DECODE_HUFFMAN;
+            } else if (mode == DECODE_HUFFMAN_DISTBITS) {
+                if (neededBits > 0) {
+                    mode = DECODE_HUFFMAN_DISTBITS;
+                    int i = input.peekBits(neededBits);
+                    if (i < 0)
+                        return false;
+                    input.dropBits(neededBits);
+                    repDist += i;
+                }
+                outputWindow.repeat(repLength, repDist);
+                free -= repLength;
+                mode = DECODE_HUFFMAN;
+            } else {
+                throw new IllegalStateException();
             }
         }
         return true;
@@ -533,88 +591,99 @@ public class Inflater {
      * @throws DataFormatException if deflated stream is invalid.
      */
     private boolean decode() throws DataFormatException {
-        switch (mode) {
-            case DECODE_HEADER:
-                return decodeHeader();
-            case DECODE_DICT:
-                return decodeDict();
-            case DECODE_CHKSUM:
-                return decodeChksum();
-            case DECODE_BLOCKS:
-                if (isLastBlock) {
-                    if (nowrap) {
-                        mode = FINISHED;
-                        return false;
-                    } else {
-                        input.skipToByteBoundary();
-                        neededBits = 32;
-                        mode = DECODE_CHKSUM;
-                        return true;
-                    }
-                }
-                int type = input.peekBits(3);
-                if (type < 0)
+        if (mode == DECODE_HEADER) {
+            return decodeHeader();
+        } else if (mode == DECODE_DICT) {
+            return decodeDict();
+        } else if (mode == DECODE_CHKSUM) {
+            return decodeChksum();
+        } else if (mode == DECODE_BLOCKS) {
+            if (isLastBlock) {
+                if (nowrap) {
+                    mode = FINISHED;
                     return false;
-                input.dropBits(3);
-                if ((type & 1) != 0)
-                    isLastBlock = true;
-                switch (type >> 1) {
-                    case DeflaterConstants.STORED_BLOCK:
-                        input.skipToByteBoundary();
-                        mode = DECODE_STORED_LEN1;
-                        break;
-                    case DeflaterConstants.STATIC_TREES:
-                        litlenTree = InflaterHuffmanTree.defLitLenTree;
-                        distTree = InflaterHuffmanTree.defDistTree;
-                        mode = DECODE_HUFFMAN;
-                        break;
-                    case DeflaterConstants.DYN_TREES:
-                        dynHeader = new InflaterDynHeader();
-                        mode = DECODE_DYN_HEADER;
-                        break;
-                    default:
-                        throw new DataFormatException("Unknown block type " + type);
-                }
-                return true;
-            case DECODE_STORED_LEN1: {
-                if ((uncomprLen = input.peekBits(16)) < 0)
-                    return false;
-                input.dropBits(16);
-                mode = DECODE_STORED_LEN2;
-            }
-            case DECODE_STORED_LEN2: {
-                int nlen = input.peekBits(16);
-                if (nlen < 0)
-                    return false;
-                input.dropBits(16);
-                if (nlen != (uncomprLen ^ 0xffff))
-                    throw new DataFormatException("broken uncompressed block");
-                mode = DECODE_STORED;
-            }
-            case DECODE_STORED: {
-                int more = outputWindow.copyStored(input, uncomprLen);
-                uncomprLen -= more;
-                if (uncomprLen == 0) {
-                    mode = DECODE_BLOCKS;
+                } else {
+                    input.skipToByteBoundary();
+                    neededBits = 32;
+                    mode = DECODE_CHKSUM;
                     return true;
                 }
-                return !input.needsInput();
             }
-            case DECODE_DYN_HEADER:
-                if (!dynHeader.decode(input))
-                    return false;
-                litlenTree = dynHeader.buildLitLenTree();
-                distTree = dynHeader.buildDistTree();
-                mode = DECODE_HUFFMAN;
-            case DECODE_HUFFMAN:
-            case DECODE_HUFFMAN_LENBITS:
-            case DECODE_HUFFMAN_DIST:
-            case DECODE_HUFFMAN_DISTBITS:
-                return decodeHuffman();
-            case FINISHED:
+            int type = input.peekBits(3);
+            if (type < 0)
                 return false;
-            default:
-                throw new IllegalStateException();
+            input.dropBits(3);
+            if ((type & 1) != 0)
+                isLastBlock = true;
+            if (type >> 1 == DeflaterConstants.STORED_BLOCK) {
+                input.skipToByteBoundary();
+                mode = DECODE_STORED_LEN1;
+            } else if (type >> 1 == DeflaterConstants.STATIC_TREES) {
+                litlenTree = InflaterHuffmanTree.defLitLenTree;
+                distTree = InflaterHuffmanTree.defDistTree;
+                mode = DECODE_HUFFMAN;
+            } else if (type >> 1 == DeflaterConstants.DYN_TREES) {
+                dynHeader = new InflaterDynHeader();
+                mode = DECODE_DYN_HEADER;
+            } else {
+                throw new DataFormatException("Unknown block type " + type);
+            }
+            return true;
+        } else if (mode == DECODE_STORED_LEN1) {
+            if ((uncomprLen = input.peekBits(16)) < 0)
+                return false;
+            input.dropBits(16);
+            mode = DECODE_STORED_LEN2;
+            int nlen = input.peekBits(16);
+            if (nlen < 0)
+                return false;
+            input.dropBits(16);
+            if (nlen != (uncomprLen ^ 0xffff))
+                throw new DataFormatException("broken uncompressed block");
+            mode = DECODE_STORED;
+            int more = outputWindow.copyStored(input, uncomprLen);
+            uncomprLen -= more;
+            if (uncomprLen == 0) {
+                mode = DECODE_BLOCKS;
+                return true;
+            }
+            return !input.needsInput();
+        } else if (mode == DECODE_STORED_LEN2) {
+            int nlen = input.peekBits(16);
+            if (nlen < 0)
+                return false;
+            input.dropBits(16);
+            if (nlen != (uncomprLen ^ 0xffff))
+                throw new DataFormatException("broken uncompressed block");
+            mode = DECODE_STORED;
+            int more = outputWindow.copyStored(input, uncomprLen);
+            uncomprLen -= more;
+            if (uncomprLen == 0) {
+                mode = DECODE_BLOCKS;
+                return true;
+            }
+            return !input.needsInput();
+        } else if (mode == DECODE_STORED) {
+            int more = outputWindow.copyStored(input, uncomprLen);
+            uncomprLen -= more;
+            if (uncomprLen == 0) {
+                mode = DECODE_BLOCKS;
+                return true;
+            }
+            return !input.needsInput();
+        } else if (mode == DECODE_DYN_HEADER) {
+            if (!dynHeader.decode(input))
+                return false;
+            litlenTree = dynHeader.buildLitLenTree();
+            distTree = dynHeader.buildDistTree();
+            mode = DECODE_HUFFMAN;
+            return decodeHuffman();
+        } else if (mode == DECODE_HUFFMAN || mode == DECODE_HUFFMAN_LENBITS || mode == DECODE_HUFFMAN_DIST || mode == DECODE_HUFFMAN_DISTBITS) {
+            return decodeHuffman();
+        } else if (mode == FINISHED) {
+            return false;
+        } else {
+            throw new IllegalStateException();
         }
     }
 
