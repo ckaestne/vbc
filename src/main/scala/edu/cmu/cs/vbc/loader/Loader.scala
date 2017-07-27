@@ -68,13 +68,13 @@ class Loader {
             vIdx,
             localVarList(i).name,
             TypeDesc(localVarList(i).desc),
-            is2Bytes = TypeDesc(localVarList(i).desc).is2Bytes
+            is64Bit = TypeDesc(localVarList(i).desc).is2Bytes
           ))
         else
           varCache += (vIdx -> new LocalVar(
             localVarList(i).name,
             localVarList(i).desc,
-            is2Bytes = TypeDesc(localVarList(i).desc).is2Bytes
+            is64Bit = TypeDesc(localVarList(i).desc).is2Bytes
           ))
       }
     }
@@ -88,15 +88,15 @@ class Loader {
         val newVar =
           if (idx < parameterRange) {
             opCode match {
-              case LLOAD | LSTORE => new Parameter(idx, "$unknown", TypeDesc("J"), is2Bytes = true)
-              case DLOAD | DSTORE => new Parameter(idx, "$unknown", TypeDesc("D"), is2Bytes = true)
+              case LLOAD | LSTORE => new Parameter(idx, "$unknown", TypeDesc("J"), is64Bit = true)
+              case DLOAD | DSTORE => new Parameter(idx, "$unknown", TypeDesc("D"), is64Bit = true)
               case _ => new Parameter(idx, "$unknown", TypeDesc("Ljava/lang/Object;"))
             }
           }
           else {
             opCode match {
-              case LLOAD | LSTORE => new LocalVar("$unknown", TypeDesc("J"), is2Bytes = true)
-              case DLOAD | DSTORE => new LocalVar("$unknown", TypeDesc("D"), is2Bytes = true)
+              case LLOAD | LSTORE => new LocalVar("$unknown", TypeDesc("J"), is64Bit = true)
+              case DLOAD | DSTORE => new LocalVar("$unknown", TypeDesc("D"), is64Bit = true)
               case _ => new LocalVar("$unknown", "V")
             }
           }

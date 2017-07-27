@@ -35,7 +35,7 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) extends CFGA
   }
 
   def countSlots(l: List[LocalVar]): Int = {
-    val ll = l.map(v => if (v.is2Bytes) 2 else 1)
+    val ll = l.map(v => if (v.is64Bit) 2 else 1)
     (0 /: ll) (_ + _)
   }
 
