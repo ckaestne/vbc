@@ -181,7 +181,7 @@ class Loader {
       case AALOAD => InstrAALOAD()
       case BALOAD => InstrBALOAD()
       case CALOAD => InstrCALOAD()
-      case SALOAD => UNKNOWN(SALOAD)
+      case SALOAD => InstrSALOAD()
       case ISTORE => {
         val i = inst.asInstanceOf[VarInsnNode]
         InstrISTORE(variables(i.`var`, ISTORE))
