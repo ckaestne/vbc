@@ -63,7 +63,9 @@ trait MethodInstruction extends Instruction {
         if (liftedCall.isLifting) mv.visitVarInsn(ALOAD, nArgs) // ctx
         // would need to push nulls if invoking <init>, but this is strange
         assert(name != MethodName("<init>"), "calling <init> on a V object")
-        mv.visitMethodInsn(invokeType, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+        interceptPrintlns(liftedCall, mv, nArgs) {
+          mv.visitMethodInsn(invokeType, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+        }
         // Box primitive type
         boxReturnValue(liftedCall.desc, mv)
         if (!LiftingPolicy.shouldLiftMethodCall(owner, name, desc) && !isReturnVoid)
@@ -72,6 +74,15 @@ trait MethodInstruction extends Instruction {
         if (isReturnVoid) mv.visitInsn(RETURN) else mv.visitInsn(ARETURN)
       }
     }
+  }
+
+  def interceptPrintlns(call: LiftedCall, mv: MethodVisitor, ctxIdx: Int)(otherwise: => Unit): Unit = {
+    if (call.owner == Owner("java/io/PrintStream") && call.name == "println") {
+      mv.visitVarInsn(ALOAD, ctxIdx)  // load context
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.prependPrintStream.appendFE, false)
+    }
+    else
+      otherwise
   }
 
   def getInvokeType: Int = this match {
@@ -390,7 +401,9 @@ case class InstrINVOKEVIRTUAL(owner: Owner, name: MethodName, desc: MethodDesc, 
       }
       else {
         if (liftedCall.isLifting) loadCurrentCtx(mv, env, block)
-        mv.visitMethodInsn(INVOKEVIRTUAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+        interceptPrintlns(liftedCall, mv, env.getVarIdx(env.getVBlockVar(block))) {
+          mv.visitMethodInsn(INVOKEVIRTUAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+        }
         if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
         // cpwtodo: for now, just pop the returned exceptions.
         if (liftedCall.isLifting && desc.isReturnVoid) mv.visitInsn(POP)

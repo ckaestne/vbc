@@ -207,6 +207,13 @@ case class MethodDesc(descString: String) extends TypeVerifier {
     MethodDesc(argsString + retString)
   }
 
+  def prependPrintStream: MethodDesc = {
+    val args = Type.getType("Ljava/io/PrintStream;") +: Type.getArgumentTypes(descString)
+    val argsString = args.map(_.getDescriptor).mkString("(", "", ")")
+    val retString = Type.getReturnType(descString).getDescriptor
+    MethodDesc(argsString + retString)
+  }
+
   /** Turn all arguments into Vs, append FeatureExpr and finally append original argument types
     *
     * Only <init> method requires this transformation

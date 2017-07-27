@@ -2,6 +2,8 @@ package edu.cmu.cs.varex;
 
 import de.fosd.typechef.featureexpr.FeatureExpr;
 
+import java.io.PrintStream;
+
 /**
  * Created by ckaestne on 1/16/2016.
  */
@@ -173,5 +175,24 @@ public class VOps {
 
     public static V<? extends Integer> ior(V<? extends Integer> value1, V<? extends Integer> value2) {
         return value1.flatMap(v1 -> value2.map(v2 -> v1 | v2));
+    }
+
+    //////////////////////////////////////////////////
+    // Special println that prints configuration as well
+    //////////////////////////////////////////////////
+    public static void println(PrintStream out, String s, FeatureExpr ctx) {
+        out.println("[" + ctx + "]: " + s);
+    }
+    public static void println(PrintStream out, int i, FeatureExpr ctx) {
+        out.println("[" + ctx + "]: " + i);
+    }
+    public static void println(PrintStream out, Object o, FeatureExpr ctx) {
+        out.println("[" + ctx + "]: " + o);
+    }
+    public static void println(PrintStream out, char c, FeatureExpr ctx) {
+        out.println("[" + ctx + "]: " + c);
+    }
+    public static void println(PrintStream out, boolean b, FeatureExpr ctx) {
+        out.println("[" + ctx + "]: " + b);
     }
 }
