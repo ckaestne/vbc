@@ -29,6 +29,57 @@ case class InstrDUP() extends Instruction {
   }
 }
 
+/**
+  * Duplicate the top two slots of the operand stack values.
+  */
+case class InstrDUP2() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitInsn(DUP2)
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    ???
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
+    ???
+  }
+}
+
+/**
+  * Duplicate the top operand stack value and insert three slots down.
+  */
+case class InstrDUP_X2() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitInsn(DUP_X2)
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    ???
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
+    ???
+  }
+}
+
+/**
+  * Duplicate the top two operand stack slots and insert three slots down
+  */
+case class InstrDUP2_X1() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitInsn(DUP2_X1)
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    ???
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
+    ???
+  }
+}
+
 
 /**
   * POP instruction
