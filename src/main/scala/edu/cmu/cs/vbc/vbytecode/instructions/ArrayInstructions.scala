@@ -12,7 +12,7 @@ import org.objectweb.asm._
   * Our first attempt is to implement array as array of V. If array length is different, then arrayref itself
   * is also a V.
   */
-trait ArrayInstructions extends Instruction {
+trait ArrayCreationInstructions extends Instruction {
   def createVArray(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     InvokeDynamicUtils.invoke(VCall.smap, mv, env, loadCurrentCtx(_, env, block), "anewarray", s"$IntType()[$vclasstype") {
       (visitor: MethodVisitor) => {
@@ -33,8 +33,8 @@ trait ArrayInstructions extends Instruction {
   def createPrimitiveVArray(mv: MethodVisitor, env: VMethodEnv, block: Block, pType: PrimitiveType.Value): Unit = {
     InvokeDynamicUtils.invoke(VCall.smap, mv, env, loadCurrentCtx(_, env, block), s"newarray$pType", s"$IntType()[$vclasstype") {
       (visitor: MethodVisitor) => {
-        visitor.visitVarInsn(ALOAD, 1)  // int
-        visitor.visitVarInsn(ALOAD, 0)  // FE
+        visitor.visitVarInsn(ALOAD, 1) // int
+        visitor.visitVarInsn(ALOAD, 0) // FE
         visitor.visitMethodInsn(
           INVOKESTATIC,
           Owner.getArrayOps,
@@ -45,6 +45,30 @@ trait ArrayInstructions extends Instruction {
         visitor.visitInsn(ARETURN)
       }
     }
+  }
+}
+
+trait ArrayStoreInstructions extends Instruction {
+  /**
+    * Common assumption on the operand stack:
+    *
+    * ..., arrayref, index, value -> ...,
+    */
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    val (vType, vPrev, frame1) = s.pop()
+    val (idxType, idxPrev, frame2) = frame1.pop()
+    val (refType, refPrev, frame3) = frame2.pop()
+    // we assume that all elements in an array are of type V
+    if (vType != V_TYPE()) return (frame3, vPrev)
+    if (idxType != V_TYPE()) return (frame3, idxPrev)
+    if (refType == V_TYPE()) {
+      env.setLift(this)
+    }
+    (frame3, Set())
+  }
+
+  override def doBacktrack(env: VMethodEnv): Unit = {
+    // do nothing, lifting or not depends on array ref type
   }
 
   def storeOperation(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
@@ -90,8 +114,8 @@ trait ArrayInstructions extends Instruction {
         Integer2int(visitor)
 
         // load original value in the array and create a choice between new value and old value
-        visitor.visitVarInsn(ALOAD, 2)  // FE
-        visitor.visitVarInsn(ALOAD, 3)  // new value
+        visitor.visitVarInsn(ALOAD, 2) // FE
+        visitor.visitVarInsn(ALOAD, 3) // new value
         callVCreateOne(visitor, (m) => m.visitVarInsn(ALOAD, 2))
         visitor.visitVarInsn(ALOAD, 0)
         visitor.visitVarInsn(ALOAD, 1)
@@ -103,6 +127,29 @@ trait ArrayInstructions extends Instruction {
         visitor.visitInsn(RETURN)
       }
     }
+  }
+
+}
+
+
+trait ArrayLoadInstructions extends Instruction {
+  /**
+    * Common assumption on the operand stack:
+    *
+    * ..., arrayref, index -> ..., value
+    */
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    val (idxType, idxPrev, frame1) = s.pop()
+    val (refType, refPrev, frame2) = frame1.pop()
+    if (idxType != V_TYPE()) return (frame2, idxPrev)
+    if (refType == V_TYPE()) {
+      env.setLift(this)
+    }
+    (frame2.push(V_TYPE(), Set(this)), Set())
+  }
+
+  override def doBacktrack(env: VMethodEnv): Unit = {
+    // do nothing, lifting or not depends on ref type
   }
 
   def loadOperation(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
@@ -149,8 +196,9 @@ object PrimitiveType extends Enumeration {
   * @todo By default, primitive array gets initialized after NEWARRAY, but now we are replacing it with ANEWARRAY,
   *       so we might need to initialize also
   */
-case class InstrNEWARRAY(atype: Int) extends ArrayInstructions {
+case class InstrNEWARRAY(atype: Int) extends ArrayCreationInstructions {
   val pType = PrimitiveType.toEnum(atype)
+
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitIntInsn(NEWARRAY, atype)
   }
@@ -202,7 +250,7 @@ case class InstrNEWARRAY(atype: Int) extends ArrayInstructions {
   *
   * @param owner
   */
-case class InstrANEWARRAY(owner: Owner) extends ArrayInstructions {
+case class InstrANEWARRAY(owner: Owner) extends ArrayCreationInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitTypeInsn(ANEWARRAY, owner)
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
@@ -247,21 +295,8 @@ case class InstrANEWARRAY(owner: Owner) extends ArrayInstructions {
   *
   * Operand Stack: ..., arrayref, index, value -> ...
   */
-case class InstrAASTORE() extends ArrayInstructions {
+case class InstrAASTORE() extends ArrayStoreInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(AASTORE)
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
-    val (vType, vPrev, frame1) = s.pop()
-    val (idxType, idxPrev, frame2) = frame1.pop()
-    val (refType, refPrev, frame3) = frame2.pop()
-    // we assume that all elements in an array are of type V
-    if (vType != V_TYPE()) return (frame3, vPrev)
-    if (idxType != V_TYPE()) return (frame3, idxPrev)
-    if (refType == V_TYPE()) {
-      env.setLift(this)
-    }
-    (frame3, Set())
-  }
 
   /**
     * For AASTORE, lifting means invokedynamic on a V object
@@ -281,10 +316,6 @@ case class InstrAASTORE() extends ArrayInstructions {
       )
     }
   }
-
-  override def doBacktrack(env: VMethodEnv): Unit = {
-    // do nothing, lifting or not depends on array ref type
-  }
 }
 
 /**
@@ -292,19 +323,12 @@ case class InstrAASTORE() extends ArrayInstructions {
   *
   * Operand Stack: ..., arrayref, index -> ..., value
   */
-case class InstrAALOAD() extends ArrayInstructions {
+case class InstrAALOAD() extends ArrayLoadInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(AALOAD)
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
-    val (idxType, idxPrev, frame1) = s.pop()
-    val (refType, refPrev, frame2) = frame1.pop()
-    if (idxType != V_TYPE()) return (frame2, idxPrev)
-    if (refType == V_TYPE()) {
-      env.setLift(this)
-    }
-    (frame2.push(V_TYPE(), Set(this)), Set())
-  }
-
+  /**
+    * Lifting means invokeDynamic on V of arrayrefs
+    */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
       loadOperation(mv, env, block)
@@ -314,24 +338,11 @@ case class InstrAALOAD() extends ArrayInstructions {
     }
   }
 
-  override def doBacktrack(env: VMethodEnv): Unit = {
-    // do nothing, lifting or not depends on ref type
-  }
 }
 
-case class InstrIALOAD() extends ArrayInstructions {
+case class InstrIALOAD() extends ArrayLoadInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(IALOAD)
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
-    val (idxType, idxPrev, frame1) = s.pop()
-    val (refType, refPrev, frame2) = frame1.pop()
-    if (idxType != V_TYPE()) return (frame2, idxPrev)
-    if (refType == V_TYPE()) {
-      env.setLift(this)
-    }
-    (frame2.push(V_TYPE(), Set(this)), Set())
-  }
-
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
       loadOperation(mv, env, block)
@@ -340,27 +351,10 @@ case class InstrIALOAD() extends ArrayInstructions {
       mv.visitInsn(AALOAD)
     }
   }
-
-  override def doBacktrack(env: VMethodEnv): Unit = {
-    // do nothing, lifting or not depends on ref type
-  }
 }
 
-case class InstrIASTORE() extends ArrayInstructions {
+case class InstrIASTORE() extends ArrayStoreInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(IASTORE)
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
-    val (vType, vPrev, frame1) = s.pop()
-    val (idxType, idxPrev, frame2) = frame1.pop()
-    val (refType, refPrev, frame3) = frame2.pop()
-    // we assume that all elements in an array are of type V
-    if (vType != V_TYPE()) return (frame3, vPrev)
-    if (idxType != V_TYPE()) return (frame3, idxPrev)
-    if (refType == V_TYPE()) {
-      env.setLift(this)
-    }
-    (frame3, Set())
-  }
 
   /**
     * For IASTORE, lifting means invokedynamic on a V object
@@ -374,10 +368,6 @@ case class InstrIASTORE() extends ArrayInstructions {
       mv.visitInsn(AASTORE)
     }
   }
-
-  override def doBacktrack(env: VMethodEnv): Unit = {
-    // do nothing, lifting or not depends on array ref type
-  }
 }
 
 /**
@@ -385,22 +375,9 @@ case class InstrIASTORE() extends ArrayInstructions {
   *
   * Operand stack: ..., arrayref, index(int), value(int) -> ...
   */
-case class InstrCASTORE() extends ArrayInstructions {
+case class InstrCASTORE() extends ArrayStoreInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(CASTORE)
-  }
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
-    val (vType, vPrev, frame1) = s.pop()
-    val (idxType, idxPrev, frame2) = frame1.pop()
-    val (refType, refPrev, frame3) = frame2.pop()
-    // we assume that all elements in an array are of type V
-    if (vType != V_TYPE()) return (frame3, vPrev)
-    if (idxType != V_TYPE()) return (frame3, idxPrev)
-    if (refType == V_TYPE()) {
-      env.setLift(this)
-    }
-    (frame3, Set())
   }
 
   /**
@@ -415,10 +392,6 @@ case class InstrCASTORE() extends ArrayInstructions {
       mv.visitInsn(AASTORE)
     }
   }
-
-  override def doBacktrack(env: VMethodEnv): Unit = {
-    // do nothing, lifting or not depends on array ref type
-  }
 }
 
 /**
@@ -429,19 +402,9 @@ case class InstrCASTORE() extends ArrayInstructions {
   * @todo Treating char array as V array lose the ability to print the char, sys.out could not
   *       tell whether this is a char or simply an integer
   */
-case class InstrCALOAD() extends ArrayInstructions {
+case class InstrCALOAD() extends ArrayLoadInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(CALOAD)
-  }
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
-    val (idxType, idxPrev, frame1) = s.pop()
-    val (refType, refPrev, frame2) = frame1.pop()
-    if (idxType != V_TYPE()) return (frame2, idxPrev)
-    if (refType == V_TYPE()) {
-      env.setLift(this)
-    }
-    (frame2.push(V_TYPE(), Set(this)), Set())
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
@@ -452,17 +415,13 @@ case class InstrCALOAD() extends ArrayInstructions {
       mv.visitInsn(AALOAD)
     }
   }
-
-  override def doBacktrack(env: VMethodEnv): Unit = {
-    // do nothing, lifting or not depends on ref type
-  }
 }
 
 /** Get length of array
   *
   * ..., arrayref -> ..., length (int)
   */
-case class InstrARRAYLENGTH() extends ArrayInstructions {
+case class InstrARRAYLENGTH() extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(ARRAYLENGTH)
   }
@@ -503,29 +462,22 @@ case class InstrARRAYLENGTH() extends ArrayInstructions {
   }
 }
 
-case class InstrBALOAD() extends ArrayInstructions {
+/**
+  * Load byte OR boolean from array
+  *
+  * ..., arrayref, index -> ..., value
+  */
+case class InstrBALOAD() extends ArrayLoadInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(BALOAD)
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
 
-  /**
-    * Update the stack symbolically after executing this instruction
-    *
-    * @return UpdatedFrame is a tuple consisting of new VBCFrame and a backtrack instructions.
-    *         If backtrack instruction set is not empty, we need to backtrack because we finally realise we need to lift
-    *         that instruction. By default every backtracked instruction should be lifted, except for GETFIELD,
-    *         PUTFIELD, INVOKEVIRTUAL, and INVOKESPECIAL, because lifting them or not depends on the type of object
-    *         currently on stack. If the object is a V, we need to lift these instructions with INVOKEDYNAMIC.
-    *
-    *         If backtrack instruction set is not empty, the returned VBCFrame is useless, current frame will be pushed
-    *         to queue again and reanalyze later. (see [[edu.cmu.cs.vbc.analysis.VBCAnalyzer.computeBeforeFrames]]
-    */
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
 }
 
-case class InstrBASTORE() extends ArrayInstructions {
+case class InstrBASTORE() extends ArrayStoreInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(BASTORE)
   }
@@ -535,7 +487,7 @@ case class InstrBASTORE() extends ArrayInstructions {
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
 }
 
-case class InstrSASTORE() extends ArrayInstructions {
+case class InstrSASTORE() extends ArrayStoreInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(SASTORE)
   }
@@ -545,7 +497,7 @@ case class InstrSASTORE() extends ArrayInstructions {
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
 }
 
-case class InstrSALOAD() extends ArrayInstructions {
+case class InstrSALOAD() extends ArrayLoadInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(SALOAD)
   }
