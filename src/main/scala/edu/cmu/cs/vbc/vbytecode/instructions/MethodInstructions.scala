@@ -68,9 +68,11 @@ trait MethodInstruction extends Instruction {
         }
         // Box primitive type
         boxReturnValue(liftedCall.desc, mv)
+        // perf: Necessary because we assume V[] everywhere.
+        primitiveArray2VArray(liftedCall.desc, mv, nArgs)
         if (!LiftingPolicy.shouldLiftMethodCall(owner, name, desc) && !isReturnVoid)
           callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, nArgs))
-        //cpwtodo: when calling RETURN, there might be a V<Exception> on stack, but for not just ignore it.
+        //cpwtodo: when calling RETURN, there might be a V<Exception> on stack, but for now just ignore it.
         if (isReturnVoid) mv.visitInsn(RETURN) else mv.visitInsn(ARETURN)
       }
     }
@@ -103,6 +105,31 @@ trait MethodInstruction extends Instruction {
       case Type.VOID => // do nothing
       case Type.ARRAY => // do nothing
       case _ => ???
+    }
+  }
+
+  /**
+    * Turn primitive array to V array
+    */
+  def primitiveArray2VArray(desc: MethodDesc, mv: MethodVisitor, ctxIdx: Int): Unit = {
+    desc.getReturnType match {
+      case Some(TypeDesc("[I")) => ???
+      case Some(TypeDesc("[C")) => ???
+      case Some(TypeDesc("[S")) => ???
+      case Some(TypeDesc("[Z")) => ???
+      case Some(TypeDesc("[B")) =>
+        mv.visitVarInsn(ALOAD, ctxIdx)
+        mv.visitMethodInsn(
+          INVOKESTATIC,
+          Owner.getArrayOps,
+          "BArray2VArray",
+          MethodDesc(s"([B$fexprclasstype)[$vclasstype"),
+          false
+        )
+      case Some(TypeDesc("[J")) => ???
+      case Some(TypeDesc("[F")) => ???
+      case Some(TypeDesc("[D")) => ???
+      case _ => // do nothing
     }
   }
 

@@ -10,11 +10,79 @@ import java.util.function.Function;
 /**
  * Helper class for array handling while lifting bytecode.
  *
+ * perf: expanding arrays and compressing them are really slow
+ *
  * @author chupanw
  */
 public class ArrayOps {
 
     private static HashMap<V[], V> cached = new HashMap<>();
+
+    //////////////////////////////////////////////////
+    // byte
+    //////////////////////////////////////////////////
+
+    public static V<Byte>[] initBArray(Integer length, FeatureExpr ctx) {
+        V<?>[] array = new V<?>[length];
+        ArrayList<V<Byte>> arrayList = new ArrayList<>();
+        for (int i = 0; i < length; i++) {
+            arrayList.add(i, V.one(ctx, (byte)0));
+        }
+        return arrayList.toArray((V<Byte>[])array);
+    }
+
+    public static V<Byte>[] initBArray(int length, FeatureExpr ctx) {
+        return initBArray(Integer.valueOf(length), ctx);
+    }
+
+    public static V<?> expandBArray(V<Byte>[] array, FeatureExpr ctx) {
+        return expandBArrayElements(array, ctx, 0, new ArrayList<>());
+    }
+
+    private static V<?> expandBArrayElements(V<Byte>[] array, FeatureExpr ctx, Integer index, ArrayList<Byte> soFar) {
+        return array[index].sflatMap(ctx, new BiFunction<FeatureExpr, Byte, V<?>>() {
+            @Override
+            public V<?> apply(FeatureExpr featureExpr, Byte t) {
+                ArrayList<Byte> newArray = new ArrayList<Byte>(soFar);
+                newArray.add(t);
+                if (index == array.length - 1) {
+                    byte[] result = new byte[array.length];
+                    for (int i = 0; i < array.length; i++) {
+                        result[i] = newArray.get(i);
+                    }
+                    return V.one(featureExpr, result);
+                } else {
+                    return expandBArrayElements(array, ctx, index + 1, newArray);
+                }
+            }
+        });
+    }
+
+    public static V<?>[] compressBArray(V<byte[]> arrays) {
+        V<?> sizes = arrays.map(new Function<byte[], Integer>() {
+            @Override
+            public Integer apply(byte[] t) {
+                return t.length;
+            }
+        });
+        Integer size = (Integer) sizes.getOne(); // if results in a choice, exceptions will be thrown.
+        ArrayList<V<?>> array = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            array.add(compressBArrayElement(arrays, i));
+        }
+        V<?>[] result = new V<?>[size];
+        array.toArray(result);
+        return result;
+    }
+
+    private static V<?> compressBArrayElement(V<byte[]> arrays, Integer index) {
+        return arrays.map(new Function<byte[], Byte>() {
+            @Override
+            public Byte apply(byte[] ts) {
+                return ts[index];
+            }
+        });
+    }
 
     //////////////////////////////////////////////////
     // int
@@ -260,5 +328,16 @@ public class ArrayOps {
         V choice = V.choice(ctx, newValue, oldValue);
         arrayref[index] = choice;
     }
+    
+    //////////////////////////////////////////////////
+    // Transform a primitive array to an array of Vs
+    //////////////////////////////////////////////////
 
+    public static V<?>[] BArray2VArray(byte[] bytes, FeatureExpr ctx) {
+        V<?>[] vs = new V<?>[bytes.length];
+        for (int i = 0; i < bytes.length; i++) {
+            vs[i] = V.one(ctx, bytes[i]);
+        }
+        return vs;
+    }
 }

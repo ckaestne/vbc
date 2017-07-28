@@ -65,6 +65,7 @@ object LiftingPolicy {
         case Owner("java/io/FileReader") => false
         case Owner("java/io/Reader") => false
         case Owner("java/util/Iterator") => false
+        case Owner("java/io/ByteArrayInputStream") => false
         case o if o.name.endsWith("Exception") => false
         case _ => true
       }
