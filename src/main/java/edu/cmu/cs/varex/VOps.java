@@ -177,6 +177,10 @@ public class VOps {
         return value1.flatMap(v1 -> value2.map(v2 -> v1 | v2));
     }
 
+    public static V<? extends Integer> iand(V<? extends Integer> value1, V<? extends Integer> value2, FeatureExpr ctx) {
+        return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1 & v2));
+    }
+
     //////////////////////////////////////////////////
     // Special println that prints configuration as well
     //////////////////////////////////////////////////

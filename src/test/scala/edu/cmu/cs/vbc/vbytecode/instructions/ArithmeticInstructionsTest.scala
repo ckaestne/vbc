@@ -90,4 +90,21 @@ class ArithmeticInstructionsTest extends FlatSpec with DiffMethodTestInfrastruct
         Nil
     )
   }
+
+  "IAND" can "compute boolean AND between two Vints" in {
+    methodWithBlocks(
+      createVint(tValue = 1, fValue = 2, startBlockIdx = 0, config = "A") :::
+      createVint(tValue = 3, fValue = 4, startBlockIdx = 3, config = "B") :::
+      Block(InstrIAND(), InstrDBGIPrint(), InstrRETURN()) ::
+      Nil
+    )
+  }
+
+  "IAND" can "compute boolean AND between int and Vint" in {
+    methodWithBlocks(
+      createVint(tValue = 1, fValue = 2, startBlockIdx = 0, config = "A") :::
+      Block(InstrICONST(3), InstrIAND(), InstrDBGIPrint(), InstrRETURN()) ::
+      Nil
+    )
+  }
 }
