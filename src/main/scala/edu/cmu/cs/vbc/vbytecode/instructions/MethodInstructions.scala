@@ -101,6 +101,8 @@ trait MethodInstruction extends Instruction {
         mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, MethodName("valueOf"), MethodDesc(s"(I)${TypeDesc.getInt}"), false)
       case Type.BOOLEAN =>
         mv.visitMethodInsn(INVOKESTATIC, Owner.getBoolean, MethodName("valueOf"), MethodDesc(s"(Z)${TypeDesc.getBoolean}"), false)
+      case Type.LONG =>
+        mv.visitMethodInsn(INVOKESTATIC, Owner.getLong, MethodName("valueOf"), MethodDesc(s"(J)${TypeDesc.getLong}"), false)
       case Type.OBJECT => // do nothing
       case Type.VOID => // do nothing
       case Type.ARRAY => // do nothing
@@ -431,7 +433,10 @@ case class InstrINVOKEVIRTUAL(owner: Owner, name: MethodName, desc: MethodDesc, 
         interceptPrintlns(liftedCall, mv, env.getVarIdx(env.getVBlockVar(block))) {
           mv.visitMethodInsn(INVOKEVIRTUAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
         }
-        if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+        if (env.getTag(this, env.TAG_NEED_V)) {
+          boxReturnValue(liftedCall.desc, mv)
+          callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+        }
         // cpwtodo: for now, just pop the returned exceptions.
         if (liftedCall.isLifting && desc.isReturnVoid) mv.visitInsn(POP)
       }
@@ -466,7 +471,10 @@ case class InstrINVOKESTATIC(owner: Owner, name: MethodName, desc: MethodDesc, i
     } else {
       if (liftedCall.isLifting) loadCurrentCtx(mv, env, block)
       mv.visitMethodInsn(INVOKESTATIC, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
-      if (env.getTag(this, env.TAG_NEED_V)) callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+      if (env.getTag(this, env.TAG_NEED_V)) {
+        boxReturnValue(liftedCall.desc, mv)
+        callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+      }
       //cpwtodo: for now, ignore exceptions on stack
       if (liftedCall.isLifting && desc.isReturnVoid) mv.visitInsn(POP)
     }

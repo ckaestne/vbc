@@ -55,6 +55,7 @@ object LiftingPolicy {
         case Owner("java/lang/Short") => false
         case Owner("java/lang/Byte") => false
         case Owner("java/lang/String") => false
+        case Owner("java/lang/Long") => false
         case Owner("java/lang/Object") => false
         case Owner("java/io/PrintStream") => false
         case Owner("java/lang/Math") => false
@@ -68,6 +69,7 @@ object LiftingPolicy {
         case Owner("java/io/ByteArrayInputStream") => false
         case Owner("java/io/OutputStream") => false
         case o if o.name.endsWith("Exception") => false
+        case Owner("java/lang/Runtime") => false
         case _ => true
       }
     }

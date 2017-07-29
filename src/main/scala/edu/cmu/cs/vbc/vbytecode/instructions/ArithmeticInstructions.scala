@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
-import edu.cmu.cs.vbc.analysis.{INT_TYPE, LONG_TYPE, VBCFrame, V_TYPE}
+import edu.cmu.cs.vbc.analysis._
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, VCall}
 import edu.cmu.cs.vbc.vbytecode._
@@ -19,8 +19,32 @@ trait BinOpInstruction extends Instruction {
       if (env.shouldLiftInstr(this))
         frame2.push(V_TYPE(), Set(this))
       else {
-        //todo: float, double
         frame2.push(INT_TYPE(), Set(this))
+      }
+    val backtrack: Set[Instruction] =
+      if (env.shouldLiftInstr(this)) {
+        if (v1 != V_TYPE()) prev1
+        else if (v2 != V_TYPE()) prev2
+        else Set()
+      }
+      else
+        Set()
+    (newFrame, backtrack)
+  }
+}
+
+trait BinOpNonIntInstruction extends Instruction {
+
+  def updateStackWithReturnType(s: VBCFrame, env: VMethodEnv, retType: VBCType): UpdatedFrame = {
+    if (s.stack.take(2).exists(_._1 == V_TYPE()))
+      env.setLift(this)
+    val (v1, prev1, frame1) = s.pop()
+    val (v2, prev2, frame2) = frame1.pop()
+    val newFrame =
+      if (env.shouldLiftInstr(this))
+        frame2.push(V_TYPE(), Set(this))
+      else {
+        frame2.push(retType, Set(this))
       }
     val backtrack: Set[Instruction] =
       if (env.shouldLiftInstr(this)) {
@@ -488,13 +512,27 @@ case class InstrLUSHR() extends Instruction {
   *
   * ..., value1(long), value2(long) -> ..., result(long)
   */
-case class InstrLDIV() extends Instruction {
+case class InstrLDIV() extends BinOpNonIntInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
     mv.visitInsn(LDIV)
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(
+        INVOKESTATIC,
+        Owner.getVOps,
+        "ldiv",
+        MethodDesc(s"($vclasstype$vclasstype$fexprclasstype)$vclasstype"),
+        false
+      )
+    }
+    else {
+      mv.visitInsn(LDIV)
+    }
+  }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, LONG_TYPE())
 }
 
 

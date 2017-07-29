@@ -57,13 +57,16 @@ case class Owner(name: String) extends TypeVerifier {
     "java/lang/Class",
     // Integer call a package access method from java/lang/Class
     "java/lang/Integer", "java/lang/Short", "java/lang/Byte", "java/lang/Float", "java/lang/Double", "java/lang/Character",
+    "java/lang/Long",
     // Native
     "java/lang/Math",
     // I/O natives
     "java/io/UnixFileSystem", "java/io/FileSystem", "java/io/DefaultFileSystem", "java/io/File", "java/net/URL",
     "java/io/FileInputStream", "java/io/InputStream", "java/io/OutputStream",
     // Hard to get model/java/util/Iterator from JDK collection classes.
-    "java/util/Iterator"
+    "java/util/Iterator",
+    // Not sure
+    "java/lang/Runtime"
   )
 
   /** Get the corresponding model class
@@ -104,6 +107,7 @@ object Owner {
   def getVOps = Owner("edu/cmu/cs/varex/VOps")
   def getChar = Owner("java/lang/Character")
   def getSystem = Owner("java/lang/System")
+  def getRuntime = Owner("java/lang/Runtime")
 }
 
 
