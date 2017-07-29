@@ -325,7 +325,7 @@ public class ArrayOps {
     public static V<?>[] BArray2VArray(byte[] bytes, FeatureExpr ctx) {
         V<?>[] vs = new V<?>[bytes.length];
         for (int i = 0; i < bytes.length; i++) {
-            vs[i] = V.one(ctx, bytes[i]);
+            vs[i] = V.one(ctx, (int) bytes[i]);
         }
         return vs;
     }
