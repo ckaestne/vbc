@@ -93,10 +93,8 @@ trait ArrayStoreInstructions extends Instruction {
 
   /** Store value of the following type to array: byte, boolean, char, short, int
     *
-    * JVM assumes the new value to be of type int, thus we need some unboxing and boxing.
-    * We could just store V[Integer] internally for the above types, but it needs additional
-    * effort when expanding and compressing. Also, it is counter-intuitive to store Integer in
-    * char array.
+    * JVM assumes the new value to be of type int. We need some truncating before storing byte,
+    * boolean, char and short.
     */
   def storeBCSI(mv: MethodVisitor, env: VMethodEnv, block: Block, pType: PrimitiveType.Value): Unit = {
     InvokeDynamicUtils.invoke(
@@ -116,6 +114,18 @@ trait ArrayStoreInstructions extends Instruction {
         // load original value in the array and create a choice between new value and old value
         visitor.visitVarInsn(ALOAD, 2) // FE
         visitor.visitVarInsn(ALOAD, 3) // new value
+        // Truncate int to char, short, boolean, byte
+        pType match {
+          case PrimitiveType.char | PrimitiveType.short | PrimitiveType.boolean | PrimitiveType.byte =>
+            visitor.visitMethodInsn(
+              INVOKESTATIC,
+              Owner.getVOps,
+              s"trunc$pType",
+              MethodDesc(s"(${TypeDesc.getInt})${TypeDesc.getInt}"),
+              false
+            )
+          case _ => // do nothing
+        }
         callVCreateOne(visitor, (m) => m.visitVarInsn(ALOAD, 2))
         visitor.visitVarInsn(ALOAD, 0)
         visitor.visitVarInsn(ALOAD, 1)
@@ -465,16 +475,21 @@ case class InstrARRAYLENGTH() extends Instruction {
 /**
   * Load byte OR boolean from array
   *
-  * ..., arrayref, index -> ..., value
+  * ..., arrayref, index (int) -> ..., value (int)
   */
 case class InstrBALOAD() extends ArrayLoadInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(BALOAD)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadOperation(mv, env, block)
+    }
+    else {
+      mv.visitInsn(AALOAD)
+    }
+  }
 }
 
 case class InstrBASTORE() extends ArrayStoreInstructions {
@@ -482,9 +497,17 @@ case class InstrBASTORE() extends ArrayStoreInstructions {
     mv.visitInsn(BASTORE)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  /**
+    * Lifting means arrayref is V
+    */
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      storeBCSI(mv, env, block, PrimitiveType.byte)
+    }
+    else {
+      mv.visitInsn(AASTORE)
+    }
+  }
 }
 
 case class InstrSASTORE() extends ArrayStoreInstructions {

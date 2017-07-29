@@ -333,13 +333,19 @@ trait DiffMethodTestInfrastructure {
     Block(InstrLoadConfig(config), InstrIFEQ(startBlockIdx + 2)) ::
     Block(
       t ::: List(
-        if (localVar.isDefined) InstrASTORE(localVar.get) else InstrNOP(),
+        if (localVar.isDefined)
+          if (localVar.get.desc == "I") InstrISTORE(localVar.get) else InstrASTORE(localVar.get)
+        else
+          InstrNOP(),
         InstrGOTO(startBlockIdx + 3)
       ): _*
     ) ::
     Block(
       f ::: List(
-        if (localVar.isDefined) InstrASTORE(localVar.get) else InstrNOP(),
+        if (localVar.isDefined)
+          if (localVar.get.desc == "I") InstrISTORE(localVar.get) else InstrASTORE(localVar.get)
+        else
+          InstrNOP(),
         InstrGOTO(startBlockIdx + 3)
       ): _*
     ) ::

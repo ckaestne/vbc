@@ -78,7 +78,7 @@ class SmallExampleTest extends FunSuite with DiffLaunchTestInfrastructure {
     testMain(classOf[ArrayListExample])
   }
 
-  test("LongExample") {
+  ignore("LongExample") {
     testMain(classOf[LongExample])
   }
 }

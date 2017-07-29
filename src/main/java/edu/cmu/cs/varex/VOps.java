@@ -199,4 +199,20 @@ public class VOps {
     public static void println(PrintStream out, boolean b, FeatureExpr ctx) {
         out.println("[" + ctx + "]: " + b);
     }
+
+    //////////////////////////////////////////////////
+    // Truncating primitive types to int
+    //////////////////////////////////////////////////
+    public static Integer truncB(Integer o) {
+        return (int) (byte) o.intValue();
+    }
+    public static Integer truncC(Integer o) {
+        return (int) (char) o.intValue();
+    }
+    public static Integer truncZ(Integer o) {
+        return (int) (byte) o.intValue();   // same as byte according to the spec of BASTORE
+    }
+    public static Integer truncS(Integer o) {
+        return (int) (short) o.intValue();
+    }
 }

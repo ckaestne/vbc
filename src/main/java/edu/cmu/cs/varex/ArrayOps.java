@@ -22,29 +22,24 @@ public class ArrayOps {
     // byte
     //////////////////////////////////////////////////
 
-    public static V<Byte>[] initBArray(Integer length, FeatureExpr ctx) {
-        V<?>[] array = new V<?>[length];
-        ArrayList<V<Byte>> arrayList = new ArrayList<>();
-        for (int i = 0; i < length; i++) {
-            arrayList.add(i, V.one(ctx, (byte)0));
-        }
-        return arrayList.toArray((V<Byte>[])array);
+    public static V<Integer>[] initBArray(Integer length, FeatureExpr ctx) {
+        return initIArray(length, ctx);
     }
 
-    public static V<Byte>[] initBArray(int length, FeatureExpr ctx) {
-        return initBArray(Integer.valueOf(length), ctx);
+    public static V<Integer>[] initBArray(int length, FeatureExpr ctx) {
+        return initIArray(Integer.valueOf(length), ctx);
     }
 
-    public static V<?> expandBArray(V<Byte>[] array, FeatureExpr ctx) {
+    public static V<?> expandBArray(V<Integer>[] array, FeatureExpr ctx) {
         return expandBArrayElements(array, ctx, 0, new ArrayList<>());
     }
 
-    private static V<?> expandBArrayElements(V<Byte>[] array, FeatureExpr ctx, Integer index, ArrayList<Byte> soFar) {
-        return array[index].sflatMap(ctx, new BiFunction<FeatureExpr, Byte, V<?>>() {
+    private static V<?> expandBArrayElements(V<Integer>[] array, FeatureExpr ctx, Integer index, ArrayList<Byte> soFar) {
+        return array[index].sflatMap(ctx, new BiFunction<FeatureExpr, Integer, V<?>>() {
             @Override
-            public V<?> apply(FeatureExpr featureExpr, Byte t) {
+            public V<?> apply(FeatureExpr featureExpr, Integer t) {
                 ArrayList<Byte> newArray = new ArrayList<Byte>(soFar);
-                newArray.add(t);
+                newArray.add((byte)t.intValue());
                 if (index == array.length - 1) {
                     byte[] result = new byte[array.length];
                     for (int i = 0; i < array.length; i++) {
@@ -76,10 +71,10 @@ public class ArrayOps {
     }
 
     private static V<?> compressBArrayElement(V<byte[]> arrays, Integer index) {
-        return arrays.map(new Function<byte[], Byte>() {
+        return arrays.map(new Function<byte[], Integer>() {
             @Override
-            public Byte apply(byte[] ts) {
-                return ts[index];
+            public Integer apply(byte[] ts) {
+                return (int)ts[index];
             }
         });
     }
@@ -158,19 +153,13 @@ public class ArrayOps {
     }
 
     public static V<Integer>[] initCArray(int length, FeatureExpr ctx) {
-        return initCArray(Integer.valueOf(length), ctx);
+        return initIArray(Integer.valueOf(length), ctx);
     }
 
-    /**
-     * Expand V<Character>[] to V<char[]>
-     */
     public static V<?> expandCArray(V<Integer>[] array, FeatureExpr ctx) {
         return expandCArrayElements(array, ctx, 0, new ArrayList<>());
     }
 
-    /**
-     * Helper function for {@link #expandCArray(V[], FeatureExpr)}
-     */
     private static V<?> expandCArrayElements(V<Integer>[] array, FeatureExpr ctx, Integer index, ArrayList<Character> soFar) {
         return array[index].sflatMap(ctx, new BiFunction<FeatureExpr, Integer, V<?>>() {
             @Override
