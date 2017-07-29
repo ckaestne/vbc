@@ -432,7 +432,16 @@ case class InstrIREM() extends BinOpInstruction {
 case class InstrIXOR() extends BinOpInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(IXOR)
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    loadCurrentCtx(mv, env, block)
+    mv.visitMethodInsn(
+      INVOKESTATIC,
+      Owner.getVOps,
+      "ixor",
+      MethodDesc(s"($vclasstype$vclasstype$fexprclasstype)$vclasstype"),
+      false
+    )
+  }
 }
 
 

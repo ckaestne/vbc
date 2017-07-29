@@ -82,7 +82,7 @@ class ArithmeticInstructionsTest extends FlatSpec with DiffMethodTestInfrastruct
     )
   }
 
-  "ISUB" can "subtract numbers" in {
+  it can "subtract numbers" in {
     methodWithBlocks(
       createVint(tValue = 1, fValue = 2, startBlockIdx = 0) :::
         createVint(tValue = 3, fValue = 4, startBlockIdx = 3) :::
@@ -100,11 +100,28 @@ class ArithmeticInstructionsTest extends FlatSpec with DiffMethodTestInfrastruct
     )
   }
 
-  "IAND" can "compute boolean AND between int and Vint" in {
+  it can "compute boolean AND between int and Vint" in {
     methodWithBlocks(
       createVint(tValue = 1, fValue = 2, startBlockIdx = 0, config = "A") :::
       Block(InstrICONST(3), InstrIAND(), InstrDBGIPrint(), InstrRETURN()) ::
       Nil
+    )
+  }
+
+  "IXOR" can "compute exclusive or between two Vints" in {
+    methodWithBlocks(
+      createVint(tValue = 1, fValue = 2, startBlockIdx = 0, config = "A") :::
+        createVint(tValue = 3, fValue = 4, startBlockIdx = 3, config = "B") :::
+        Block(InstrIXOR(), InstrDBGIPrint(), InstrRETURN()) ::
+        Nil
+    )
+  }
+
+  it can "compute exclusive or between int and Vint" in {
+    methodWithBlocks(
+      createVint(tValue = 1, fValue = 2, startBlockIdx = 0, config = "A") :::
+        Block(InstrICONST(3), InstrIXOR(), InstrDBGIPrint(), InstrRETURN()) ::
+        Nil
     )
   }
 }
