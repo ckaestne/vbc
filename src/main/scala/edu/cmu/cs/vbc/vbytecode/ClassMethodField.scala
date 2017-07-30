@@ -34,7 +34,7 @@ case class VBCMethodNode(access: Int,
       else
         MethodDesc(desc).toVs_AppendFE_AppendArgs //cpwtodo: exception handling in constructor
     val mv = cw.visitMethod(
-      access,
+      if (name == "<clinit>") access | ACC_PUBLIC else access,
       MethodName(name).rename(MethodDesc(desc)).liftCLINIT,
       liftedMethodDesc,
       liftMethodSignature(desc, signature).getOrElse(null),
@@ -290,7 +290,7 @@ case class VBCClassNode(
       else
         Array(InstrINIT_CONDITIONAL_FIELDS(), InstrRETURN())
     val vbcMtd = VBCMethodNode(
-      ACC_STATIC,
+      ACC_STATIC | ACC_PUBLIC,
       "___clinit___",
       MethodDesc("()V"),
       None,
