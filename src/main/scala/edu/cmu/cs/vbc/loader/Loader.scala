@@ -68,13 +68,13 @@ class Loader {
             vIdx,
             localVarList(i).name,
             TypeDesc(localVarList(i).desc),
-            is64Bit = TypeDesc(localVarList(i).desc).is2Bytes
+            is64Bit = TypeDesc(localVarList(i).desc).is64Bit
           ))
         else
           varCache += (vIdx -> new LocalVar(
             localVarList(i).name,
             localVarList(i).desc,
-            is64Bit = TypeDesc(localVarList(i).desc).is2Bytes
+            is64Bit = TypeDesc(localVarList(i).desc).is64Bit
           ))
       }
     }

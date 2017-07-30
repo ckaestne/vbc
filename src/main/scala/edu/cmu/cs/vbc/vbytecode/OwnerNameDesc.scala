@@ -306,7 +306,7 @@ case class TypeDesc(desc: String) extends TypeVerifier {
   def isPrimitive: Boolean = desc == "Z" || desc == "C" || desc == "B" || desc == "S" || desc == "I" || desc == "F" ||
     desc == "J" || desc == "D"
 
-  def is2Bytes: Boolean = desc match {
+  def is64Bit: Boolean = desc match {
     case "J" | "D" => true
     case _ => false
   }

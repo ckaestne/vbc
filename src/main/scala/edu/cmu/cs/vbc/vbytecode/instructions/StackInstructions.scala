@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
-import edu.cmu.cs.vbc.analysis.{INT_TYPE, VBCFrame, V_TYPE}
+import edu.cmu.cs.vbc.analysis._
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
@@ -37,13 +37,57 @@ case class InstrDUP2() extends Instruction {
     mv.visitInsn(DUP2)
   }
 
+  /**
+    * Lifting means the top value on operand stack is a category 2 value
+    */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    ???
+    if (env.shouldLiftInstr(this))
+      mv.visitInsn(DUP)
+    else
+      mv.visitInsn(DUP2)
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
-    ???
+    def isVOf64Bit(in: Instruction): Boolean = {
+      val instrThatPuts64Bit = Set[Class[_]](
+        // long
+        classOf[InstrLCONST], classOf[InstrLLOAD], classOf[InstrLADD], classOf[InstrLSUB],
+        classOf[InstrLDIV], classOf[InstrLNEG], classOf[InstrLUSHR], classOf[InstrLAND],
+        classOf[InstrI2L],
+//        classOf[InstrLALOAD], classOf[InstrLMUL], classOf[InstrLREM], classOf[InstrLSHL],
+//        classOf[InstrLSHR], classOf[InstrLOR], classOf[InstrLXOR], classOf[InstrF2L],
+//        classOf[InstrD2L],
+        // double
+        classOf[InstrDLOAD]
+//        classOf[InstrDCONST], classOf[InstrDADD], classOf[InstrDSUB],
+//        classOf[InstrDDIV], classOf[InstrDNEG],
+//        classOf[InstrI2D],
+//        classOf[InstrDALOAD], classOf[InstrDMUL], classOf[InstrDREM],
+//        classOf[InstrF2D],
+//        classOf[InstrL2D],
+      )
+      val methodReturns64Bit: Boolean = in match {
+        case i: InstrINVOKEINTERFACE => i.desc.getReturnType.exists(_.is64Bit)
+        case i: InstrINVOKESPECIAL => i.desc.getReturnType.exists(_.is64Bit)
+        case i: InstrINVOKESTATIC => i.desc.getReturnType.exists(_.is64Bit)
+        case i: InstrINVOKEVIRTUAL => i.desc.getReturnType.exists(_.is64Bit)
+        case _ => false
+      }
+      instrThatPuts64Bit.contains(in.getClass) || methodReturns64Bit
+    }
+
+    val (v, prev, frame) = s.pop()
+    if (v == LONG_TYPE() || v == DOUBLE_TYPE() || (v == V_TYPE() && isVOf64Bit(prev.head))) {
+      if (v == V_TYPE()) env.setLift(this)
+      (frame.push(v, prev).push(v, prev), Set())
+    }
+    else {
+      val (v2, prev2, frame2) = frame.pop()
+      (frame2.push(v2, prev2).push(v, prev).push(v2, prev2).push(v, prev), Set())
+    }
   }
+
+  override def doBacktrack(env: VMethodEnv): Unit = {} // do nothing
 }
 
 /**
