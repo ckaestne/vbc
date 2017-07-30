@@ -29,6 +29,7 @@ object LiftingPolicy {
     case x if x.endsWith("java/util/AbstractMap") => true
     case x if x.endsWith("java/util/ListIterator") => true
     case x if x.endsWith("java/util/AbstractSequentialList") => true
+    case x if x.endsWith("java/io/OutputStream") => true
       // List related classes, uncomment these if we are not using model classes for
       // LinkedList and ArrayList.
 //    case x if x.contains("java/util/ArrayList") => true // so that inner classes could be included.
@@ -67,7 +68,7 @@ object LiftingPolicy {
         case Owner("java/io/Reader") => false
         case Owner("java/util/Iterator") => false
         case Owner("java/io/ByteArrayInputStream") => false
-        case Owner("java/io/OutputStream") => false
+//        case Owner("java/io/OutputStream") => false
         case o if o.name.endsWith("Exception") => false
         case Owner("java/lang/Runtime") => false
         case _ => true
