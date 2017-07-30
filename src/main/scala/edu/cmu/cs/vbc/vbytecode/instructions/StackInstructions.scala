@@ -7,11 +7,40 @@ import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
 
+trait StackInstructions extends Instruction {
+  def isVOf64Bit(in: Instruction): Boolean = {
+    val instrThatPuts64Bit = Set[Class[_]](
+      // long
+      classOf[InstrLCONST], classOf[InstrLLOAD], classOf[InstrLADD], classOf[InstrLSUB],
+      classOf[InstrLDIV], classOf[InstrLNEG], classOf[InstrLUSHR], classOf[InstrLAND],
+      classOf[InstrI2L],
+      //        classOf[InstrLALOAD], classOf[InstrLMUL], classOf[InstrLREM], classOf[InstrLSHL],
+      //        classOf[InstrLSHR], classOf[InstrLOR], classOf[InstrLXOR], classOf[InstrF2L],
+      //        classOf[InstrD2L],
+      // double
+      classOf[InstrDLOAD]
+      //        classOf[InstrDCONST], classOf[InstrDADD], classOf[InstrDSUB],
+      //        classOf[InstrDDIV], classOf[InstrDNEG],
+      //        classOf[InstrI2D],
+      //        classOf[InstrDALOAD], classOf[InstrDMUL], classOf[InstrDREM],
+      //        classOf[InstrF2D],
+      //        classOf[InstrL2D],
+    )
+    val methodReturns64Bit: Boolean = in match {
+      case i: InstrINVOKEINTERFACE => i.desc.getReturnType.exists(_.is64Bit)
+      case i: InstrINVOKESPECIAL => i.desc.getReturnType.exists(_.is64Bit)
+      case i: InstrINVOKESTATIC => i.desc.getReturnType.exists(_.is64Bit)
+      case i: InstrINVOKEVIRTUAL => i.desc.getReturnType.exists(_.is64Bit)
+      case _ => false
+    }
+    instrThatPuts64Bit.contains(in.getClass) || methodReturns64Bit
+  }
+}
 
 /**
   * DUP instruction
   */
-case class InstrDUP() extends Instruction {
+case class InstrDUP() extends StackInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(DUP)
   }
@@ -32,7 +61,7 @@ case class InstrDUP() extends Instruction {
 /**
   * Duplicate the top two slots of the operand stack values.
   */
-case class InstrDUP2() extends Instruction {
+case class InstrDUP2() extends StackInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(DUP2)
   }
@@ -48,34 +77,6 @@ case class InstrDUP2() extends Instruction {
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
-    def isVOf64Bit(in: Instruction): Boolean = {
-      val instrThatPuts64Bit = Set[Class[_]](
-        // long
-        classOf[InstrLCONST], classOf[InstrLLOAD], classOf[InstrLADD], classOf[InstrLSUB],
-        classOf[InstrLDIV], classOf[InstrLNEG], classOf[InstrLUSHR], classOf[InstrLAND],
-        classOf[InstrI2L],
-//        classOf[InstrLALOAD], classOf[InstrLMUL], classOf[InstrLREM], classOf[InstrLSHL],
-//        classOf[InstrLSHR], classOf[InstrLOR], classOf[InstrLXOR], classOf[InstrF2L],
-//        classOf[InstrD2L],
-        // double
-        classOf[InstrDLOAD]
-//        classOf[InstrDCONST], classOf[InstrDADD], classOf[InstrDSUB],
-//        classOf[InstrDDIV], classOf[InstrDNEG],
-//        classOf[InstrI2D],
-//        classOf[InstrDALOAD], classOf[InstrDMUL], classOf[InstrDREM],
-//        classOf[InstrF2D],
-//        classOf[InstrL2D],
-      )
-      val methodReturns64Bit: Boolean = in match {
-        case i: InstrINVOKEINTERFACE => i.desc.getReturnType.exists(_.is64Bit)
-        case i: InstrINVOKESPECIAL => i.desc.getReturnType.exists(_.is64Bit)
-        case i: InstrINVOKESTATIC => i.desc.getReturnType.exists(_.is64Bit)
-        case i: InstrINVOKEVIRTUAL => i.desc.getReturnType.exists(_.is64Bit)
-        case _ => false
-      }
-      instrThatPuts64Bit.contains(in.getClass) || methodReturns64Bit
-    }
-
     val (v, prev, frame) = s.pop()
     if (v == LONG_TYPE() || v == DOUBLE_TYPE() || (v == V_TYPE() && isVOf64Bit(prev.head))) {
       if (v == V_TYPE()) env.setLift(this)
@@ -92,8 +93,10 @@ case class InstrDUP2() extends Instruction {
 
 /**
   * Duplicate the top operand stack value and insert three slots down.
+  *
+  * The last two slots could be of type long.
   */
-case class InstrDUP_X2() extends Instruction {
+case class InstrDUP_X2() extends StackInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(DUP_X2)
   }
@@ -110,7 +113,7 @@ case class InstrDUP_X2() extends Instruction {
 /**
   * Duplicate the top two operand stack slots and insert three slots down
   */
-case class InstrDUP2_X1() extends Instruction {
+case class InstrDUP2_X1() extends StackInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(DUP2_X1)
   }
@@ -128,7 +131,7 @@ case class InstrDUP2_X1() extends Instruction {
 /**
   * POP instruction
   */
-case class InstrPOP() extends Instruction {
+case class InstrPOP() extends StackInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(POP)
   }
@@ -216,7 +219,7 @@ case class InstrSIPUSH(value: Int) extends Instruction {
   *
   * Operand stack: ..., value2, value1 -> ..., value1, value2, value1
   */
-case class InstrDUP_X1() extends Instruction {
+case class InstrDUP_X1() extends StackInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(DUP_X1)
   }
