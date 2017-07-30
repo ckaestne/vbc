@@ -515,9 +515,14 @@ case class InstrSASTORE() extends ArrayStoreInstructions {
     mv.visitInsn(SASTORE)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      storeBCSI(mv, env, block, PrimitiveType.short)
+    }
+    else {
+      mv.visitInsn(AASTORE)
+    }
+  }
 }
 
 case class InstrSALOAD() extends ArrayLoadInstructions {
@@ -525,7 +530,12 @@ case class InstrSALOAD() extends ArrayLoadInstructions {
     mv.visitInsn(SALOAD)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadOperation(mv, env, block)
+    }
+    else {
+      mv.visitInsn(AALOAD)
+    }
+  }
 }

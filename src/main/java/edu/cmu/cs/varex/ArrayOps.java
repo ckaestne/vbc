@@ -19,6 +19,67 @@ public class ArrayOps {
     private static HashMap<V[], V> cached = new HashMap<>();
 
     //////////////////////////////////////////////////
+    // short
+    //////////////////////////////////////////////////
+
+    public static V<Integer>[] initSArray(Integer length, FeatureExpr ctx) {
+        return initIArray(length, ctx);
+    }
+
+    public static V<Integer>[] initSArray(int length, FeatureExpr ctx) {
+        return initIArray(Integer.valueOf(length), ctx);
+    }
+
+    public static V<?> expandSArray(V<Integer>[] array, FeatureExpr ctx) {
+        return expandSArrayElements(array, ctx, 0, new ArrayList<>());
+    }
+
+    private static V<?> expandSArrayElements(V<Integer>[] array, FeatureExpr ctx, Integer index, ArrayList<Short> soFar) {
+        return array[index].sflatMap(ctx, new BiFunction<FeatureExpr, Integer, V<?>>() {
+            @Override
+            public V<?> apply(FeatureExpr featureExpr, Integer t) {
+                ArrayList<Short> newArray = new ArrayList<Short>(soFar);
+                newArray.add((short)t.intValue());
+                if (index == array.length - 1) {
+                    short[] result = new short[array.length];
+                    for (int i = 0; i < array.length; i++) {
+                        result[i] = newArray.get(i);
+                    }
+                    return V.one(featureExpr, result);
+                } else {
+                    return expandSArrayElements(array, ctx, index + 1, newArray);
+                }
+            }
+        });
+    }
+
+    public static V<?>[] compressSArray(V<short[]> arrays) {
+        V<?> sizes = arrays.map(new Function<short[], Integer>() {
+            @Override
+            public Integer apply(short[] t) {
+                return t.length;
+            }
+        });
+        Integer size = (Integer) sizes.getOne(); // if results in a choice, exceptions will be thrown.
+        ArrayList<V<?>> array = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            array.add(compressSArrayElement(arrays, i));
+        }
+        V<?>[] result = new V<?>[size];
+        array.toArray(result);
+        return result;
+    }
+
+    private static V<?> compressSArrayElement(V<short[]> arrays, Integer index) {
+        return arrays.map(new Function<short[], Integer>() {
+            @Override
+            public Integer apply(short[] ts) {
+                return (int)ts[index];
+            }
+        });
+    }
+
+    //////////////////////////////////////////////////
     // byte
     //////////////////////////////////////////////////
 
