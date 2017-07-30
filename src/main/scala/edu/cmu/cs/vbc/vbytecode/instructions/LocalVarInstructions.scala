@@ -387,7 +387,34 @@ case class InstrLSTORE(variable: Variable) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
     mv.visitVarInsn(LSTORE, env.getVarIdx(variable))
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      //new value is already on top of stack
+      loadCurrentCtx(mv, env, block)
+      mv.visitInsn(SWAP)
+      loadV(mv, env, variable)
+      //now ctx, newvalue, oldvalue on stack
+      callVCreateChoice(mv)
+      //now new choice value on stack combining old and new value
+      storeV(mv, env, variable)
+    }
+    else {
+      ??? // should not happen until we have a better DFA
+      mv.visitVarInsn(LSTORE, env.getVarIdx(variable))
+    }
+  }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    // One of our invariants is all local variables are of type V.
+    env.setLift(this)
+    val (value, prev, frame) = s.pop()
+    // For now, all local variables are V. Later, this could be relaxed with a careful tagV analysis
+    val newFrame = frame.setLocal(variable, V_TYPE(), Set(this))
+    val backtrack =
+      if (value != V_TYPE())
+        prev
+      else
+        Set[Instruction]()
+    (newFrame, backtrack)
+  }
 }
