@@ -383,13 +383,26 @@ case class InstrIAND() extends BinOpInstruction {
   }
 }
 
-case class InstrLAND() extends Instruction {
+case class InstrLAND() extends BinOpNonIntInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
     mv.visitInsn(LAND)
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(
+        INVOKESTATIC,
+        Owner.getVOps,
+        "land",
+        s"($vclasstype$vclasstype$fexprclasstype)$vclasstype",
+        false
+      )
+    }
+    else
+      mv.visitInsn(LAND)
+  }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, LONG_TYPE())
 }
 
 /** Boolean OR int
