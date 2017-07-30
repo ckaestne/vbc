@@ -154,4 +154,19 @@ class ArithmeticInstructionsTest extends FlatSpec with DiffMethodTestInfrastruct
         Nil
     )
   }
+
+  "I2B" can "convert int to byte" in {
+    methodWithBlocks(
+      Block(InstrICONST(1234567), InstrI2B(), InstrDBGIPrint(), InstrRETURN() ) ::
+        Nil
+    )
+  }
+
+  it can "convert Vint to Vbyte" in {
+    methodWithBlocks(
+      createVint(tValue = 1234567, fValue = 2345678, startBlockIdx = 0) :::
+      Block(InstrI2B(), InstrDBGIPrint(), InstrRETURN()) ::
+      Nil
+    )
+  }
 }

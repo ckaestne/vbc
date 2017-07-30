@@ -193,6 +193,10 @@ public class VOps {
         return value1.smap(ctx, x -> (int) x.longValue());
     }
 
+    public static V<? extends Integer> i2b(V<? extends Integer> value1, FeatureExpr ctx) {
+        return value1.smap(ctx, x -> (int) (byte) x.intValue());
+    }
+
     //////////////////////////////////////////////////
     // Special println that prints configuration as well
     //////////////////////////////////////////////////
