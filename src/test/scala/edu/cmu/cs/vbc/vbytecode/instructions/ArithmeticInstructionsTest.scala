@@ -246,4 +246,38 @@ class ArithmeticInstructionsTest extends FlatSpec with DiffMethodTestInfrastruct
         Nil
     )
   }
+
+  "LUSHR" can "logically shift a long with a int" in {
+    methodWithBlocks(
+      Block(
+        InstrINVOKESTATIC(Owner.getRuntime, MethodName("getRuntime"), MethodDesc("()Ljava/lang/Runtime;"), false),
+        InstrINVOKEVIRTUAL(Owner.getRuntime, MethodName("maxMemory"), MethodDesc("()J"), false),
+        InstrICONST(2),
+        InstrLUSHR(),
+        InstrINVOKESTATIC(Owner.getLong, MethodName("valueOf"), MethodDesc("(J)Ljava/lang/Long;"), false),
+        InstrINVOKEVIRTUAL(Owner.getLong, MethodName("toString"), MethodDesc("()Ljava/lang/String;"), false),
+        InstrDBGStrPrint(),
+        InstrRETURN()
+      ) ::
+        Nil
+    )
+  }
+
+  it can "logically shift a long with a vint" in {
+    val i = new LocalVar("i", "I")
+    methodWithBlocks(
+      createVint(tValue = 2, fValue = 3, startBlockIdx = 0, localVar = Some(i)) :::
+      Block(
+        InstrINVOKESTATIC(Owner.getRuntime, MethodName("getRuntime"), MethodDesc("()Ljava/lang/Runtime;"), false),
+        InstrINVOKEVIRTUAL(Owner.getRuntime, MethodName("maxMemory"), MethodDesc("()J"), false),
+        InstrILOAD(i),
+        InstrLUSHR(),
+        InstrINVOKESTATIC(Owner.getLong, MethodName("valueOf"), MethodDesc("(J)Ljava/lang/Long;"), false),
+        InstrINVOKEVIRTUAL(Owner.getLong, MethodName("toString"), MethodDesc("()Ljava/lang/String;"), false),
+        InstrDBGStrPrint(),
+        InstrRETURN()
+      ) ::
+        Nil
+    )
+  }
 }

@@ -565,13 +565,26 @@ case class InstrI2S() extends Instruction {
   *
   * ..., value1(long), value2(int) -> ..., result(long)
   */
-case class InstrLUSHR() extends Instruction {
+case class InstrLUSHR() extends BinOpNonIntInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
     mv.visitInsn(LUSHR)
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(
+        INVOKESTATIC,
+        Owner.getVOps,
+        "lushr",
+        s"($vclasstype$vclasstype$fexprclasstype)$vclasstype",
+        false
+      )
+    }
+    else
+      mv.visitInsn(LUSHR)
+  }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, LONG_TYPE())
 }
 
 /** Divide long
