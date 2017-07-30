@@ -471,15 +471,41 @@ case class InstrIXOR() extends BinOpInstruction {
 
 /** Convert long to int
   *
-  * ..., value -> ..., result
+  * ..., value(long) -> ..., result(int)
   */
 case class InstrL2I() extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
     mv.visitInsn(L2I)
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(
+        INVOKESTATIC,
+        Owner.getVOps,
+        "l2i",
+        s"($vclasstype$fexprclasstype)$vclasstype",
+        false
+      )
+    }
+    else
+      mv.visitInsn(L2I)
+  }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    val (v, prev, frame) = s.pop()
+    if (v == V_TYPE())
+      env.setLift(this)
+    val newFrame =
+      if (env.shouldLiftInstr(this))
+        frame.push(V_TYPE(), Set(this))
+      else {
+        frame.push(INT_TYPE(), Set(this))
+      }
+    if (env.shouldLiftInstr(this) && v != V_TYPE())
+      return (s, prev)
+    (newFrame, Set())
+  }
 }
 
 /** Convert int to short

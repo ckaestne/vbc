@@ -125,7 +125,7 @@ class ArithmeticInstructionsTest extends FlatSpec with DiffMethodTestInfrastruct
     )
   }
 
-  "LDIV" can "compute division between two Long values" in {
+  "LDIV" can "compute division between two long values" in {
     methodWithBlocks(
       Block(
         InstrINVOKESTATIC(Owner.getRuntime, MethodName("getRuntime"), MethodDesc("()Ljava/lang/Runtime;"), false),
@@ -136,6 +136,19 @@ class ArithmeticInstructionsTest extends FlatSpec with DiffMethodTestInfrastruct
         InstrINVOKESTATIC(Owner.getLong, MethodName("valueOf"), MethodDesc("(J)Ljava/lang/Long;"), false),
         InstrINVOKEVIRTUAL(Owner.getLong, MethodName("toString"), MethodDesc("()Ljava/lang/String;"), false),
         InstrDBGStrPrint(),
+        InstrRETURN()
+      ) ::
+        Nil
+    )
+  }
+
+  "L2I" can "convert long to int" in {
+    methodWithBlocks(
+      Block(
+        InstrINVOKESTATIC(Owner.getRuntime, MethodName("getRuntime"), MethodDesc("()Ljava/lang/Runtime;"), false),
+        InstrINVOKEVIRTUAL(Owner.getRuntime, MethodName("maxMemory"), MethodDesc("()J"), false),
+        InstrL2I(),
+        InstrDBGIPrint(),
         InstrRETURN()
       ) ::
         Nil
