@@ -124,7 +124,7 @@ public class ZipEntry implements ZipConstants {
         int year = ((dostime >> 25) & 0x7f) + 1980;
         try {
             cal = getCalendar();
-            synchronized (cal) {
+//            synchronized (cal) {
                 cal.set(Calendar.YEAR, year);
                 cal.set(Calendar.MONTH, mon);
                 cal.set(Calendar.DAY_OF_MONTH, day);
@@ -132,7 +132,7 @@ public class ZipEntry implements ZipConstants {
                 cal.set(Calendar.MINUTE, min);
                 cal.set(Calendar.SECOND, sec);
                 return cal.getTime().getTime();
-            }
+//            }
         } catch (RuntimeException ex) {
             known &= ~KNOWN_TIME;
             return -1;
@@ -146,11 +146,11 @@ public class ZipEntry implements ZipConstants {
      */
     public void setTime(long time) {
         Calendar cal = getCalendar();
-        synchronized (cal) {
+//        synchronized (cal) {
             cal.setTime(new Date(time));
             dostime = (cal.get(Calendar.YEAR) - 1980 & 0x7f) << 25 | (cal.get(Calendar.MONTH) + 1) << 21 | (cal.get(Calendar.DAY_OF_MONTH)) << 16
                     | (cal.get(Calendar.HOUR_OF_DAY)) << 11 | (cal.get(Calendar.MINUTE)) << 5 | (cal.get(Calendar.SECOND)) >> 1;
-        }
+//        }
         this.known |= KNOWN_TIME;
     }
 
