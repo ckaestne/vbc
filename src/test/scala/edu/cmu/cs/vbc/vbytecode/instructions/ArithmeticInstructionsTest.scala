@@ -184,4 +184,32 @@ class ArithmeticInstructionsTest extends FlatSpec with DiffMethodTestInfrastruct
         Nil
     )
   }
+
+  "I2L" can "convert int to long" in {
+    methodWithBlocks(
+      Block(
+        InstrICONST(1234567),
+        InstrI2L(),
+        InstrINVOKESTATIC(Owner.getLong, MethodName("valueOf"), MethodDesc("(J)Ljava/lang/Long;"), false),
+        InstrINVOKEVIRTUAL(Owner.getLong, MethodName("toString"), MethodDesc("()Ljava/lang/String;"), false),
+        InstrDBGStrPrint(),
+        InstrRETURN()
+      ) ::
+        Nil
+    )
+  }
+
+  it can "convert vint to vlong" in {
+    methodWithBlocks(
+      createVint(tValue = 123567000, fValue = 234567811, startBlockIdx = 0) :::
+      Block(
+        InstrI2L(),
+        InstrINVOKESTATIC(Owner.getLong, MethodName("valueOf"), MethodDesc("(J)Ljava/lang/Long;"), false),
+        InstrINVOKEVIRTUAL(Owner.getLong, MethodName("toString"), MethodDesc("()Ljava/lang/String;"), false),
+        InstrDBGStrPrint(),
+        InstrRETURN()
+      ) ::
+        Nil
+    )
+  }
 }
