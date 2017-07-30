@@ -5,8 +5,8 @@ package edu.cmu.cs.vbc.prog.zipme;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.util.Enumeration;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.Iterator;
 
 public class ZipOutputStream extends DeflaterOutputStream implements ZipConstants {
 
@@ -28,7 +28,7 @@ public class ZipOutputStream extends DeflaterOutputStream implements ZipConstant
      */
     private static final int ZIP_STORED_VERSION = 10;
     private static final int ZIP_DEFLATED_VERSION = 20;
-    private Vector entries = new Vector();
+    private ArrayList entries = new ArrayList();
     private ZipEntry curEntry = null;
     private int curMethod;
     private int size;
@@ -244,7 +244,7 @@ public class ZipOutputStream extends DeflaterOutputStream implements ZipConstant
             writeLeInt((int) curEntry.getSize());
             offset += EXTHDR;
         }
-        entries.addElement(curEntry);
+        entries.add(curEntry);
         curEntry = null;
     }
 
@@ -286,9 +286,9 @@ public class ZipOutputStream extends DeflaterOutputStream implements ZipConstant
             closeEntry();
         int numEntries = 0;
         int sizeEntries = 0;
-        Enumeration e = entries.elements();
-        while (e.hasMoreElements()) {
-            ZipEntry entry = (ZipEntry) e.nextElement();
+        Iterator e = entries.iterator();
+        while (e.hasNext()) {
+            ZipEntry entry = (ZipEntry) e.next();
             int method = entry.getMethod();
             writeLeInt(CENSIG);
             writeLeShort(method == STORED ? ZIP_STORED_VERSION : ZIP_DEFLATED_VERSION);
