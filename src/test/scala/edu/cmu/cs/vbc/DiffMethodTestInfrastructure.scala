@@ -307,9 +307,9 @@ trait DiffMethodTestInfrastructure {
                 config: String = "A"
                 ): List[Block] = {
     createV(startBlockIdx, localVar, config)(
-      List(InstrBIPUSH(tValue))
+      List(InstrLDC(Integer.valueOf(tValue)))
     )(
-      List(InstrBIPUSH(fValue))
+      List(InstrLDC(Integer.valueOf(fValue)))
     )
   }
 

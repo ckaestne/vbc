@@ -169,4 +169,19 @@ class ArithmeticInstructionsTest extends FlatSpec with DiffMethodTestInfrastruct
       Nil
     )
   }
+
+  "I2S" can "convert int to short" in {
+    methodWithBlocks(
+      Block(InstrICONST(1234567), InstrI2S(), InstrDBGIPrint(), InstrRETURN() ) ::
+        Nil
+    )
+  }
+
+  it can "convert Vint to Vshort" in {
+    methodWithBlocks(
+      createVint(tValue = 123567000, fValue = 234567811, startBlockIdx = 0) :::
+        Block(InstrI2S(), InstrDBGIPrint(), InstrRETURN()) ::
+        Nil
+    )
+  }
 }
