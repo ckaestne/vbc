@@ -101,13 +101,35 @@ case class InstrDUP_X2() extends StackInstructions {
     mv.visitInsn(DUP_X2)
   }
 
+  /**
+    * Lifting means the last two slots form a long value
+    */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    ???
+    if (env.shouldLiftInstr(this)) {
+      mv.visitInsn(DUP_X1)
+    }
+    else {
+      mv.visitInsn(DUP_X2)
+    }
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
-    ???
+    val (v1, prev1, frame1) = s.pop()
+    val (v2, prev2, frame2) = frame1.pop()
+    if (v2 == LONG_TYPE() || v2 == DOUBLE_TYPE()) {
+      (frame2.push(v1, prev1).push(v2, prev2).push(v1, prev1), Set())
+    }
+    else if (v2 == V_TYPE() && isVOf64Bit(prev2.head)) {
+      env.setLift(this)
+      (frame2.push(v1, prev1).push(v2, prev2).push(v1, prev1), Set())
+    }
+    else {
+      val (v3, prev3, frame3) = frame2.pop()
+      (frame3.push(v1, prev1).push(v3, prev3).push(v2, prev2).push(v1, prev1), Set())
+    }
   }
+
+  override def doBacktrack(env: VMethodEnv): Unit = {} // do nothing
 }
 
 /**
