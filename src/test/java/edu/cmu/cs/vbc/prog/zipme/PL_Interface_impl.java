@@ -6,6 +6,7 @@ import java.util.List;
 
 public class PL_Interface_impl implements PL_Interface {
 
+    public FeatureSwitches fs = new FeatureSwitches();
 
     //	@FilterField
     //@Symbolic("false")
@@ -30,8 +31,10 @@ public class PL_Interface_impl implements PL_Interface {
             PL_Interface_impl impl = new PL_Interface_impl();
 //			args = new String[1];
 //			verbose = true;
-            impl.start(1, 1);
-            PL_Interface_impl.println("no Exception");
+            if (FeatureSwitches.valid()) {
+                impl.start(1, 1);
+                PL_Interface_impl.println("no Exception");
+            }
         } catch (Throwable e) {
             PL_Interface_impl.println("Caught Exception: " + e.getClass() + " "
                     + e.getMessage());

@@ -24,7 +24,7 @@ public class FeatureSwitches {
     @VConditional
     public static boolean __SELECTED_FEATURE_Extract = true;
     @VConditional
-    public static boolean __SELECTED_FEATURE_DerivativeGZIPCRC = false;
+    public static boolean __SELECTED_FEATURE_DerivativeGZIPCRC = true;
     @VConditional
     public static boolean __SELECTED_FEATURE_DerivativeCompressCRC = true;
     @VConditional
@@ -32,7 +32,7 @@ public class FeatureSwitches {
     @VConditional
     public static boolean __SELECTED_FEATURE_DerivativeCompressGZIP = true;
     @VConditional
-    public static boolean __SELECTED_FEATURE_DerivativeCompressAdler32Checksum = true;
+    public static boolean __SELECTED_FEATURE_DerivativeCompressAdler32Checksum = false;
     @VConditional
     public static boolean __SELECTED_FEATURE_DerivativeCompressGZIPCRC = true;
 
