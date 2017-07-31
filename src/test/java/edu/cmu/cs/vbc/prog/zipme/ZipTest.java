@@ -114,7 +114,7 @@ public class ZipTest {
                 }
             });
             String contents = "";
-            byte[] buffer2 = new byte[0xFFFF];
+            byte[] buffer2 = new byte[0xFF];
             for (int len; (len = inStream2.read(buffer2)) != -1; ) {
 
                 contents += new String(buffer2, 0, len);
