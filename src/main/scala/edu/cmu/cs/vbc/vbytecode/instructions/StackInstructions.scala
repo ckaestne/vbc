@@ -134,18 +134,42 @@ case class InstrDUP_X2() extends StackInstructions {
 
 /**
   * Duplicate the top two operand stack slots and insert three slots down
+  *
+  * The first two slots could form a long or double
   */
 case class InstrDUP2_X1() extends StackInstructions {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(DUP2_X1)
   }
 
+  /**
+    * Lifting means the first two slots form a long or double
+    */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    ???
+    if (env.shouldLiftInstr(this)) {
+      mv.visitInsn(DUP_X1)
+    }
+    else {
+      mv.visitInsn(DUP2_X1)
+    }
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
-    ???
+    val (v1, prev1, frame1) = s.pop()
+    if (v1 == LONG_TYPE() || v1 == DOUBLE_TYPE()) {
+      val (v2, prev2, frame2) = frame1.pop()
+      (frame2.push(v1, prev1).push(v2, prev2).push(v1, prev1), Set())
+    }
+    else if (v1 == V_TYPE() && isVOf64Bit(prev1.head)) {
+      env.setLift(this)
+      val (v2, prev2, frame2) = frame1.pop()
+      (frame2.push(v1, prev1).push(v2, prev2).push(v1, prev1), Set())
+    }
+    else {
+      val (v2, prev2, frame2) = frame1.pop()
+      val (v3, prev3, frame3) = frame2.pop()
+      (frame3.push(v2, prev2).push(v1, prev1).push(v3, prev3).push(v2, prev2).push(v1, prev1), Set())
+    }
   }
 }
 
