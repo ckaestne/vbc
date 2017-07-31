@@ -424,14 +424,27 @@ case class InstrIOR() extends BinOpInstruction {
 }
 }
 
-case class InstrLSUB() extends Instruction {
+case class InstrLSUB() extends BinOpNonIntInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(LSUB)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(
+        INVOKESTATIC,
+        Owner.getVOps,
+        "lsub",
+        s"($vclasstype$vclasstype$fexprclasstype)$vclasstype",
+        false
+      )
+    }
+    else
+      mv.visitInsn(LSUB)
+  }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, LONG_TYPE())
 }
 
 /** Logical shift right int

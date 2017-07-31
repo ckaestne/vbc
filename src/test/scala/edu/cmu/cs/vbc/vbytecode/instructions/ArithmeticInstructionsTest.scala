@@ -280,4 +280,21 @@ class ArithmeticInstructionsTest extends FlatSpec with DiffMethodTestInfrastruct
         Nil
     )
   }
+
+  "LSUB" can "substract two long values" in {
+    methodWithBlocks(
+      Block(
+        InstrINVOKESTATIC(Owner.getRuntime, MethodName("getRuntime"), MethodDesc("()Ljava/lang/Runtime;"), false),
+        InstrINVOKEVIRTUAL(Owner.getRuntime, MethodName("maxMemory"), MethodDesc("()J"), false),
+        InstrINVOKESTATIC(Owner.getRuntime, MethodName("getRuntime"), MethodDesc("()Ljava/lang/Runtime;"), false),
+        InstrINVOKEVIRTUAL(Owner.getRuntime, MethodName("totalMemory"), MethodDesc("()J"), false),
+        InstrLSUB(),
+        InstrINVOKESTATIC(Owner.getLong, MethodName("valueOf"), MethodDesc("(J)Ljava/lang/Long;"), false),
+        InstrINVOKEVIRTUAL(Owner.getLong, MethodName("toString"), MethodDesc("()Ljava/lang/String;"), false),
+        InstrDBGStrPrint(),
+        InstrRETURN()
+      ) ::
+        Nil
+    )
+  }
 }
