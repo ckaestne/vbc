@@ -148,7 +148,8 @@ trait VBlockAnalysis extends CFGAnalysis {
 
       val pred: Set[Block] = getPredecessors(block)
       val variationalEdgeFromPred = pred.exists(isVariationalJump(_, block))
-      if (!variationalEdgeFromPred) {
+      val variationalEdgeToPred = pred.exists(isVariationalJump(block, _))
+      if (!variationalEdgeFromPred && !variationalEdgeToPred) {
         val predVBlockIdxs = pred.map(vblockId)
         val thisVBlockIdx = vblockId(block)
         if (predVBlockIdxs.size == 1 && predVBlockIdxs.head != thisVBlockIdx) {
