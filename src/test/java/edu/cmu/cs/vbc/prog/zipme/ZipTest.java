@@ -88,7 +88,7 @@ public class ZipTest {
                     }
                 }
             }, fileToZip);
-            byte[] buffer1 = new byte[0xFFFF];
+            byte[] buffer1 = new byte[0xFF];
             for (int len; (len = inStream1.read(buffer1)) != -1; ) {
                 outStream1.write(buffer1, 0, len);
             }
