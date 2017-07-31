@@ -67,6 +67,10 @@ object LiftingPolicy {
         case Owner("java/io/FileReader") => false
         case Owner("java/io/Reader") => false
         case Owner("java/util/Iterator") => false
+        case Owner("java/util/TimeZone") => false
+        case Owner("java/util/Calendar") => false
+        case Owner("java/util/Date") => false
+        case Owner("java/io/InputStream") => false
         case Owner("java/io/ByteArrayInputStream") => false
 //        case Owner("java/io/OutputStream") => false
         case o if o.name.endsWith("Exception") => false
@@ -84,6 +88,7 @@ object LiftingPolicy {
   def shouldLiftField(owner: Owner, name: FieldName, desc: TypeDesc): Boolean = {
     (owner, name, desc) match {
       case (Owner("java/lang/System"), FieldName("out"), _) => false
+      case (Owner("java/util/Locale"), FieldName("GERMAN"), _) => false
       case _ => true
     }
   }

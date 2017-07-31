@@ -66,7 +66,7 @@ case class Owner(name: String) extends TypeVerifier {
     // Hard to get model/java/util/Iterator from JDK collection classes.
     "java/util/Iterator",
     // Not sure
-    "java/lang/Runtime"
+    "java/lang/Runtime", "java/util/TimeZone", "java/util/Locale", "java/util/Date", "java/util/Calendar"
   )
 
   /** Get the corresponding model class
