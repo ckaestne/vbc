@@ -315,18 +315,23 @@ public class ArrayOps {
      * Helper function for {@link #expandArray(V[], FeatureExpr)}
      */
     private static <T> V<?> expandArrayElements(V<T>[] array, FeatureExpr ctx, Integer index, ArrayList<T> soFar) {
-        return array[index].sflatMap(ctx, new BiFunction<FeatureExpr, T, V<?>>() {
-            @Override
-            public V<?> apply(FeatureExpr featureExpr, T t) {
-                ArrayList<T> newArray = new ArrayList<T>(soFar);
-                newArray.add(t);
-                if (index == array.length - 1) {
-                    return V.one(featureExpr, newArray.toArray());
-                } else {
-                    return expandArrayElements(array, ctx, index + 1, newArray);
-                }
-            }
-        });
+        model.java.util.ArrayList list = new model.java.util.ArrayList(ctx);
+        for (int i = 0; i < array.length; i++) {
+            list.add__Ljava_lang_Object__Z(array[i], ctx);
+        }
+        return list.getVOfArrays(ctx);
+//        return array[index].sflatMap(ctx, new BiFunction<FeatureExpr, T, V<?>>() {
+//            @Override
+//            public V<?> apply(FeatureExpr featureExpr, T t) {
+//                ArrayList<T> newArray = new ArrayList<T>(soFar);
+//                newArray.add(t);
+//                if (index == array.length - 1) {
+//                    return V.one(featureExpr, newArray.toArray());
+//                } else {
+//                    return expandArrayElements(array, ctx, index + 1, newArray);
+//                }
+//            }
+//        });
     }
 
     /**
