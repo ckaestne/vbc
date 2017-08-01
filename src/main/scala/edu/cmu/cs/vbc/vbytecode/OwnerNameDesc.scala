@@ -62,7 +62,7 @@ case class Owner(name: String) extends TypeVerifier {
     "java/lang/Math",
     // I/O natives
     "java/io/UnixFileSystem", "java/io/FileSystem", "java/io/DefaultFileSystem", "java/io/File", "java/net/URL",
-    "java/io/FileInputStream", "java/io/InputStream",
+    "java/io/FileInputStream",
     // Hard to get model/java/util/Iterator from JDK collection classes.
     "java/util/Iterator",
     // Not sure
