@@ -13,15 +13,15 @@ object Profiler {
   val startTime: mutable.Map[String, Long] = mutable.Map[String, Long]()
 
   def stopTimer(id: String): Unit = {
-    def removeN(s: String): String = s.substring(0, s.lastIndexOf("#"))
-    val end = System.nanoTime()
-    val duration = end - startTime(id)
-    methodCallCount(removeN(id)) += 1
-    methodCallDuration(removeN(id)) += duration
+//    def removeN(s: String): String = s.substring(0, s.lastIndexOf("#"))
+//    val end = System.nanoTime()
+//    val duration = end - startTime(id)
+//    methodCallCount(removeN(id)) += 1
+//    methodCallDuration(removeN(id)) += duration
   }
 
   def startTimer(id: String): Unit = {
-    startTime(id) = System.nanoTime()
+//    startTime(id) = System.nanoTime()
   }
 
   def reset(): Unit = {
