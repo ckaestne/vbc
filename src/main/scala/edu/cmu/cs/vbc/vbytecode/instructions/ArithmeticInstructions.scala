@@ -116,7 +116,8 @@ case class InstrIDIV() extends BinOpInstruction {
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
-      mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "IDIV", "(Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;)Ledu/cmu/cs/varex/V;", false)
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "IDIV", s"(Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;$fexprclasstype)Ledu/cmu/cs/varex/V;", false)
     } else
       mv.visitInsn(IDIV)
   }
@@ -152,15 +153,17 @@ case class InstrINEG() extends Instruction {
     */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
-      InvokeDynamicUtils.invoke(VCall.smap, mv, env, loadCurrentCtx(_, env, block), "INEG", s"$IntType()$IntType") {
-        (visitor: MethodVisitor) => {
-          visitor.visitVarInsn(ALOAD, 1)
-          visitor.visitMethodInsn(INVOKEVIRTUAL, IntClass, "intValue", "()I", false)
-          visitor.visitInsn(INEG)
-          visitor.visitMethodInsn(INVOKESTATIC, IntClass, "valueOf", s"(I)$IntType", false)
-          visitor.visitInsn(ARETURN)
-        }
-      }
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(
+        INVOKESTATIC,
+        Owner.getVOps,
+        "ineg",
+        s"($vclasstype$fexprclasstype)$vclasstype",
+        false
+      )
+    }
+    else {
+      mv.visitInsn(INEG)
     }
   }
 }

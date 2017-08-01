@@ -135,8 +135,8 @@ public class VOps {
         return a.sflatMap(ctx, (fe, aa) -> b.smap(fe, bb -> aa.intValue() * bb.intValue()));
     }
 
-    public static V<? extends Integer> IDIV(V<? extends Integer> a, V<? extends Integer> b) {
-        return a.flatMap(aa -> b.map(bb -> aa.intValue() / bb.intValue()));
+    public static V<? extends Integer> IDIV(V<? extends Integer> a, V<? extends Integer> b, FeatureExpr ctx) {
+        return a.sflatMap(ctx, (fe, aa) -> b.smap(fe, bb -> aa.intValue() / bb.intValue()));
     }
 
     public static V<? extends Integer> i2c(V<? extends Integer> a, FeatureExpr ctx) {
@@ -174,11 +174,11 @@ public class VOps {
     }
 
     public static V<? extends Integer> ior(V<? extends Integer> value1, V<? extends Integer> value2, FeatureExpr ctx) {
-        return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1 | v2));
+        return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.intValue() | v2.intValue()));
     }
 
     public static V<? extends Integer> iand(V<? extends Integer> value1, V<? extends Integer> value2, FeatureExpr ctx) {
-        return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1 & v2));
+        return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.intValue() & v2.intValue()));
     }
 
     public static V<? extends Integer> ixor(V<? extends Integer> value1, V<? extends Integer> value2, FeatureExpr ctx) {
@@ -221,6 +221,9 @@ public class VOps {
         return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.longValue() - v2.longValue()));
     }
 
+    public static V<? extends Integer> ineg(V<? extends Integer> value1, FeatureExpr ctx) {
+        return value1.smap(ctx, v -> -v.intValue());
+    }
     //////////////////////////////////////////////////
     // Special println that prints configuration as well
     //////////////////////////////////////////////////
