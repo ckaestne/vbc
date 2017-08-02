@@ -197,6 +197,8 @@ trait VBlockAnalysis extends CFGAnalysis {
   def isVBlockBefore(firstv: VBlock, secondv: VBlock): Boolean =
     vblocks.indexOf(firstv) < vblocks.indexOf(secondv)
 
+  def isSameVBlock(firstv: VBlock, secondv: VBlock): Boolean =
+    vblocks.indexOf(firstv) == vblocks.indexOf(secondv)
 
   /**
     * finds the VBlock that this block is in

@@ -216,8 +216,10 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
       storeFExpr(mv, env, targetBlockConditionVar)
 
       //- set this block's condition to FALSE
-      pushConstantFALSE(mv)
-      storeFExpr(mv, env, thisVBlockConditionVar)
+      if (thisVBlockConditionVar != targetBlockConditionVar) {
+        pushConstantFALSE(mv)
+        storeFExpr(mv, env, thisVBlockConditionVar)
+      }
 
       //- if backward jump, jump there (target condition is satisfiable, because this block's condition is and it's propagated)
       if (env.isVBlockBefore(targetBlock, env.getVBlock(this))) {
@@ -246,24 +248,30 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
       callFExprNot(mv)
       loadFExpr(mv, env, thisVBlockConditionVar)
       callFExprAnd(mv)
-      loadFExpr(mv, env, elseBlockConditionVar)
-      callFExprOr(mv)
+      if (thisVBlockConditionVar != elseBlockConditionVar) {
+        loadFExpr(mv, env, elseBlockConditionVar)
+        callFExprOr(mv)
+      }
       storeFExpr(mv, env, elseBlockConditionVar)
 
 
-      val needToJumpBack = env.isVBlockBefore(thenBlock, env.getVBlock(this))
+      val needToJumpBack = env.isVBlockBefore(thenBlock, env.getVBlock(this)) || env.isSameVBlock(thenBlock, env.getVBlock(this))
       //- update then-block's condition to "then-successor.condition or (thisblock.condition and A)"
       loadFExpr(mv, env, thisVBlockConditionVar)
       callFExprAnd(mv)
-      loadFExpr(mv, env, thenBlockConditionVar)
-      callFExprOr(mv)
+      if (thisVBlockConditionVar != thenBlockConditionVar) {
+        loadFExpr(mv, env, thenBlockConditionVar)
+        callFExprOr(mv)
+      }
       if (needToJumpBack)
         mv.visitInsn(DUP)
       storeFExpr(mv, env, thenBlockConditionVar)
 
       //- set this block's condition to FALSE
-      pushConstantFALSE(mv)
-      storeFExpr(mv, env, thisVBlockConditionVar)
+      if (thisVBlockConditionVar != thenBlockConditionVar && thisVBlockConditionVar != elseBlockConditionVar) {
+        pushConstantFALSE(mv)
+        storeFExpr(mv, env, thisVBlockConditionVar)
+      }
 
       //- if then-block is behind and its condition is satisfiable, jump there
       if (needToJumpBack) {
