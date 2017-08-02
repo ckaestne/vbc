@@ -9,7 +9,7 @@ import org.scalatest.FunSuite
   */
 class GPLTest extends FunSuite with DiffLaunchTestInfrastructure{
   FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
-  test("GPL") {
+  ignore("GPL") {
     testMain(classOf[gpl.Main], fm = fm)
   }
 

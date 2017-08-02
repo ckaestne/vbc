@@ -9,31 +9,31 @@ public class FeatureSwitches {
 
     @VConditional
     public static boolean __SELECTED_FEATURE_Base = true;
-//    @VConditional
+    @VConditional
     public static boolean __SELECTED_FEATURE_CRC = true;
-//    @VConditional
+    @VConditional
     public static boolean __SELECTED_FEATURE_ArchiveCheck = true;
-//    @VConditional
+    @VConditional
     public static boolean __SELECTED_FEATURE_ZipMeTest = true;
-//    @VConditional
+    @VConditional
     public static boolean __SELECTED_FEATURE_GZIP = true;
-//    @VConditional
+    @VConditional
     public static boolean __SELECTED_FEATURE_Adler32Checksum = false;
-//    @VConditional
+    @VConditional
     public static boolean __SELECTED_FEATURE_Compress = true;
-//    @VConditional
+    @VConditional
     public static boolean __SELECTED_FEATURE_Extract = true;
-//    @VConditional
+    @VConditional
     public static boolean __SELECTED_FEATURE_DerivativeGZIPCRC = true;
-//    @VConditional
+    @VConditional
     public static boolean __SELECTED_FEATURE_DerivativeCompressCRC = true;
-//    @VConditional
+    @VConditional
     public static boolean __SELECTED_FEATURE_DerivativeExtractCRC = true;
-//    @VConditional
+    @VConditional
     public static boolean __SELECTED_FEATURE_DerivativeCompressGZIP = true;
-//    @VConditional
+    @VConditional
     public static boolean __SELECTED_FEATURE_DerivativeCompressAdler32Checksum = false;
-//    @VConditional
+    @VConditional
     public static boolean __SELECTED_FEATURE_DerivativeCompressGZIPCRC = true;
 
     public static boolean __GUIDSL_ROOT_PRODUCTION = true;
