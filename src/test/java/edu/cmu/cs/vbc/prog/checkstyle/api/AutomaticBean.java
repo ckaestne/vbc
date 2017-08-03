@@ -18,12 +18,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.api;
 
-import com.google.common.collect.Lists;
 import org.apache.commons.beanutils.*;
 import org.apache.commons.beanutils.converters.*;
 
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -274,7 +274,7 @@ public class AutomaticBean
             // Convert to a String and trim it for the tokenizer.
             final StringTokenizer st = new StringTokenizer(
                 value.toString().trim(), ",");
-            final List<String> result = Lists.newArrayList();
+            final List<String> result = new ArrayList<>();
 
             while (st.hasMoreTokens()) {
                 final String token = st.nextToken();

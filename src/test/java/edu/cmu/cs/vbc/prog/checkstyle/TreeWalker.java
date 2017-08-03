@@ -21,7 +21,6 @@ package edu.cmu.cs.vbc.prog.checkstyle;
 import antlr.*;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import edu.cmu.cs.varex.annotation.VConditional;
 import edu.cmu.cs.vbc.prog.checkstyle.api.*;
 import edu.cmu.cs.vbc.prog.checkstyle.api.Utils;
@@ -34,11 +33,8 @@ import java.io.File;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.AbstractMap.SimpleEntry;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import static edu.cmu.cs.vbc.prog.checkstyle.Utils.fileExtensionMatches;
 
@@ -89,10 +85,10 @@ public final class TreeWalker
             HashMultimap.create();
 
     /** registered ordinary checks, that don't use comment nodes */
-    private final Set<Check> ordinaryChecks = Sets.newHashSet();
+    private final Set<Check> ordinaryChecks = new HashSet<>();
 
     /** registered comment checks */
-    private final Set<Check> commentChecks = Sets.newHashSet();
+    private final Set<Check> commentChecks = new HashSet<>();
 
     /** the distance between tab stops */
     private int tabWidth = DEFAULT_TAB_WIDTH;

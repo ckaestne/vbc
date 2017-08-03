@@ -18,9 +18,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.api;
 
-import com.google.common.collect.Sets;
-
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -46,7 +45,7 @@ public abstract class Check extends AbstractViolationReporter
     private FileContents fileContents;
 
     /** the tokens the check is interested in */
-    private final Set<String> tokens = Sets.newHashSet();
+    private final Set<String> tokens = new HashSet<>();
 
     /** the object for collecting messages. */
     private LocalizedMessages messages;

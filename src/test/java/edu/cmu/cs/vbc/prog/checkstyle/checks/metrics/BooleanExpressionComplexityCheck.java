@@ -125,31 +125,25 @@ public final class BooleanExpressionComplexityCheck extends Check
     @Override
     public void visitToken(DetailAST ast)
     {
-        switch (ast.getType()) {
-            case TokenTypes.CTOR_DEF:
-            case TokenTypes.METHOD_DEF:
-                visitMethodDef(ast);
-                break;
-            case TokenTypes.EXPR:
-                visitExpr();
-                break;
-            case TokenTypes.BOR:
-                if (!isPipeOperator(ast) && !isPassedInParameter(ast)) {
-                    context.visitBooleanOperator();
-                }
-                break;
-            case TokenTypes.BAND:
-            case TokenTypes.BXOR:
-                if (!isPassedInParameter(ast)) {
-                    context.visitBooleanOperator();
-                }
-                break;
-            case TokenTypes.LAND:
-            case TokenTypes.LOR:
+        if (ast.getType() == TokenTypes.CTOR_DEF ||
+                ast.getType() == TokenTypes.METHOD_DEF) {
+            visitMethodDef(ast);
+        } else if (ast.getType() == TokenTypes.EXPR) {
+            visitExpr();
+        } else if (ast.getType() == TokenTypes.BOR) {
+            if (!isPipeOperator(ast) && !isPassedInParameter(ast)) {
                 context.visitBooleanOperator();
-                break;
-            default:
-                throw new IllegalStateException(ast.toString());
+            }
+        } else if (ast.getType() == TokenTypes.BAND ||
+                ast.getType() == TokenTypes.BXOR) {
+            if (!isPassedInParameter(ast)) {
+                context.visitBooleanOperator();
+            }
+        } else if (ast.getType() == TokenTypes.LAND ||
+                ast.getType() == TokenTypes.LOR) {
+            context.visitBooleanOperator();
+        } else {
+            throw new IllegalStateException(ast.toString());
         }
     }
 
@@ -180,16 +174,13 @@ public final class BooleanExpressionComplexityCheck extends Check
     @Override
     public void leaveToken(DetailAST ast)
     {
-        switch (ast.getType()) {
-            case TokenTypes.CTOR_DEF:
-            case TokenTypes.METHOD_DEF:
-                leaveMethodDef();
-                break;
-            case TokenTypes.EXPR:
-                leaveExpr(ast);
-                break;
-            default:
-                // Do nothing
+        if (ast.getType() == TokenTypes.CTOR_DEF ||
+                ast.getType() == TokenTypes.METHOD_DEF) {
+            leaveMethodDef();
+        } else if (ast.getType() == TokenTypes.EXPR) {
+            leaveExpr(ast);
+        } else {
+            // Do nothing
         }
     }
 

@@ -18,7 +18,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.checks.coding;
 
-import com.google.common.collect.Sets;
 import edu.cmu.cs.varex.annotation.VConditional;
 import edu.cmu.cs.vbc.prog.checkstyle.api.Check;
 import edu.cmu.cs.vbc.prog.checkstyle.api.DetailAST;
@@ -26,6 +25,7 @@ import edu.cmu.cs.vbc.prog.checkstyle.api.FullIdent;
 import edu.cmu.cs.vbc.prog.checkstyle.api.TokenTypes;
 import edu.cmu.cs.vbc.prog.checkstyle.checks.CheckUtils;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -60,7 +60,7 @@ public class CovariantEqualsCheck extends Check
     public static final String MSG_KEY = "covariant.equals";
 
     /** Set of equals method definitions */
-    private final Set<DetailAST> equalsMethods = Sets.newHashSet();
+    private final Set<DetailAST> equalsMethods = new HashSet<>();
 
     @Override
     public int[] getDefaultTokens()

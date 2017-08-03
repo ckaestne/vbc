@@ -75,7 +75,10 @@ case class Owner(name: String) extends TypeVerifier {
     "java/nio/charset/Charset", "java/util/Enumeration", "java/util/concurrent/ConcurrentHashMap",
     "java/util/concurrent/atomic/AtomicReferenceFieldUpdater",
     "java/io/BufferedInputStream",
-    "java/io/Closeable"
+    "java/io/Closeable",
+    "java/util/Collection",
+    "java/util/concurrent/ConcurrentMap",
+    "java/lang/reflect/Field"
   )
 
   /** Get the corresponding model class

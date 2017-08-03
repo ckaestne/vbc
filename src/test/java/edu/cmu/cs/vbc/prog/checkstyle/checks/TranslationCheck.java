@@ -18,7 +18,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.checks;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import edu.cmu.cs.varex.annotation.VConditional;
@@ -79,7 +78,7 @@ public class TranslationCheck
     public static final String MSG_KEY = "translation.missingKey";
 
     /** The property files to process. */
-    private final List<File> propertyFiles = Lists.newArrayList();
+    private final List<File> propertyFiles = new ArrayList<>();
 
     /** The separator string used to separate translation files */
     private String basenameSeparator;

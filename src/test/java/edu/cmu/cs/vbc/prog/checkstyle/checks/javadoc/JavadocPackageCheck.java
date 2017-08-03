@@ -18,11 +18,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.checks.javadoc;
 
-import com.google.common.collect.Sets;
 import edu.cmu.cs.varex.annotation.VConditional;
 import edu.cmu.cs.vbc.prog.checkstyle.api.AbstractFileSetCheck;
 
 import java.io.File;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -57,7 +57,7 @@ public class JavadocPackageCheck extends AbstractFileSetCheck
     /** Indicates if allow legacy "package.html" file to be used. */
     private boolean allowLegacy;
     /** The directories checked. */
-    private final Set<File> directoriesChecked = Sets.newHashSet();
+    private final Set<File> directoriesChecked = new HashSet<>();
 
     /**
      * Creates a new instance.

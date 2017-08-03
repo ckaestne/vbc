@@ -75,18 +75,16 @@ public abstract class DeclarationCollector extends Check
     @Override
     public void visitToken(DetailAST ast)
     {
-        switch (ast.getType()) {
-            case TokenTypes.CLASS_DEF :
-            case TokenTypes.INTERFACE_DEF :
-            case TokenTypes.ENUM_DEF :
-            case TokenTypes.ANNOTATION_DEF :
-            case TokenTypes.SLIST :
-            case TokenTypes.METHOD_DEF :
-            case TokenTypes.CTOR_DEF :
-                this.current = this.frames.get(ast);
-                break;
-            default :
-                // do nothing
+        if (ast.getType() == TokenTypes.CLASS_DEF ||
+                ast.getType() == TokenTypes.INTERFACE_DEF ||
+                ast.getType() == TokenTypes.ENUM_DEF ||
+                ast.getType() == TokenTypes.ANNOTATION_DEF ||
+                ast.getType() == TokenTypes.SLIST ||
+                ast.getType() == TokenTypes.METHOD_DEF ||
+                ast.getType() == TokenTypes.CTOR_DEF) {
+            this.current = this.frames.get(ast);
+        } else {
+            // do nothing
         }
     } // end visitToken
 
@@ -100,62 +98,53 @@ public abstract class DeclarationCollector extends Check
         DetailAST ast)
     {
         final LexicalFrame frame = frameStack.peek();
-        switch (ast.getType()) {
-            case TokenTypes.VARIABLE_DEF :  {
-                final String name =
-                        ast.findFirstToken(TokenTypes.IDENT).getText();
-                if (frame instanceof ClassFrame) {
-                    final DetailAST mods =
-                            ast.findFirstToken(TokenTypes.MODIFIERS);
-                    if (ScopeUtils.inInterfaceBlock(ast)
-                            || mods.branchContains(TokenTypes.LITERAL_STATIC))
-                    {
-                        ((ClassFrame) frame).addStaticMember(name);
-                    }
-                    else {
-                        ((ClassFrame) frame).addInstanceMember(name);
-                    }
+        if (ast.getType() == TokenTypes.VARIABLE_DEF) {
+            final String name =
+                    ast.findFirstToken(TokenTypes.IDENT).getText();
+            if (frame instanceof ClassFrame) {
+                final DetailAST mods =
+                        ast.findFirstToken(TokenTypes.MODIFIERS);
+                if (ScopeUtils.inInterfaceBlock(ast)
+                        || mods.branchContains(TokenTypes.LITERAL_STATIC))
+                {
+                    ((ClassFrame) frame).addStaticMember(name);
                 }
                 else {
-                    frame.addName(name);
-                }
-                break;
-            }
-            case TokenTypes.PARAMETER_DEF : {
-                final DetailAST nameAST = ast.findFirstToken(TokenTypes.IDENT);
-                frame.addName(nameAST.getText());
-                break;
-            }
-            case TokenTypes.CLASS_DEF :
-            case TokenTypes.INTERFACE_DEF :
-            case TokenTypes.ENUM_DEF :
-            case TokenTypes.ANNOTATION_DEF : {
-                final DetailAST nameAST = ast.findFirstToken(TokenTypes.IDENT);
-                frame.addName(nameAST.getText());
-                frameStack.addFirst(new ClassFrame(frame));
-                break;
-            }
-            case TokenTypes.SLIST :
-                frameStack.addFirst(new BlockFrame(frame));
-                break;
-            case TokenTypes.METHOD_DEF : {
-                final String name = ast.findFirstToken(TokenTypes.IDENT).getText();
-                if (frame instanceof ClassFrame) {
-                    final DetailAST mods =
-                            ast.findFirstToken(TokenTypes.MODIFIERS);
-                    if (mods.branchContains(TokenTypes.LITERAL_STATIC)) {
-                        ((ClassFrame) frame).addStaticMethod(name);
-                    }
-                    else {
-                        ((ClassFrame) frame).addInstanceMethod(name);
-                    }
+                    ((ClassFrame) frame).addInstanceMember(name);
                 }
             }
-            case TokenTypes.CTOR_DEF :
-                frameStack.addFirst(new MethodFrame(frame));
-                break;
-            default:
-                // do nothing
+            else {
+                frame.addName(name);
+            }
+        } else if (ast.getType() == TokenTypes.PARAMETER_DEF) {
+            final DetailAST nameAST = ast.findFirstToken(TokenTypes.IDENT);
+            frame.addName(nameAST.getText());
+        } else if (ast.getType() == TokenTypes.CLASS_DEF ||
+                ast.getType() == TokenTypes.INTERFACE_DEF ||
+                ast.getType() == TokenTypes.ENUM_DEF ||
+                ast.getType() == TokenTypes.ANNOTATION_DEF) {
+            final DetailAST nameAST = ast.findFirstToken(TokenTypes.IDENT);
+            frame.addName(nameAST.getText());
+            frameStack.addFirst(new ClassFrame(frame));
+        } else if (ast.getType() == TokenTypes.SLIST) {
+            frameStack.addFirst(new BlockFrame(frame));
+        } else if (ast.getType() == TokenTypes.METHOD_DEF) {
+            final String name = ast.findFirstToken(TokenTypes.IDENT).getText();
+            if (frame instanceof ClassFrame) {
+                final DetailAST mods =
+                        ast.findFirstToken(TokenTypes.MODIFIERS);
+                if (mods.branchContains(TokenTypes.LITERAL_STATIC)) {
+                    ((ClassFrame) frame).addStaticMethod(name);
+                }
+                else {
+                    ((ClassFrame) frame).addInstanceMethod(name);
+                }
+            }
+            frameStack.addFirst(new MethodFrame(frame));
+        } else if (ast.getType() == TokenTypes.CTOR_DEF) {
+            frameStack.addFirst(new MethodFrame(frame));
+        } else {
+            // do nothing
         }
     }
 
@@ -169,18 +158,16 @@ public abstract class DeclarationCollector extends Check
     private void endCollectingDeclarations(Queue<LexicalFrame> frameStack,
         DetailAST ast)
     {
-        switch (ast.getType()) {
-            case TokenTypes.CLASS_DEF :
-            case TokenTypes.INTERFACE_DEF :
-            case TokenTypes.ENUM_DEF :
-            case TokenTypes.ANNOTATION_DEF :
-            case TokenTypes.SLIST :
-            case TokenTypes.METHOD_DEF :
-            case TokenTypes.CTOR_DEF :
-                this.frames.put(ast, frameStack.poll());
-                break;
-            default :
-                // do nothing
+        if (ast.getType() == TokenTypes.CLASS_DEF ||
+                ast.getType() == TokenTypes.INTERFACE_DEF ||
+                ast.getType() == TokenTypes.ENUM_DEF ||
+                ast.getType() == TokenTypes.ANNOTATION_DEF ||
+                ast.getType() == TokenTypes.SLIST ||
+                ast.getType() == TokenTypes.METHOD_DEF ||
+                ast.getType() == TokenTypes.CTOR_DEF) {
+            this.frames.put(ast, frameStack.poll());
+        } else {
+            // do nothing
         }
     }
 

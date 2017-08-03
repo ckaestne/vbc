@@ -34,7 +34,7 @@ import java.util.TreeSet;
 public final class LocalizedMessages
 {
     /** contains the messages logged **/
-    private final TreeSet<LocalizedMessage> messages = Sets.newTreeSet();
+    private final TreeSet<LocalizedMessage> messages = new TreeSet<>();
 
     /** @return the logged messages **/
     public TreeSet<LocalizedMessage> getMessages()
