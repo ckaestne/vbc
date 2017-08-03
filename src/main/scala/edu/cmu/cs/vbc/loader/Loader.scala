@@ -212,7 +212,7 @@ class Loader {
       case DUP2 => InstrDUP2()
       case DUP2_X1 => InstrDUP2_X1()
       case DUP2_X2 => UNKNOWN(DUP2_X2)
-      case SWAP => UNKNOWN(SWAP)
+      case SWAP => InstrSWAP()
       case IADD => InstrIADD()
       case LADD => InstrLADD()
       case FADD => UNKNOWN(FADD)
