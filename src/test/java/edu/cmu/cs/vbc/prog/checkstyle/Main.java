@@ -53,12 +53,18 @@ public final class Main
     {
     }
 
+    public static void main(String[] args) {
+        // specify arguments explicitly for varexc
+        String[] myargs = {"-c", "src/test/resources/checks01.xml", "src/test/resources/toCheck/"};
+        _main(myargs);
+    }
+
     /**
      * Loops over the files specified checking them for errors. The exit code
      * is the number of errors found in all the files.
      * @param args the command line arguments
      **/
-    public static void main(String[] args)
+    public static void _main(String[] args)
     {
         // parse the parameters
         final CommandLineParser clp = new PosixParser();
