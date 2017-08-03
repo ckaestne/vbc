@@ -18,8 +18,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import edu.cmu.cs.vbc.prog.checkstyle.api.*;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
@@ -35,9 +33,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Loads a configuration from a standard configuration XML file.
@@ -228,7 +224,7 @@ public final class ConfigurationLoader
      */
     private static Map<String, String> createIdToResourceNameMap()
     {
-        final Map<String, String> map = Maps.newHashMap();
+        final Map<String, String> map = new HashMap<>();
         map.put(DTD_PUBLIC_ID_1_0, DTD_RESOURCE_NAME_1_0);
         map.put(DTD_PUBLIC_ID_1_1, DTD_RESOURCE_NAME_1_1);
         map.put(DTD_PUBLIC_ID_1_2, DTD_RESOURCE_NAME_1_2);
@@ -452,8 +448,8 @@ public final class ConfigurationLoader
             return null;
         }
 
-        final List<String> fragments = Lists.newArrayList();
-        final List<String> propertyRefs = Lists.newArrayList();
+        final List<String> fragments = new ArrayList<>();
+        final List<String> propertyRefs = new ArrayList<>();
         parsePropertyString(value, fragments, propertyRefs);
 
         final StringBuilder sb = new StringBuilder();

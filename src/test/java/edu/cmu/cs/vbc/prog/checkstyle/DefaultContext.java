@@ -20,9 +20,9 @@ package edu.cmu.cs.vbc.prog.checkstyle;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 import edu.cmu.cs.vbc.prog.checkstyle.api.Context;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -32,7 +32,7 @@ import java.util.Map;
 public final class DefaultContext implements Context
 {
     /** stores the context entries */
-    private final Map<String, Object> entries = Maps.newHashMap();
+    private final Map<String, Object> entries = new HashMap<>();
 
     /** {@inheritDoc} */
     @Override

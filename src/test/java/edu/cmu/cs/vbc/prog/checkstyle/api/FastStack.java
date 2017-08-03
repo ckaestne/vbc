@@ -18,8 +18,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.api;
 
-import com.google.common.collect.Lists;
-
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -31,8 +30,10 @@ import java.util.List;
  */
 public class FastStack<E> implements Iterable<E>
 {
-    /** Hold the entries in the stack. */
-    private final List<E> entries = Lists.newArrayList();
+    /**
+     * Hold the entries in the stack.
+     */
+    private final List<E> entries = new ArrayList<>();
 
     /**
      * Pushes the supplied element onto the stack.

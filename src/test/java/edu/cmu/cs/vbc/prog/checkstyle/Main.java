@@ -18,7 +18,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle;
 
-import com.google.common.collect.Lists;
 import edu.cmu.cs.vbc.prog.checkstyle.api.AuditListener;
 import edu.cmu.cs.vbc.prog.checkstyle.api.CheckstyleException;
 import edu.cmu.cs.vbc.prog.checkstyle.api.Configuration;
@@ -26,6 +25,7 @@ import edu.cmu.cs.vbc.prog.checkstyle.api.Utils;
 import org.apache.commons.cli.*;
 
 import java.io.*;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 
@@ -164,7 +164,7 @@ public final class Main
      */
     private static List<File> getFilesToProcess(CommandLine line)
     {
-        final List<File> files = Lists.newLinkedList();
+        final List<File> files = new LinkedList<>();
         final String[] remainingArgs = line.getArgs();
         for (String element : remainingArgs) {
             traverse(new File(element), files);

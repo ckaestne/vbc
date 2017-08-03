@@ -20,7 +20,7 @@ object LiftingPolicy {
     case x if x.endsWith("java/lang/AbstractStringBuilder") => true
     case x if x.endsWith("java/util/AbstractList") => true
     case x if x.endsWith("java/util/AbstractCollection") => true
-    case x if x.endsWith("java/lang/Enum") => true
+//    case x if x.endsWith("java/lang/Enum") => true
     case x if x.endsWith("java/util/Collections") => true
     case x if x.endsWith("java/util/Collections$EmptySet") => true
     case x if x.endsWith("java/util/Collections$EmptyList") => true
@@ -41,6 +41,7 @@ object LiftingPolicy {
 //    case x if x.endsWith("java/util/LinkedList") => true
 //    case x if x.endsWith("java/util/LinkedList$Node") => true
 //    case x if x.endsWith("java/util/LinkedList$ListItr") => true
+      // checkstyle
     case _ => false
   }
 
@@ -77,6 +78,10 @@ object LiftingPolicy {
         case Owner("java/io/OutputStream") => false
         case o if o.name.endsWith("Exception") => false
         case Owner("java/lang/Runtime") => false
+          // checkstyle
+        case Owner("java/util/Properties") => false
+        case Owner("java/net/URI") => false
+        case Owner("javax/xml/parsers/FactoryFinder") => false
         case _ => true
       }
     }

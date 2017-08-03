@@ -19,13 +19,13 @@
 package edu.cmu.cs.vbc.prog.checkstyle.api;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import org.apache.commons.beanutils.ConversionException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.io.*;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -40,7 +40,7 @@ public final class Utils
 {
     /** Map of all created regular expressions **/
     private static final ConcurrentMap<String, Pattern> CREATED_RES =
-        Maps.newConcurrentMap();
+        new ConcurrentHashMap<>();
     /** Shared instance of logger for exception logging. */
     private static final Log EXCEPTION_LOG =
         LogFactory.getLog("com.puppycrawl.tools.checkstyle.ExceptionLog");

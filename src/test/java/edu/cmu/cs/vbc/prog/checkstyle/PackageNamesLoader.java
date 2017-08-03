@@ -18,7 +18,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle;
 
-import com.google.common.collect.Sets;
 import edu.cmu.cs.vbc.prog.checkstyle.api.AbstractLoader;
 import edu.cmu.cs.vbc.prog.checkstyle.api.CheckstyleException;
 import edu.cmu.cs.vbc.prog.checkstyle.api.FastStack;
@@ -33,6 +32,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -61,7 +61,7 @@ public final class PackageNamesLoader
     private final FastStack<String> packageStack = FastStack.newInstance();
 
     /** The fully qualified package names. */
-    private final Set<String> packageNames = Sets.newLinkedHashSet();
+    private final Set<String> packageNames = new HashSet<>();
 
     /**
      * Creates a new <code>PackageNamesLoader</code> instance.

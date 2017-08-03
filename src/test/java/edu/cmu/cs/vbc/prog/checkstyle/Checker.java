@@ -18,7 +18,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import edu.cmu.cs.vbc.prog.checkstyle.api.*;
 import edu.cmu.cs.vbc.prog.checkstyle.api.Utils;
@@ -45,10 +44,10 @@ public class Checker extends AutomaticBean implements MessageDispatcher
             SeverityLevel.ERROR);
 
     /** vector of listeners */
-    private final List<AuditListener> listeners = Lists.newArrayList();
+    private final List<AuditListener> listeners = new ArrayList<>();
 
     /** vector of fileset checks */
-    private final List<FileSetCheck> fileSetChecks = Lists.newArrayList();
+    private final List<FileSetCheck> fileSetChecks = new ArrayList<>();
 
     /** class loader to resolve classes with. **/
     private ClassLoader loader = Thread.currentThread()

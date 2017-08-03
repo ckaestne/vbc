@@ -18,7 +18,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.api;
 
-import com.google.common.collect.Maps;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
@@ -78,7 +77,7 @@ public abstract class AbstractLoader
         throws SAXException, ParserConfigurationException
     {
         this.publicIdToResourceNameMap =
-            Maps.newHashMap(publicIdToResourceNameMap);
+            new HashMap<>(publicIdToResourceNameMap);
         final SAXParserFactory factory = SAXParserFactory.newInstance();
         factory.setValidating(true);
         factory.setNamespaceAware(true);

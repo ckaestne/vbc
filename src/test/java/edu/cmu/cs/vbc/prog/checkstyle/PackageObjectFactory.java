@@ -18,9 +18,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle;
 
-import com.google.common.collect.Sets;
 import edu.cmu.cs.vbc.prog.checkstyle.api.CheckstyleException;
 
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
@@ -51,7 +51,7 @@ class PackageObjectFactory implements ModuleFactory
         }
 
         //create a copy of the given set, but retain ordering
-        packages = Sets.newLinkedHashSet(packageNames);
+        packages = new LinkedHashSet<>(packageNames);
         this.moduleClassLoader = moduleClassLoader;
     }
 

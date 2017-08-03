@@ -18,8 +18,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.api;
 
-import com.google.common.collect.Sets;
-
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -32,7 +31,7 @@ public class FilterSet
     implements Filter
 {
     /** filter set */
-    private final Set<Filter> filters = Sets.newHashSet();
+    private final Set<Filter> filters = new HashSet<>();
 
     /**
      * Adds a Filter to the set.
