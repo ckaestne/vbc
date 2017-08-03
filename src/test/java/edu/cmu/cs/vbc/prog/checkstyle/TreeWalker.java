@@ -660,13 +660,12 @@ public final class TreeWalker
      */
     private static DetailAST createCommentAstFromToken(Token token)
     {
-        switch (token.getType()) {
-            case TokenTypes.SINGLE_LINE_COMMENT:
-                return createSlCommentNode(token);
-            case TokenTypes.BLOCK_COMMENT_BEGIN:
-                return createBlockCommentNode(token);
-            default:
-                throw new IllegalArgumentException("Unknown comment type");
+        if (token.getType() == TokenTypes.SINGLE_LINE_COMMENT) {
+            return createSlCommentNode(token);
+        } else if (token.getType() == TokenTypes.BLOCK_COMMENT_BEGIN) {
+            return createBlockCommentNode(token);
+        } else {
+            throw new IllegalArgumentException("Unknown comment type");
         }
     }
 
@@ -755,13 +754,11 @@ public final class TreeWalker
         int lines = initialLinesCnt;
         int columns = initialColumnsCnt;
         for (char c : text.toCharArray()) {
-            switch (c) {
-                case '\n':
-                    lines++;
-                    columns = 0;
-                    break;
-                default:
-                    columns++;
+            if (c == '\n') {
+                lines++;
+                columns = 0;
+            } else {
+                columns++;
             }
         }
         return new SimpleEntry<>(lines, columns);

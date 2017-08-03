@@ -206,14 +206,10 @@ public class HiddenFieldCheck
     public void visitToken(DetailAST ast)
     {
         final int type = ast.getType();
-        switch (type) {
-            case TokenTypes.VARIABLE_DEF:
-            case TokenTypes.PARAMETER_DEF:
-                processVariable(ast);
-                break;
-
-            default:
-                visitOtherTokens(ast, type);
+        if (type == TokenTypes.VARIABLE_DEF || type == TokenTypes.PARAMETER_DEF) {
+            processVariable(ast);
+        } else {
+            visitOtherTokens(ast, type);
         }
     }
 
@@ -318,15 +314,14 @@ public class HiddenFieldCheck
     {
         DetailAST parent = ast.getParent();
         while (parent != null) {
-            switch (parent.getType()) {
-                case TokenTypes.STATIC_INIT:
-                    return true;
-                case TokenTypes.METHOD_DEF:
-                    final DetailAST mods =
+            if (parent.getType() == TokenTypes.STATIC_INIT) {
+                return true;
+            } else if (parent.getType() == TokenTypes.METHOD_DEF) {
+                final DetailAST mods =
                         parent.findFirstToken(TokenTypes.MODIFIERS);
-                    return mods.branchContains(TokenTypes.LITERAL_STATIC);
-                default:
-                    parent = parent.getParent();
+                return mods.branchContains(TokenTypes.LITERAL_STATIC);
+            } else {
+                parent = parent.getParent();
             }
         }
         return false;
