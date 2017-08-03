@@ -31,3 +31,11 @@ initialize := {
 testOptions in Test ++= Seq(
   Tests.Argument(TestFrameworks.ScalaTest, "-h", "target/html")
 )
+
+// checkstyle dependencies
+libraryDependencies += "commons-cli" % "commons-cli" % "1.2"
+libraryDependencies += "com.google.guava" % "guava" % "18.0"
+libraryDependencies += "commons-beanutils" % "commons-beanutils" % "1.8.3"
+libraryDependencies += "antlr" % "antlr" % "2.7.7"
+libraryDependencies += "org.antlr" % "antlr4-runtime" % "4.3"
+libraryDependencies += "org.apache.ant" % "ant" % "1.7.0"
