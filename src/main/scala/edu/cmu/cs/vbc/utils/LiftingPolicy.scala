@@ -29,8 +29,8 @@ object LiftingPolicy {
     case x if x.endsWith("java/util/AbstractMap") => true
     case x if x.endsWith("java/util/ListIterator") => true
     case x if x.endsWith("java/util/AbstractSequentialList") => true
-    case x if x.endsWith("java/io/OutputStream") => true
-    case x if x.endsWith("java/io/InputStream") => true
+//    case x if x.endsWith("java/io/OutputStream") => true
+//    case x if x.endsWith("java/io/InputStream") => true
     case x if x.endsWith("java/io/ByteArrayInputStream") => true
       // List related classes, uncomment these if we are not using model classes for
       // LinkedList and ArrayList.
@@ -72,9 +72,9 @@ object LiftingPolicy {
         case Owner("java/util/TimeZone") => false
         case Owner("java/util/Calendar") => false
         case Owner("java/util/Date") => false
-//        case Owner("java/io/InputStream") => false
+        case Owner("java/io/InputStream") => false
 //        case Owner("java/io/ByteArrayInputStream") => false
-//        case Owner("java/io/OutputStream") => false
+        case Owner("java/io/OutputStream") => false
         case o if o.name.endsWith("Exception") => false
         case Owner("java/lang/Runtime") => false
         case _ => true
