@@ -19,17 +19,13 @@
 package edu.cmu.cs.vbc.prog.checkstyle.checks.coding;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import edu.cmu.cs.varex.annotation.VConditional;
 import edu.cmu.cs.vbc.prog.checkstyle.api.Check;
 import edu.cmu.cs.vbc.prog.checkstyle.api.DetailAST;
 import edu.cmu.cs.vbc.prog.checkstyle.api.TokenTypes;
 import edu.cmu.cs.vbc.prog.checkstyle.api.Utils;
 
-import java.util.BitSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
@@ -58,7 +54,7 @@ public class MultipleStringLiteralsCheck extends Check
      * {@code <String, ArrayList>}, with the ArrayList containing StringInfo
      * objects.
      */
-    private final Map<String, List<StringInfo>> stringMap = Maps.newHashMap();
+    private final Map<String, List<StringInfo>> stringMap = new HashMap<>();
 
     /**
      * Marks the TokenTypes where duplicate strings should be ignored.
