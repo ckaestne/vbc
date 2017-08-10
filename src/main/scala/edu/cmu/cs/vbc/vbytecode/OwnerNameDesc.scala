@@ -78,7 +78,8 @@ case class Owner(name: String) extends TypeVerifier {
     "java/io/Closeable",
     "java/util/Collection",
     "java/util/concurrent/ConcurrentMap",
-    "java/lang/reflect/Field"
+    "java/lang/reflect/Field",
+    "java/util/regex/Pattern"
   )
 
   /** Get the corresponding model class
