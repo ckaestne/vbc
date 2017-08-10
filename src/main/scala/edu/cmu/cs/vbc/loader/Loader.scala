@@ -244,7 +244,7 @@ class Loader {
       case IASTORE => InstrIASTORE()
       case LASTORE => UNKNOWN(LASTORE)
       case FASTORE => UNKNOWN(FASTORE)
-      case DASTORE => UNKNOWN(DASTORE)
+      case DASTORE => InstrDASTORE()
       case AASTORE => InstrAASTORE()
       case BASTORE => InstrBASTORE()
       case CASTORE => InstrCASTORE()

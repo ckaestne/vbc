@@ -539,3 +539,11 @@ case class InstrSALOAD() extends ArrayLoadInstructions {
     }
   }
 }
+
+case class InstrDASTORE() extends ArrayStoreInstructions {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitInsn(DASTORE)
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+}
