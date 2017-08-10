@@ -19,10 +19,10 @@
 package edu.cmu.cs.vbc.prog.checkstyle.checks.coding;
 
 import antlr.collections.AST;
-import com.google.common.collect.Sets;
 import edu.cmu.cs.varex.annotation.VConditional;
 import edu.cmu.cs.vbc.prog.checkstyle.api.*;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.StringTokenizer;
 
@@ -74,19 +74,19 @@ public class IllegalInstantiationCheck
     public static final String MSG_KEY = "instantiation.avoid";
 
     /** Set of fully qualified classnames. E.g. "java.lang.Boolean" */
-    private final Set<String> illegalClasses = Sets.newHashSet();
+    private final Set<String> illegalClasses = new HashSet<>();
 
     /** name of the package */
     private String pkgName;
 
     /** the imports for the file */
-    private final Set<FullIdent> imports = Sets.newHashSet();
+    private final Set<FullIdent> imports = new HashSet<>();
 
     /** the class names defined in the file */
-    private final Set<String> classNames = Sets.newHashSet();
+    private final Set<String> classNames = new HashSet<>();
 
     /** the instantiations in the file */
-    private final Set<DetailAST> instantiations = Sets.newHashSet();
+    private final Set<DetailAST> instantiations = new HashSet<>();
 
     @Override
     public int[] getDefaultTokens()

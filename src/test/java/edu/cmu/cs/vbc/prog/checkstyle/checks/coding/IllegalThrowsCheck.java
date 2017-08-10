@@ -18,7 +18,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.checks.coding;
 
-import com.google.common.collect.Sets;
 import edu.cmu.cs.varex.annotation.VConditional;
 import edu.cmu.cs.vbc.prog.checkstyle.api.AnnotationUtility;
 import edu.cmu.cs.vbc.prog.checkstyle.api.DetailAST;
@@ -26,6 +25,7 @@ import edu.cmu.cs.vbc.prog.checkstyle.api.FullIdent;
 import edu.cmu.cs.vbc.prog.checkstyle.api.TokenTypes;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -74,7 +74,7 @@ public final class IllegalThrowsCheck extends AbstractIllegalCheck
     private boolean ignoreOverriddenMethods = true;
 
     /** methods which should be ignored. */
-    private final Set<String> ignoredMethodNames = Sets.newHashSet();
+    private final Set<String> ignoredMethodNames = new HashSet<>();
 
     /** Creates new instance of the check. */
     public IllegalThrowsCheck()

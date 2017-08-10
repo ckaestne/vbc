@@ -19,7 +19,6 @@
 package edu.cmu.cs.vbc.prog.checkstyle.checks.design;
 
 import antlr.collections.AST;
-import com.google.common.collect.ImmutableList;
 import edu.cmu.cs.varex.annotation.VConditional;
 import edu.cmu.cs.vbc.prog.checkstyle.api.*;
 import org.apache.commons.beanutils.ConversionException;
@@ -158,7 +157,7 @@ public class VisibilityModifierCheck
 {
 	@VConditional
 	private static boolean VisibilityModifier = true;
-	
+
 	@Override
 	public boolean isEnabled() {
 		return VisibilityModifier;
@@ -197,29 +196,32 @@ public class VisibilityModifierCheck
     private final List<String> immutableClassShortNames =
             getClassShortNames(DEFAULT_IMMUTABLE_TYPES);
 
-    /** Default immutable types canonical names. */
-    private static final List<String> DEFAULT_IMMUTABLE_TYPES = ImmutableList.of(
-        "java.lang.String",
-        "java.lang.Integer",
-        "java.lang.Byte",
-        "java.lang.Character",
-        "java.lang.Short",
-        "java.lang.Boolean",
-        "java.lang.Long",
-        "java.lang.Double",
-        "java.lang.Float",
-        "java.lang.StackTraceElement",
-        "java.math.BigInteger",
-        "java.math.BigDecimal",
-        "java.io.File",
-        "java.util.Locale",
-        "java.util.UUID",
-        "java.net.URL",
-        "java.net.URI",
-        "java.net.Inet4Address",
-        "java.net.Inet6Address",
-        "java.net.InetSocketAddress"
-    );
+    /**
+     * Default immutable types canonical names.
+     */
+    private static final List<String> DEFAULT_IMMUTABLE_TYPES = new ArrayList<>();
+    static {
+        DEFAULT_IMMUTABLE_TYPES.add("java.lang.String");
+        DEFAULT_IMMUTABLE_TYPES.add("java.lang.Integer");
+        DEFAULT_IMMUTABLE_TYPES.add("java.lang.Byte");
+        DEFAULT_IMMUTABLE_TYPES.add("java.lang.Character");
+        DEFAULT_IMMUTABLE_TYPES.add("java.lang.Short");
+        DEFAULT_IMMUTABLE_TYPES.add("java.lang.Boolean");
+        DEFAULT_IMMUTABLE_TYPES.add("java.lang.Long");
+        DEFAULT_IMMUTABLE_TYPES.add("java.lang.Double");
+        DEFAULT_IMMUTABLE_TYPES.add("java.lang.Float");
+        DEFAULT_IMMUTABLE_TYPES.add("java.lang.StackTraceElement");
+        DEFAULT_IMMUTABLE_TYPES.add("java.math.BigInteger");
+        DEFAULT_IMMUTABLE_TYPES.add("java.math.BigDecimal");
+        DEFAULT_IMMUTABLE_TYPES.add("java.io.File");
+        DEFAULT_IMMUTABLE_TYPES.add("java.util.Locale");
+        DEFAULT_IMMUTABLE_TYPES.add("java.util.UUID");
+        DEFAULT_IMMUTABLE_TYPES.add("java.net.URL");
+        DEFAULT_IMMUTABLE_TYPES.add("java.net.URI");
+        DEFAULT_IMMUTABLE_TYPES.add("java.net.Inet4Address");
+        DEFAULT_IMMUTABLE_TYPES.add("java.net.Inet6Address");
+        DEFAULT_IMMUTABLE_TYPES.add("java.net.InetSocketAddress");
+    }
 
     /** contains explicit access modifiers. */
     private static final String[] EXPLICIT_MODS = {"public", "private", "protected"};

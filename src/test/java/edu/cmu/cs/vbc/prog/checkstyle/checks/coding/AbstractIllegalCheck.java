@@ -18,9 +18,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.checks.coding;
 
-import com.google.common.collect.Sets;
 import edu.cmu.cs.vbc.prog.checkstyle.api.Check;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -30,7 +30,7 @@ import java.util.Set;
 public abstract class AbstractIllegalCheck extends Check
 {
     /** Illegal class names */
-    private final Set<String> illegalClassNames = Sets.newHashSet();
+    private final Set<String> illegalClassNames = new HashSet<>();
 
     /**
      * Constructs an object.

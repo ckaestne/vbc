@@ -19,13 +19,13 @@
 
 package edu.cmu.cs.vbc.prog.checkstyle.checks.imports;
 
-import com.google.common.collect.Sets;
 import edu.cmu.cs.varex.annotation.VConditional;
 import edu.cmu.cs.vbc.prog.checkstyle.api.Check;
 import edu.cmu.cs.vbc.prog.checkstyle.api.DetailAST;
 import edu.cmu.cs.vbc.prog.checkstyle.api.FullIdent;
 import edu.cmu.cs.vbc.prog.checkstyle.api.TokenTypes;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -84,9 +84,9 @@ public class RedundantImportCheck
     /** name of package in file */
     private String pkgName;
     /** set of the imports */
-    private final Set<FullIdent> imports = Sets.newHashSet();
+    private final Set<FullIdent> imports = new HashSet<>();
     /** set of static imports */
-    private final Set<FullIdent> staticImports = Sets.newHashSet();
+    private final Set<FullIdent> staticImports = new HashSet<>();
 
     @Override
     public void beginTree(DetailAST aRootAST)
