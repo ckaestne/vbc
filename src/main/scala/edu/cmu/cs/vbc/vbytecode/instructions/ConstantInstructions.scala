@@ -151,3 +151,29 @@ case class InstrLCONST(v: Int) extends Instruction {
       (s.push(LONG_TYPE(), Set(this)), Set())
   }
 }
+
+/**
+  * Push double 0
+  */
+case class InstrDCONST_0() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitInsn(DCONST_0)
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+}
+
+/**
+  * Push double 1
+  */
+case class InstrDCONST_1() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitInsn(DCONST_1)
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+}

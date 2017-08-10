@@ -188,8 +188,8 @@ class Loader {
       case FCONST_0 => UNKNOWN(FCONST_0)
       case FCONST_1 => UNKNOWN(FCONST_1)
       case FCONST_2 => UNKNOWN(FCONST_2)
-      case DCONST_0 => UNKNOWN(DCONST_0)
-      case DCONST_1 => UNKNOWN(DCONST_1)
+      case DCONST_0 => InstrDCONST_0()
+      case DCONST_1 => InstrDCONST_1()
       case BIPUSH => {
         val i = inst.asInstanceOf[IntInsnNode]
         InstrBIPUSH(i.operand)
