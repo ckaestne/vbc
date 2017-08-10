@@ -81,4 +81,8 @@ class SmallExampleTest extends FunSuite with DiffLaunchTestInfrastructure {
   ignore("LongExample") {
     testMain(classOf[LongExample])
   }
+
+  test("SwitchExample") {
+    testMain(classOf[SwitchExample])
+  }
 }

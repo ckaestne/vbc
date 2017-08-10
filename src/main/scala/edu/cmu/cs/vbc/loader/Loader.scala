@@ -32,7 +32,7 @@ class Loader {
     cl.superName,
     if (cl.interfaces == null) Nil else cl.interfaces.toList,
     if (cl.fields == null) Nil else cl.fields.map(adaptField).toList,
-    if (cl.methods == null) Nil else cl.methods.map(adaptMethod(cl.name, _)).toList,
+    if (cl.methods == null) Nil else cl.methods.map(m => adaptMethod(cl.name, transformSwitches(m))).toList,
     if (cl.sourceDebug != null && cl.sourceFile != null) Some(cl.sourceFile, cl.sourceDebug) else None,
     if (cl.outerClass != null) Some(cl.outerClass, cl.outerMethod, cl.outerMethodDesc) else None,
     if (cl.visibleAnnotations == null) Nil else cl.visibleAnnotations.toList,
@@ -42,6 +42,50 @@ class Loader {
     if (cl.attrs == null) Nil else cl.attrs.toList,
     if (cl.innerClasses == null) Nil else cl.innerClasses.map(adaptInnerClass).toList
   )
+
+  /**
+    * Transform LookupSwitch and TableSwitch to IFEQ and GOTO
+    *
+    * In case of errors, we modify instruction list instead of creating a new MethodNode
+    *
+    * @param m  origin MethodNode
+    * @return new MethodNode that could not have any switch
+    */
+  def transformSwitches(m: MethodNode): MethodNode = {
+    val instructions: List[AbstractInsnNode] = m.instructions.toArray.toList
+    val newInstructions: List[AbstractInsnNode] = instructions.flatMap(i => i match {
+      case table: TableSwitchInsnNode =>
+        val switchValueIdx = m.maxLocals
+        m.localVariables.add(new LocalVariableNode(s"switch${util.Random.nextInt()}", "I", "I", null, null, switchValueIdx))
+        m.maxLocals += 1
+        val ifs: List[AbstractInsnNode] = (table.min to table.max).toList.flatMap(num => {
+          List(
+            new VarInsnNode(ILOAD, switchValueIdx),
+            new LdcInsnNode(num),
+            new InsnNode(ISUB),
+            new JumpInsnNode(IFEQ, table.labels(num - table.min))
+          )
+        })
+        List(new VarInsnNode(ISTORE, switchValueIdx)) ::: ifs ::: List(new JumpInsnNode(GOTO, table.dflt))
+      case lookup: LookupSwitchInsnNode =>
+        val switchValueIdx = m.maxLocals
+        m.localVariables.add(new LocalVariableNode(s"switch${util.Random.nextInt()}", "I", "I", null, null, switchValueIdx))
+        m.maxLocals += 1
+        val ifs: List[AbstractInsnNode] = (0 until lookup.keys.length).toList.flatMap(index => {
+          List(
+            new VarInsnNode(ILOAD, switchValueIdx),
+            new LdcInsnNode(lookup.keys(index)),
+            new InsnNode(ISUB),
+            new JumpInsnNode(IFEQ, lookup.labels(index))
+          )
+        })
+        List(new VarInsnNode(ISTORE, switchValueIdx)) ::: ifs ::: List(new JumpInsnNode(GOTO, lookup.dflt))
+      case _ => List(i)
+    })
+    m.instructions.clear()
+    newInstructions foreach {i => m.instructions.add(i)}
+    m
+  }
 
   def adaptMethod(owner: String, m: MethodNode): VBCMethodNode = {
     //    println("\tMethod: " + m.name)
