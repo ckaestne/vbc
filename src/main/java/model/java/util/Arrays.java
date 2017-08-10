@@ -63,4 +63,16 @@ public class Arrays {
         });
         return null;    // dummy return value
     }
+
+    public static long[] copyOf(long[] original, int newLength) {
+        return java.util.Arrays.copyOf(original, newLength);
+    }
+
+    public static void sort(int[] a) {
+        java.util.Arrays.sort(a);
+    }
+
+    public static int binarySearch(int[] array, int key) {
+        return java.util.Arrays.binarySearch(array, key);
+    }
 }
