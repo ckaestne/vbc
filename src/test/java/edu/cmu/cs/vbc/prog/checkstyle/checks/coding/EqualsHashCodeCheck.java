@@ -20,13 +20,13 @@
 package edu.cmu.cs.vbc.prog.checkstyle.checks.coding;
 
 import antlr.collections.AST;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import edu.cmu.cs.varex.annotation.VConditional;
 import edu.cmu.cs.vbc.prog.checkstyle.api.Check;
 import edu.cmu.cs.vbc.prog.checkstyle.api.DetailAST;
 import edu.cmu.cs.vbc.prog.checkstyle.api.TokenTypes;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -68,10 +68,10 @@ public class EqualsHashCodeCheck
     public static final String MSG_KEY = "equals.noHashCode";
 
     /** maps OBJ_BLOCK to the method definition of equals() */
-    private final Map<DetailAST, DetailAST> objBlockEquals = Maps.newHashMap();
+    private final Map<DetailAST, DetailAST> objBlockEquals = new HashMap<>();
 
     /** the set of OBJ_BLOCKs that contain a definition of hashCode() */
-    private final Set<DetailAST> objBlockWithHashCode = Sets.newHashSet();
+    private final Set<DetailAST> objBlockWithHashCode = new HashSet<>();
 
     @Override
     public int[] getDefaultTokens()

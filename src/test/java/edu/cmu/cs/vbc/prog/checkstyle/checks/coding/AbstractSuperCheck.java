@@ -20,7 +20,6 @@
 package edu.cmu.cs.vbc.prog.checkstyle.checks.coding;
 
 import antlr.collections.AST;
-import com.google.common.collect.Lists;
 import edu.cmu.cs.vbc.prog.checkstyle.api.Check;
 import edu.cmu.cs.vbc.prog.checkstyle.api.DetailAST;
 import edu.cmu.cs.vbc.prog.checkstyle.api.ScopeUtils;
@@ -98,7 +97,7 @@ public abstract class AbstractSuperCheck
     }
 
     /** stack of methods */
-    private final LinkedList<MethodNode> methodStack = Lists.newLinkedList();
+    private final LinkedList<MethodNode> methodStack = new LinkedList<>();
 
     @Override
     public int[] getDefaultTokens()

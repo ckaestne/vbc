@@ -18,13 +18,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.checks.imports;
 
-import com.google.common.collect.Lists;
 import edu.cmu.cs.varex.annotation.VConditional;
 import edu.cmu.cs.vbc.prog.checkstyle.api.Check;
 import edu.cmu.cs.vbc.prog.checkstyle.api.DetailAST;
 import edu.cmu.cs.vbc.prog.checkstyle.api.FullIdent;
 import edu.cmu.cs.vbc.prog.checkstyle.api.TokenTypes;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -80,7 +80,7 @@ public class AvoidStarImportCheck
     public static final String MSG_KEY = "import.avoidStar";
 
     /** the packages/classes to exempt from this check. */
-    private final List<String> excludes = Lists.newArrayList();
+    private final List<String> excludes = new ArrayList<>();
 
     /** whether to allow all class imports */
     private boolean allowClassImports;
