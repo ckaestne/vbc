@@ -418,3 +418,22 @@ case class InstrLSTORE(variable: Variable) extends Instruction {
     (newFrame, backtrack)
   }
 }
+
+case class InstrDSTORE(variable: Variable) extends Instruction {
+
+  /** Help env collect all local variables */
+  override def getVariables: Set[LocalVar] = {
+    variable match {
+      case p: Parameter => Set()
+      case lv: LocalVar => Set(lv)
+    }
+  }
+
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitVarInsn(DSTORE, env.getVarIdx(variable))
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+}
