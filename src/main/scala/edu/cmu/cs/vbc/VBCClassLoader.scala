@@ -47,7 +47,8 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
   override def findClass(name: String): Class[_] = {
     val resource: String = name.replace('.', '/') + ".class"
     val is: InputStream = getResourceAsStream(resource)
-    assert(is != null, s"Class file not found: $name")
+//    assert(is != null, s"Class file not found: $name")
+    if (is == null) throw new ClassNotFoundException(name)
     val clazz: VBCClassNode = loader.loadClass(is)
     liftClass(name, clazz)
   }
