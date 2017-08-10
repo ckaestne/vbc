@@ -84,6 +84,7 @@ class Loader {
     })
     m.instructions.clear()
     newInstructions foreach {i => m.instructions.add(i)}
+    if (m.maxStack < 2) m.maxStack = 2  // rare but possible
     m
   }
 
