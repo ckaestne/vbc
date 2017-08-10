@@ -18,7 +18,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.checks.imports;
 
-import com.google.common.collect.Sets;
 import edu.cmu.cs.varex.annotation.VConditional;
 import edu.cmu.cs.vbc.prog.checkstyle.api.*;
 import edu.cmu.cs.vbc.prog.checkstyle.checks.javadoc.JavadocTag;
@@ -76,10 +75,10 @@ public class UnusedImportsCheck extends Check
     private boolean processJavadoc;
 
     /** set of the imports. */
-    private final Set<FullIdent> imports = Sets.newHashSet();
+    private final Set<FullIdent> imports = new HashSet<>();
 
     /** set of references - possibly to imports or other things. */
-    private final Set<String> referenced = Sets.newHashSet();
+    private final Set<String> referenced = new HashSet<>();
 
     /** Default constructor. */
     public UnusedImportsCheck()
