@@ -18,7 +18,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.checks.indentation;
 
-import com.google.common.collect.Maps;
 import edu.cmu.cs.vbc.prog.checkstyle.api.DetailAST;
 import edu.cmu.cs.vbc.prog.checkstyle.api.TokenTypes;
 import org.apache.commons.logging.Log;
@@ -26,6 +25,7 @@ import org.apache.commons.logging.LogFactory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -43,8 +43,7 @@ public class HandlerFactory
     /**
      * Registered handlers.
      */
-    private final Map<Integer, Constructor<?>> typeHandlers =
-        Maps.newHashMap();
+    private final Map<Integer, Constructor<?>> typeHandlers = new HashMap<>();
 
     /**
      * registers a handler
@@ -225,5 +224,5 @@ public class HandlerFactory
 
     /** cache for created method call handlers */
     private final Map<DetailAST, ExpressionHandler> createdHandlers =
-        Maps.newHashMap();
+        new HashMap<>();
 }

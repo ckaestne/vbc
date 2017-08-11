@@ -24,10 +24,7 @@ import com.google.common.collect.Maps;
 import edu.cmu.cs.vbc.prog.checkstyle.grammars.CommentListener;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
@@ -56,7 +53,7 @@ public final class FileContents implements CommentListener
     /** map of the Javadoc comments indexed on the last line of the comment.
      * The hack is it assumes that there is only one Javadoc comment per line.
      */
-    private final Map<Integer, TextBlock> javadocComments = Maps.newHashMap();
+    private final Map<Integer, TextBlock> javadocComments = new HashMap<>();
     /** map of the C++ comments indexed on the first line of the comment. */
     private final Map<Integer, TextBlock> cppComments =
         Maps.newHashMap();
