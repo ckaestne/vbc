@@ -158,7 +158,7 @@ public class TranslationCheck
     private static Map<String, Set<File>> arrangePropertyFiles(
         List<File> propFiles, String basenameSeparator)
     {
-        final Map<String, Set<File>> propFileMap = Maps.newHashMap();
+        final Map<String, Set<File>> propFileMap = new HashMap<>();
 
         for (final File f : propFiles) {
             final String identifier = extractPropertyIdentifier(f,

@@ -19,9 +19,9 @@
 package edu.cmu.cs.vbc.prog.checkstyle.checks;
 
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import edu.cmu.cs.vbc.prog.checkstyle.api.*;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -39,7 +39,7 @@ import java.util.Set;
 public abstract class AbstractTypeAwareCheck extends Check
 {
     /** imports details **/
-    private final Set<String> imports = Sets.newHashSet();
+    private final Set<String> imports = new HashSet<>();
 
     /** full identifier for package of the method **/
     private FullIdent packageFullIdent;

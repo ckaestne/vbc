@@ -83,7 +83,12 @@ case class Owner(name: String) extends TypeVerifier {
     "java/lang/reflect/Constructor",
     "java/lang/Comparable",
     "java/util/Arrays",
-    "java/util/List"
+    "java/util/List",
+    "java/nio/charset/CharsetDecoder",
+    "java/nio/charset/CodingErrorAction",
+    "java/lang/CharSequence",
+    "java/util/regex/Matcher",
+    "java/io/RandomAccessFile"
   )
 
   /** Get the corresponding model class

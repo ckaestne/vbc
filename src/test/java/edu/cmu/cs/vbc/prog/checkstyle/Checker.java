@@ -18,7 +18,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle;
 
-import com.google.common.collect.Sets;
 import edu.cmu.cs.vbc.prog.checkstyle.api.*;
 import edu.cmu.cs.vbc.prog.checkstyle.api.Utils;
 
@@ -246,7 +245,7 @@ public class Checker extends AutomaticBean implements MessageDispatcher
             }
             final String fileName = f.getAbsolutePath();
             fireFileStarted(fileName);
-            final SortedSet<LocalizedMessage> fileMessages = Sets.newTreeSet();
+            final SortedSet<LocalizedMessage> fileMessages = new TreeSet<>();
             try {
                 final FileText theText = new FileText(f.getAbsoluteFile(),
                         charset);

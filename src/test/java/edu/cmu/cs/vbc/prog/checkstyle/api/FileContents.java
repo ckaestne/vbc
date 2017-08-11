@@ -20,7 +20,6 @@ package edu.cmu.cs.vbc.prog.checkstyle.api;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import edu.cmu.cs.vbc.prog.checkstyle.grammars.CommentListener;
 
 import java.io.File;
@@ -56,13 +55,13 @@ public final class FileContents implements CommentListener
     private final Map<Integer, TextBlock> javadocComments = new HashMap<>();
     /** map of the C++ comments indexed on the first line of the comment. */
     private final Map<Integer, TextBlock> cppComments =
-        Maps.newHashMap();
+        new HashMap<>();
 
     /**
      * map of the C comments indexed on the first line of the comment to a list
      * of comments on that line
      */
-    private final Map<Integer, List<TextBlock>> clangComments = Maps.newHashMap();
+    private final Map<Integer, List<TextBlock>> clangComments = new HashMap<>();
 
     /**
      * Creates a new <code>FileContents</code> instance.

@@ -22,8 +22,6 @@ package edu.cmu.cs.vbc.prog.checkstyle.api;
 // as soon as architecture has settled. At the time of writing
 // this class is not necessary as a part of the public api
 
-import com.google.common.collect.Sets;
-
 import java.util.TreeSet;
 
 /**
@@ -39,7 +37,7 @@ public final class LocalizedMessages
     /** @return the logged messages **/
     public TreeSet<LocalizedMessage> getMessages()
     {
-        return Sets.newTreeSet(messages);
+        return new TreeSet<>(messages);
     }
 
     /** Reset the object. **/
