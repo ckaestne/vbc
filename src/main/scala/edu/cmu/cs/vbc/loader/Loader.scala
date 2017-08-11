@@ -320,7 +320,7 @@ class Loader {
       case LCMP => InstrLCMP()
       case FCMPL => UNKNOWN(FCMPL)
       case FCMPG => UNKNOWN(FCMPG)
-      case DCMPL => UNKNOWN(DCMPL)
+      case DCMPL => InstrDCMPL()
       case DCMPG => UNKNOWN(DCMPG)
       case IFEQ => {
         val insIFEQ = inst.asInstanceOf[JumpInsnNode]

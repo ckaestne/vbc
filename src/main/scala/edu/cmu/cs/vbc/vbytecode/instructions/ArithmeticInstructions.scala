@@ -670,3 +670,13 @@ case class InstrDMUL() extends BinOpNonIntInstruction {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, DOUBLE_TYPE())
 }
+
+case class InstrDCMPL() extends BinOpNonIntInstruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitInsn(DCMPL)
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, DOUBLE_TYPE())
+}
