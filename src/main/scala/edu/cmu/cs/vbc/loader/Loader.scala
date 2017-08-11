@@ -246,7 +246,7 @@ class Loader {
         InstrASTORE(variables(i.`var`, ASTORE))
       }
       case IASTORE => InstrIASTORE()
-      case LASTORE => UNKNOWN(LASTORE)
+      case LASTORE => InstrLASTORE()
       case FASTORE => UNKNOWN(FASTORE)
       case DASTORE => InstrDASTORE()
       case AASTORE => InstrAASTORE()
