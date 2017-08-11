@@ -18,13 +18,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.checks.javadoc;
 
-import com.google.common.collect.ImmutableSortedSet;
 import edu.cmu.cs.varex.annotation.VConditional;
 import edu.cmu.cs.vbc.prog.checkstyle.api.*;
 import edu.cmu.cs.vbc.prog.checkstyle.checks.CheckUtils;
 
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 
 /**
@@ -63,22 +63,87 @@ public class JavadocStyleCheck
     /** Message property key for the Extra HTML message. */
     public static final String EXTRA_HTML = "javadoc.extrahtml";
 
-    /** HTML tags that do not require a close tag. */
-    private static final Set<String> SINGLE_TAGS = ImmutableSortedSet.of(
-            "br", "li", "dt", "dd", "hr", "img", "p", "td", "tr", "th");
+    /**
+     * HTML tags that do not require a close tag.
+     */
+    private static final Set<String> SINGLE_TAGS = new TreeSet<>();
+    static {
+        SINGLE_TAGS.add("br");
+        SINGLE_TAGS.add("li");
+        SINGLE_TAGS.add("dt");
+        SINGLE_TAGS.add("dd");
+        SINGLE_TAGS.add("hr");
+        SINGLE_TAGS.add("img");
+        SINGLE_TAGS.add("p");
+        SINGLE_TAGS.add("td");
+        SINGLE_TAGS.add("tr");
+        SINGLE_TAGS.add("th");
+    }
 
-    /** HTML tags that are allowed in java docs.
+    /**
+     * HTML tags that are allowed in java docs.
      * From http://www.w3schools.com/tags/default.asp
      * The froms and structure tags are not allowed
      */
-    private static final Set<String> ALLOWED_TAGS = ImmutableSortedSet.of(
-            "a", "abbr", "acronym", "address", "area", "b", "bdo", "big",
-            "blockquote", "br", "caption", "cite", "code", "colgroup", "dd",
-            "del", "div", "dfn", "dl", "dt", "em", "fieldset", "font", "h1",
-            "h2", "h3", "h4", "h5", "h6", "hr", "i", "img", "ins", "kbd",
-            "li", "ol", "p", "pre", "q", "samp", "small", "span", "strong",
-            "style", "sub", "sup", "table", "tbody", "td", "tfoot", "th",
-            "thead", "tr", "tt", "u", "ul");
+    private static final Set<String> ALLOWED_TAGS = new TreeSet<>();
+    static {
+        ALLOWED_TAGS.add("a");
+        ALLOWED_TAGS.add("abbr");
+        ALLOWED_TAGS.add("acronym");
+        ALLOWED_TAGS.add("address");
+        ALLOWED_TAGS.add("area");
+        ALLOWED_TAGS.add("b");
+        ALLOWED_TAGS.add("bdo");
+        ALLOWED_TAGS.add("big");
+        ALLOWED_TAGS.add("blockquote");
+        ALLOWED_TAGS.add("br");
+        ALLOWED_TAGS.add("caption");
+        ALLOWED_TAGS.add("cite");
+        ALLOWED_TAGS.add("code");
+        ALLOWED_TAGS.add("colgroup");
+        ALLOWED_TAGS.add("dd");
+        ALLOWED_TAGS.add("del");
+        ALLOWED_TAGS.add("div");
+        ALLOWED_TAGS.add("dfn");
+        ALLOWED_TAGS.add("dl");
+        ALLOWED_TAGS.add("dt");
+        ALLOWED_TAGS.add("em");
+        ALLOWED_TAGS.add("fieldset");
+        ALLOWED_TAGS.add("font");
+        ALLOWED_TAGS.add("h1");
+        ALLOWED_TAGS.add("h2");
+        ALLOWED_TAGS.add("h3");
+        ALLOWED_TAGS.add("h4");
+        ALLOWED_TAGS.add("h5");
+        ALLOWED_TAGS.add("h6");
+        ALLOWED_TAGS.add("hr");
+        ALLOWED_TAGS.add("i");
+        ALLOWED_TAGS.add("img");
+        ALLOWED_TAGS.add("ins");
+        ALLOWED_TAGS.add("kbd");
+        ALLOWED_TAGS.add("li");
+        ALLOWED_TAGS.add("ol");
+        ALLOWED_TAGS.add("p");
+        ALLOWED_TAGS.add("pre");
+        ALLOWED_TAGS.add("q");
+        ALLOWED_TAGS.add("samp");
+        ALLOWED_TAGS.add("small");
+        ALLOWED_TAGS.add("span");
+        ALLOWED_TAGS.add("strong");
+        ALLOWED_TAGS.add("style");
+        ALLOWED_TAGS.add("sub");
+        ALLOWED_TAGS.add("sup");
+        ALLOWED_TAGS.add("table");
+        ALLOWED_TAGS.add("tbody");
+        ALLOWED_TAGS.add("td");
+        ALLOWED_TAGS.add("tfoot");
+        ALLOWED_TAGS.add("th");
+        ALLOWED_TAGS.add("thead");
+        ALLOWED_TAGS.add("tr");
+        ALLOWED_TAGS.add("tt");
+        ALLOWED_TAGS.add("u");
+        ALLOWED_TAGS.add("ul");
+    }
 
     /** The scope to check. */
     private Scope scope = Scope.PRIVATE;
