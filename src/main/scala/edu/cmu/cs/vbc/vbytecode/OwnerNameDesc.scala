@@ -88,7 +88,9 @@ case class Owner(name: String) extends TypeVerifier {
     "java/nio/charset/CodingErrorAction",
     "java/lang/CharSequence",
     "java/util/regex/Matcher",
-    "java/io/RandomAccessFile"
+    "java/io/RandomAccessFile",
+    "java/io/Reader",
+    "java/util/Hashtable"
   )
 
   /** Get the corresponding model class
