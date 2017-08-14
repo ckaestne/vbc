@@ -26,6 +26,7 @@ object Launcher extends App {
 object VBCLauncher {
   def launch(classname: String, liftBytecode: Boolean = true, args: Array[String] = new Array[String](0)) {
     val loader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, liftBytecode)
+    Thread.currentThread().setContextClassLoader(loader)
     val cls: Class[_] = loader.loadClass(classname)
     invokeMain(cls, args)
     //    if (liftBytecode) Statistics.printStatistics()

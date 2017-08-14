@@ -11,6 +11,8 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.util.{CheckClassAdapter, TraceClassVisitor}
 import org.objectweb.asm.{ClassReader, ClassVisitor, ClassWriter}
 
+import scala.collection.mutable
+
 /**
   * Custom class loader to modify bytecode before loading the class.
   *
@@ -27,21 +29,23 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
   val loader = new Loader()
 
   override def loadClass(name: String): Class[_] = {
-    if (name.startsWith(VBCModel.prefix)) {
-      val model = new VBCModel(name)
-      val bytes = model.getModelClassBytes(isLift)
-      if (shouldLift(name)) {
-        val clazz = loader.loadClass(bytes)
-        liftClass(name, clazz)
+    VBCClassLoader.loadedClasses.getOrElseUpdate(name, {
+      if (name.startsWith(VBCModel.prefix)) {
+        val model = new VBCModel(name)
+        val bytes = model.getModelClassBytes(isLift)
+        if (shouldLift(name)) {
+          val clazz = loader.loadClass(bytes)
+          liftClass(name, clazz)
+        }
+        else {
+          defineClass(name, bytes, 0, bytes.length)
+        }
       }
-      else {
-        defineClass(name, bytes, 0, bytes.length)
-      }
-    }
-    else if (shouldLift(name))
-      findClass(name)
-    else
-      super.loadClass(name)
+      else if (shouldLift(name))
+        findClass(name)
+      else
+        super.loadClass(name)
+    })
   }
 
   override def findClass(name: String): Class[_] = {
@@ -111,4 +115,8 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
 
     toFile(classNode.name + "_", cw)
   }
+}
+
+object VBCClassLoader {
+  val loadedClasses = mutable.Map[String, Class[_]]()
 }
