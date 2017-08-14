@@ -297,7 +297,7 @@ class Loader {
       case IOR => InstrIOR()
       case LOR => InstrLOR()
       case IXOR => InstrIXOR()
-      case LXOR => UNKNOWN(LXOR)
+      case LXOR => InstrLXOR()
       case IINC => {
         val i = inst.asInstanceOf[IincInsnNode]
         InstrIINC(variables(i.`var`, IINC), i.incr)
