@@ -295,7 +295,7 @@ class Loader {
       case IAND => InstrIAND()
       case LAND => InstrLAND()
       case IOR => InstrIOR()
-      case LOR => UNKNOWN(LOR)
+      case LOR => InstrLOR()
       case IXOR => InstrIXOR()
       case LXOR => UNKNOWN(LXOR)
       case IINC => {
