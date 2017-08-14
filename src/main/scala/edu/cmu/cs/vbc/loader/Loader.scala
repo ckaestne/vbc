@@ -222,7 +222,7 @@ class Loader {
         InstrALOAD(variables(i.`var`, ALOAD))
       }
       case IALOAD => InstrIALOAD()
-      case LALOAD => UNKNOWN(LALOAD)
+      case LALOAD => InstrLALOAD()
       case FALOAD => UNKNOWN(FALOAD)
       case DALOAD => UNKNOWN(DALOAD)
       case AALOAD => InstrAALOAD()

@@ -555,3 +555,11 @@ case class InstrLASTORE() extends ArrayStoreInstructions {
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
 }
+
+case class InstrLALOAD() extends ArrayLoadInstructions {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitInsn(LALOAD)
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+}
