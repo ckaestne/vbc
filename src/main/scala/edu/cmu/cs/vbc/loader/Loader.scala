@@ -287,7 +287,7 @@ class Loader {
       case FNEG => UNKNOWN(FNEG)
       case DNEG => UNKNOWN(DNEG)
       case ISHL => InstrISHL()
-      case LSHL => UNKNOWN(LSHL)
+      case LSHL => InstrLSHL()
       case ISHR => InstrISHR()
       case LSHR => UNKNOWN(LSHR)
       case IUSHR => InstrIUSHR()
