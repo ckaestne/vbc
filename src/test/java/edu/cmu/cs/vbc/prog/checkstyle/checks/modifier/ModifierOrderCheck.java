@@ -18,12 +18,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.checks.modifier;
 
-import com.google.common.collect.Lists;
 import edu.cmu.cs.varex.annotation.VConditional;
 import edu.cmu.cs.vbc.prog.checkstyle.api.Check;
 import edu.cmu.cs.vbc.prog.checkstyle.api.DetailAST;
 import edu.cmu.cs.vbc.prog.checkstyle.api.TokenTypes;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -112,7 +112,7 @@ public class ModifierOrderCheck
     @Override
     public void visitToken(DetailAST ast)
     {
-        final List<DetailAST> mods = Lists.newArrayList();
+        final List<DetailAST> mods = new ArrayList<>();
         DetailAST modifier = ast.getFirstChild();
         while (modifier != null) {
             mods.add(modifier);

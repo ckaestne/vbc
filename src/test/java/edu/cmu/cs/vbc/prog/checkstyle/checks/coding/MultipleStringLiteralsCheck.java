@@ -18,7 +18,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.checks.coding;
 
-import com.google.common.collect.Lists;
 import edu.cmu.cs.varex.annotation.VConditional;
 import edu.cmu.cs.vbc.prog.checkstyle.api.Check;
 import edu.cmu.cs.vbc.prog.checkstyle.api.DetailAST;
@@ -141,7 +140,7 @@ public class MultipleStringLiteralsCheck extends Check
         if ((pattern == null) || !pattern.matcher(currentString).find()) {
             List<StringInfo> hitList = stringMap.get(currentString);
             if (hitList == null) {
-                hitList = Lists.newArrayList();
+                hitList = new ArrayList<>();
                 stringMap.put(currentString, hitList);
             }
             final int line = ast.getLineNo();

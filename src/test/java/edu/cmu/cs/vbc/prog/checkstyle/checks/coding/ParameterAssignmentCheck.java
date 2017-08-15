@@ -18,13 +18,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.checks.coding;
 
-import com.google.common.collect.Sets;
 import edu.cmu.cs.varex.annotation.VConditional;
 import edu.cmu.cs.vbc.prog.checkstyle.api.Check;
 import edu.cmu.cs.vbc.prog.checkstyle.api.DetailAST;
 import edu.cmu.cs.vbc.prog.checkstyle.api.FastStack;
 import edu.cmu.cs.vbc.prog.checkstyle.api.TokenTypes;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -234,7 +234,7 @@ public final class ParameterAssignmentCheck extends Check
     private void visitMethodDef(DetailAST ast)
     {
         parameterNamesStack.push(parameterNames);
-        parameterNames = Sets.newHashSet();
+        parameterNames = new HashSet<>();
 
         visitMethodParameters(ast.findFirstToken(TokenTypes.PARAMETERS));
     }
