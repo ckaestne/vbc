@@ -90,7 +90,17 @@ case class Owner(name: String) extends TypeVerifier {
     "java/util/regex/Matcher",
     "java/io/RandomAccessFile",
     "java/io/Reader",
-    "java/util/Hashtable"
+    "java/util/Hashtable",
+    "java/lang/SecurityManager",
+    "java/lang/reflect/Array",
+    "java/lang/ThreadGroup",
+    "java/util/HashMap",
+    "java/util/LinkedHashMap",
+    "java/util/ResourceBundle",
+    "java/util/ResourceBundle$Control",
+    "java/util/Locale$Category",
+    "java/lang/StringBuffer"
+
   )
 
   /** Get the corresponding model class
