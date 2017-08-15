@@ -18,18 +18,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.checks;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import edu.cmu.cs.vbc.prog.checkstyle.api.Check;
 import edu.cmu.cs.vbc.prog.checkstyle.api.DetailAST;
 import edu.cmu.cs.vbc.prog.checkstyle.api.ScopeUtils;
 import edu.cmu.cs.vbc.prog.checkstyle.api.TokenTypes;
 
-import java.util.Deque;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Abstract class for checks which need to collect information about
@@ -52,10 +46,10 @@ public abstract class DeclarationCollector extends Check
     @Override
     public void beginTree(DetailAST rootAST)
     {
-        final Deque<LexicalFrame> frameStack = Lists.newLinkedList();
+        final Deque<LexicalFrame> frameStack = new LinkedList<>();
         frameStack.add(new GlobalFrame());
 
-        frames = Maps.newHashMap();
+        frames = new HashMap<>();
 
         DetailAST curNode = rootAST;
         while (curNode != null) {
@@ -232,7 +226,7 @@ public abstract class DeclarationCollector extends Check
         protected LexicalFrame(LexicalFrame parent)
         {
             this.parent = parent;
-            varNames = Sets.newHashSet();
+            varNames = new HashSet<>();
         }
 
         /** add a name to the frame.
@@ -325,10 +319,10 @@ public abstract class DeclarationCollector extends Check
         public ClassFrame(LexicalFrame parent)
         {
             super(parent);
-            instanceMembers = Sets.newHashSet();
-            instanceMethods = Sets.newHashSet();
-            staticMembers = Sets.newHashSet();
-            staticMethods = Sets.newHashSet();
+            instanceMembers = new HashSet<>();
+            instanceMethods = new HashSet<>();
+            staticMembers = new HashSet<>();
+            staticMethods = new HashSet<>();
         }
 
         /**

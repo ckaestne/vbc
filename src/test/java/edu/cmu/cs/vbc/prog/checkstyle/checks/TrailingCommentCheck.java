@@ -18,13 +18,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.checks;
 
-import com.google.common.collect.Sets;
 import edu.cmu.cs.varex.annotation.VConditional;
 import edu.cmu.cs.vbc.prog.checkstyle.api.DetailAST;
 import edu.cmu.cs.vbc.prog.checkstyle.api.TextBlock;
 import edu.cmu.cs.vbc.prog.checkstyle.api.Utils;
 import org.apache.commons.beanutils.ConversionException;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -164,7 +164,7 @@ public class TrailingCommentCheck extends AbstractFormatCheck
                 .getCppComments();
         final Map<Integer, List<TextBlock>> cComments = getFileContents()
                 .getCComments();
-        final Set<Integer> lines = Sets.newHashSet();
+        final Set<Integer> lines = new HashSet<>();
         lines.addAll(cppComments.keySet());
         lines.addAll(cComments.keySet());
 

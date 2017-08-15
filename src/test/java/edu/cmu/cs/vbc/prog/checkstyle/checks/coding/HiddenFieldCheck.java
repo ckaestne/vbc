@@ -19,11 +19,11 @@
 package edu.cmu.cs.vbc.prog.checkstyle.checks.coding;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.Sets;
 import edu.cmu.cs.varex.annotation.VConditional;
 import edu.cmu.cs.vbc.prog.checkstyle.api.*;
 import org.apache.commons.beanutils.ConversionException;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -553,10 +553,10 @@ public class HiddenFieldCheck
         private final FieldFrame parent;
 
         /** set of instance field names */
-        private final Set<String> instanceFields = Sets.newHashSet();
+        private final Set<String> instanceFields = new HashSet<>();
 
         /** set of static field names */
-        private final Set<String> staticFields = Sets.newHashSet();
+        private final Set<String> staticFields = new HashSet<>();
 
         /**
          * Creates new frame.
