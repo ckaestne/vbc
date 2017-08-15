@@ -307,7 +307,7 @@ class Loader {
       case I2D => InstrI2D()
       case L2I => InstrL2I()
       case L2F => UNKNOWN(L2F)
-      case L2D => UNKNOWN(L2D)
+      case L2D => InstrL2D()
       case F2I => UNKNOWN(F2I)
       case F2L => UNKNOWN(F2L)
       case F2D => UNKNOWN(F2D)
