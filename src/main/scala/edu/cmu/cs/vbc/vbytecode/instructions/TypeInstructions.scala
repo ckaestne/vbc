@@ -272,3 +272,13 @@ case class InstrI2L() extends Instruction {
     (newFrame, Set())
   }
 }
+
+case class InstrI2D() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(I2D)
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    ???
+  }
+}
