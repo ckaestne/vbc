@@ -388,7 +388,7 @@ class Loader {
       case IRETURN => InstrIRETURN()
       case LRETURN => InstrLRETURN()
       case FRETURN => UNKNOWN(FRETURN)
-      case DRETURN => UNKNOWN(DRETURN)
+      case DRETURN => InstrDRETURN()
       case ARETURN => InstrARETURN()
       case RETURN => InstrRETURN()
       case GETSTATIC => {

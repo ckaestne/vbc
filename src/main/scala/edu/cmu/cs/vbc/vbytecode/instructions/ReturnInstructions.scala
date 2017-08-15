@@ -119,3 +119,26 @@ case class InstrLRETURN() extends ReturnInstruction {
     (newFrame, backtrack)
   }
 }
+
+/**
+  * Return double from method
+  *
+  * ..., value(double) -> [empty]  (left values are discarded)
+  */
+case class InstrDRETURN() extends ReturnInstruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitInsn(DRETURN)
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    ???
+//    env.setLift(this)
+//    val (v, prev, newFrame) = s.pop()
+//    val backtrack =
+//      if (v != V_TYPE()) prev
+//      else Set[Instruction]()
+//    (newFrame, backtrack)
+  }
+}
