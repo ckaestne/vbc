@@ -292,7 +292,7 @@ public class ArrayOps {
     /**
      * Transform V<T>[] to V<T[]>
      */
-    public static <T> V<T[]> expandArray(V<T>[] array, FeatureExpr ctx) {
+    public static <T> V<T[]> expandArray(V<T>[] array, Class c, FeatureExpr ctx) {
         if (cached.containsKey(array)) {
             return cached.get(array);
         }
@@ -301,7 +301,7 @@ public class ArrayOps {
             result = V.one(ctx, new Object[]{});
         }
         else {
-            result = expandArrayElements(array, ctx, 0, new ArrayList<T>());
+            result = expandArrayElements(array, c, ctx);
         }
         cached.put(array, result);
         return result;
@@ -312,26 +312,14 @@ public class ArrayOps {
     }
 
     /**
-     * Helper function for {@link #expandArray(V[], FeatureExpr)}
+     * Helper function for {@link #expandArray(V[], Class, FeatureExpr)}
      */
-    private static <T> V<?> expandArrayElements(V<T>[] array, FeatureExpr ctx, Integer index, ArrayList<T> soFar) {
+    private static <T> V<?> expandArrayElements(V<T>[] array, Class c, FeatureExpr ctx) {
         model.java.util.ArrayList list = new model.java.util.ArrayList(ctx);
         for (int i = 0; i < array.length; i++) {
             list.add__Ljava_lang_Object__Z(array[i], ctx);
         }
-        return list.getVOfArrays(ctx);
-//        return array[index].sflatMap(ctx, new BiFunction<FeatureExpr, T, V<?>>() {
-//            @Override
-//            public V<?> apply(FeatureExpr featureExpr, T t) {
-//                ArrayList<T> newArray = new ArrayList<T>(soFar);
-//                newArray.add(t);
-//                if (index == array.length - 1) {
-//                    return V.one(featureExpr, newArray.toArray());
-//                } else {
-//                    return expandArrayElements(array, ctx, index + 1, newArray);
-//                }
-//            }
-//        });
+        return list.getVOfArrays(c, ctx);
     }
 
     /**

@@ -26,11 +26,10 @@ public class ArrayList implements List {
         return vActual.smap(ctx, l -> new MyArrayList(l));
     }
 
-    public V<?> getVOfArrays(FeatureExpr ctx) {
+    public V<?> getVOfArrays(Class c, FeatureExpr ctx) {
         return vActual.smap(ctx, l -> {
-            Object[] o = new Object[l.size()];
-            l.toArray(o);
-            return o;
+            Object[] o = l.toArray();
+            return java.util.Arrays.copyOf(o, l.size(), c);
         });
     }
 

@@ -85,4 +85,8 @@ class SmallExampleTest extends FunSuite with DiffLaunchTestInfrastructure {
   test("SwitchExample") {
     testMain(classOf[SwitchExample])
   }
+
+  test("ExpandObjectArrayExample") {
+    testMain(classOf[ExpandObjectArrayExample])
+  }
 }
