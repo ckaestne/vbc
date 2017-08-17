@@ -52,6 +52,7 @@ object LiftingPolicy {
     */
   def shouldLiftMethodCall(owner: Owner, name: MethodName, desc: MethodDesc): Boolean = {
     if (shouldLiftClass(owner)) true
+    else if (owner.name.startsWith("org/apache/commons/cli")) false
     else {
       owner match {
         case Owner("java/lang/Integer") => false
