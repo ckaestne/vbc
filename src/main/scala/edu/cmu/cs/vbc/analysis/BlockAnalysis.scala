@@ -18,6 +18,16 @@ trait CFGAnalysis {
 
   protected def blocks = method.body.blocks
 
+  /**
+    * Get successor block and predecessor block relationships.
+    *
+    * First we build successor relationship by analyzing the last instruction of each
+    * block, to check whether that's a jump instruction. Then, predecessor relationship
+    * is the inverse of successor relationship plus exception handler edges. The exception
+    * handler edges are necessary for generating VBlock.
+    *
+    * @todo Shall we add exception handler edges to the successor relationship as well?
+    */
   private val (succ, pred) = {
     var succ: Map[Block, Set[Block]] = Map()
     var pred: Map[Block, Set[Block]] = blocks.map((_, Set[Block]())).toMap
@@ -150,7 +160,7 @@ trait VBlockAnalysis extends CFGAnalysis {
       val variationalEdgeFromPred = pred.exists(isVariationalJump(_, block))
       val variationalEdgeToPred = pred.exists(isVariationalJump(block, _))
       if (!variationalEdgeFromPred && !variationalEdgeToPred) {
-        val predVBlockIdxs = pred.map(vblockId)
+        val predVBlockIdxs = pred.filter(_ != block).map(vblockId)
         val thisVBlockIdx = vblockId(block)
         if (predVBlockIdxs.size == 1 && predVBlockIdxs.head != thisVBlockIdx) {
           vblockId += (block -> predVBlockIdxs.head)
