@@ -207,12 +207,10 @@ trait MethodInstruction extends Instruction {
       frame = baseFrame
       if (ref == V_TYPE()) env.setLift(this)
       if (this.isInstanceOf[InstrINVOKESPECIAL] && name.contentEquals("<init>")) {
-        if (ref.isInstanceOf[V_REF_TYPE] || (!shouldLift && hasVArgs)) {
-          // Special handling for <init>:
+        if (ref.isInstanceOf[V_REF_TYPE]) {
+          // We expect uninitialized references appear in pairs.
           // Whenever we see a V_REF_TYPE reference, we know that the initialized object would be consumed later as
           // method arguments or field values, so we scan the stack and wrap it into a V
-          // or
-          // passing Vs to constructors of classes that we don't lift (e.g. String)
           env.setTag(this, env.TAG_WRAP_DUPLICATE)
           // we only expect one duplicate on stack, otherwise calling one createOne is not enough
           assert(frame.stack.head._1 == ref, "No duplicate UNINITIALIZED value on stack")
@@ -220,6 +218,20 @@ trait MethodInstruction extends Instruction {
           assert(!moreThanOne, "More than one UNINITIALIZED value on stack")
           val (ref2, prev2, frame2) = frame.pop()
           frame = frame2.push(V_TYPE(), prev2)
+        }
+        else if (!shouldLift && hasVArgs) {
+          // Passing V to constructors of classes that we don't lift (e.g. String)
+          // There could be ONE or NO duplicate reference on the operand stack.
+          // If there is one, we ensure that it is actually duplicated and set the tag to wrap it into V.
+          // If there is no, we do nothing.
+          val hasDupRef: Boolean = frame.stack.headOption.exists(_._1 == ref)
+          if (hasDupRef) {
+            env.setTag(this, env.TAG_WRAP_DUPLICATE)
+            val moreThanOne = frame.stack.tail.contains(ref)
+            assert(!moreThanOne, "More than one duplicated values on stack")
+            val (ref2, prev2, frame2) = frame.pop()
+            frame = frame2.push(V_TYPE(), prev2)
+          }
         }
       }
     }
