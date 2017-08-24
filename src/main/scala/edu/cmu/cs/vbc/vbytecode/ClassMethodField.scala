@@ -29,7 +29,7 @@ case class VBCMethodNode(access: Int,
   }
 
   def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
-    logger.info(s"\t lifting $name")
+    logger.info(s"\t lifting $name$desc")
     val liftedMethodDesc =
       if (name != "<init>")
         MethodDesc(desc).toVs.appendFE.toVReturnType
