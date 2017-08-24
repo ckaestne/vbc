@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode
 
+import com.typesafe.scalalogging.LazyLogging
 import edu.cmu.cs.vbc.utils.LiftUtils
 import edu.cmu.cs.vbc.vbytecode.instructions.{InstrINIT_CONDITIONAL_FIELDS, InstrINVOKESTATIC, InstrRETURN, Instruction}
 import org.objectweb.asm.Opcodes._
@@ -14,7 +15,7 @@ case class VBCMethodNode(access: Int,
                          exceptions: List[String],
                          body: CFG,
                          localVar: List[Variable] = Nil // initial local variables
-                        ) {
+                        ) extends LazyLogging {
 
   import LiftUtils._
 
@@ -28,6 +29,7 @@ case class VBCMethodNode(access: Int,
   }
 
   def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
+    logger.info(s"\t lifting $name")
     val liftedMethodDesc =
       if (name != "<init>")
         MethodDesc(desc).toVs.appendFE.toVReturnType
