@@ -58,13 +58,27 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
   }
 
   def liftClass(name: String, clazz: VBCClassNode): Class[_] = {
+    import scala.collection.JavaConversions._
     val cw = new MyClassWriter(ClassWriter.COMPUTE_FRAMES) // COMPUTE_FRAMES implies COMPUTE_MAX
-    if (isLift) {
-      logger.info(s"lifting $name")
-      clazz.toVByteCode(cw, rewriter)
-    }
-    else {
-      clazz.toByteCode(cw, rewriter)
+    val cv = new TraceClassVisitor(cw, null)
+    try {
+      if (isLift) {
+        logger.info(s"lifting $name")
+        clazz.toVByteCode(cv, rewriter)
+      }
+      else {
+        clazz.toByteCode(cv, rewriter)
+      }
+    } catch {
+      case e =>
+        logger.debug(e.getClass + ": " + e.getMessage)
+        logger.debug(e.getStackTrace.toList mkString("\t", "\n\t", "\n"))
+        logger.debug("Please check the following generated code")
+        cv.p.text.toList.foreach(e => e match {
+          case s: String => logger.debug(s)
+          case l: java.util.List[_] => logger.debug(l.toList mkString "")
+        })
+        System.exit(1)
     }
 
     val cr2 = new ClassReader(cw.toByteArray)
