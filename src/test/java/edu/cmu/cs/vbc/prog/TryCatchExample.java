@@ -39,10 +39,31 @@ public class TryCatchExample {
         }
     }
 
+    /**
+     * Minimal example from Checkstyle.
+     *
+     * In bytecode, there are three blocks that are protected by a TRYCATCHBLOCK. One of those leaves a
+     * value on the operand stack while the other two leave the operand stack empty. This is problematic because
+     * the incoming edges of catch block have incompatible height operand stack.
+     */
+    Integer tryWithIf() {
+        try {
+            Integer i = 3;
+            if (i/0 == 4) {
+                System.out.println("should not see this output");
+            }
+            return null;
+        }
+        catch (Exception e) {
+            throw new RuntimeException();
+        }
+    }
+
     public static void main(String[] args) {
         TryCatchExample example = new TryCatchExample();
 //        example.tryCatch1(1, 1);
         example.tryCatch1(1, 2);
         example.tryFinally(1, 2);
+        example.tryWithIf();
     }
 }
