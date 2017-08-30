@@ -76,6 +76,7 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
       }
     } catch {
       case e: Throwable =>
+        println("Exception thrown in ASM: ")
         println(e.getClass + ": " + e.getMessage)
         logger.debug(e.getStackTrace.toList mkString("\t", "\n\t", "\n"))
         logger.debug("Please check the following generated code")

@@ -51,7 +51,7 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
       nonvariationalJump(mv, env)
     }
 
-//    writeExceptions(mv, env)
+    writeExceptions(mv, env)
   }
 
 
