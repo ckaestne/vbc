@@ -70,8 +70,8 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
         clazz.toByteCode(cv, rewriter)
       }
     } catch {
-      case e =>
-        logger.debug(e.getClass + ": " + e.getMessage)
+      case e: Throwable =>
+        println(e.getClass + ": " + e.getMessage)
         logger.debug(e.getStackTrace.toList mkString("\t", "\n\t", "\n"))
         logger.debug("Please check the following generated code")
         cv.p.text.toList.foreach(e => e match {
