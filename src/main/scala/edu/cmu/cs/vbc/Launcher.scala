@@ -17,6 +17,13 @@ object Launcher extends App {
 
   FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
 
+  lazy val config: ModelConfig = {
+    if (args.length < 3)
+      ModelConfig.defaultConfig
+    else
+      new ModelConfig(args(2))
+  }
+
   VBCLauncher.launch(args(0), args.size < 2 || args(1) == "true", args.drop(2))
 
 

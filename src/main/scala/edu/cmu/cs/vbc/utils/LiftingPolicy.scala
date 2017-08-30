@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.utils
 
+import edu.cmu.cs.vbc.Launcher.config
 import edu.cmu.cs.vbc.vbytecode._
 
 /**
@@ -14,78 +15,32 @@ import edu.cmu.cs.vbc.vbytecode._
   */
 object LiftingPolicy {
 
-  def shouldLiftClass(owner: Owner): Boolean = owner.name match {
-    case x if x.startsWith("edu/cmu/cs/vbc/prog/") => true
-//    case x if x.endsWith("java/lang/StringBuilder") => true
-    case x if x.endsWith("java/lang/AbstractStringBuilder") => true
-    case x if x.endsWith("java/util/AbstractList") => true
-    case x if x.endsWith("java/util/AbstractCollection") => true
-//    case x if x.endsWith("java/lang/Enum") => true
-    case x if x.endsWith("java/util/Collections") => true
-    case x if x.endsWith("java/util/Collections$EmptySet") => true
-    case x if x.endsWith("java/util/Collections$EmptyList") => true
-    case x if x.endsWith("java/util/Collections$EmptyMap") => true
-    case x if x.endsWith("java/util/AbstractSet") => true
-    case x if x.endsWith("java/util/AbstractMap") => true
-    case x if x.endsWith("java/util/ListIterator") => true
-    case x if x.endsWith("java/util/AbstractSequentialList") => true
-//    case x if x.endsWith("java/io/OutputStream") => true
-//    case x if x.endsWith("java/io/InputStream") => true
-    case x if x.endsWith("java/io/ByteArrayInputStream") => true
-      // List related classes, uncomment these if we are not using model classes for
-      // LinkedList and ArrayList.
-//    case x if x.contains("java/util/ArrayList") => true // so that inner classes could be included.
-//    case x if x.contentEquals("model/java/util/Collection") => true
-//    case x if x.endsWith("java/util/Iterator") => true
-//    case x if x.endsWith("java/util/List") => true
-//    case x if x.endsWith("java/util/LinkedList") => true
-//    case x if x.endsWith("java/util/LinkedList$Node") => true
-//    case x if x.endsWith("java/util/LinkedList$ListItr") => true
-      // checkstyle
-    case _ => false
+  /**
+    * Return true if we lift this class
+    *
+    * By default, all JDK classes are copied as model classes, except for a few that we do not
+    * want to change their names. For modeled JDK classes, we need to decided which of them
+    * should be lifted. Reasons for lifting JDK classes include, but not limited to:
+    *
+    * - program classes extend JDK classes
+    *
+    * @param owner  The actual class name that will appear in the lifted bytecode.
+    *               If this is a JDK class, it will be prefixed with "model".
+    */
+  def shouldLiftClass(owner: Owner): Boolean = {
+    if (config.jdkLiftingClasses.exists(n => owner.name.matches(".*" + n))) true
+    else if (owner.name.startsWith("edu/cmu/cs/vbc/prog/") && !config.programNotLiftingClasses.exists(n => owner.name.matches(".*" + n))) true
+    else false
   }
 
   /**
     * Return true if we want to life this method call
     *
-    * @todo return the actual model class name if we decided to lift this method call.
+    * The parameter ``owner`` might be renamed to model classes later.
     */
   def shouldLiftMethodCall(owner: Owner, name: MethodName, desc: MethodDesc): Boolean = {
-    if (shouldLiftClass(owner)) true
-    else if (owner.name.startsWith("org/apache/commons/cli")) false
-    else {
-      owner match {
-        case Owner("java/lang/Integer") => false
-        case Owner("java/lang/Character") => false
-        case Owner("java/lang/Short") => false
-        case Owner("java/lang/Byte") => false
-        case Owner("java/lang/String") => false
-        case Owner("java/lang/Long") => false
-        case Owner("java/lang/Object") => false
-        case Owner("java/io/PrintStream") => false
-        case Owner("java/lang/Math") => false
-        case Owner("java/lang/System") => false
-        case Owner("java/lang/Class") => false
-        case Owner("java/net/URL") => false
-        case Owner("java/io/File") => false
-        case Owner("java/io/FileReader") => false
-        case Owner("java/io/Reader") => false
-        case Owner("java/util/Iterator") => false
-        case Owner("java/util/TimeZone") => false
-        case Owner("java/util/Calendar") => false
-        case Owner("java/util/Date") => false
-        case Owner("java/io/InputStream") => false
-//        case Owner("java/io/ByteArrayInputStream") => false
-        case Owner("java/io/OutputStream") => false
-        case o if o.name.endsWith("Exception") => false
-        case Owner("java/lang/Runtime") => false
-          // checkstyle
-        case Owner("java/util/Properties") => false
-        case Owner("java/net/URI") => false
-        case Owner("javax/xml/parsers/FactoryFinder") => false
-        case _ => true
-      }
-    }
+    if (config.notLiftingClasses.contains(owner.name)) false
+    else true
   }
 
   /**

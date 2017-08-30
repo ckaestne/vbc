@@ -2,6 +2,7 @@ package edu.cmu.cs.vbc.vbytecode
 
 import javax.lang.model.SourceVersion
 
+import edu.cmu.cs.vbc.Launcher
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.utils.VBCModel
 import org.objectweb.asm.Type
@@ -42,67 +43,6 @@ case class Owner(name: String) extends TypeVerifier {
 
   def getTypeDesc: TypeDesc = TypeDesc(Type.getObjectType(name).getDescriptor)
 
-  val modelExceptionList = List(
-    // inheritance hierarchy
-    "java/lang/Object",
-    // some static field initial values are String constants
-    "java/lang/String",
-    // ATHROW can only throw java/lang/Throwable
-    "java/lang/Throwable",
-    // UnsatisfiedLinkError because of natives
-    "java/lang/System",
-    // because we are not lifting System
-    "java/io/PrintStream",
-    // reflection and exception handling
-    "java/lang/Class",
-    // Integer call a package access method from java/lang/Class
-    "java/lang/Integer", "java/lang/Short", "java/lang/Byte", "java/lang/Float", "java/lang/Double", "java/lang/Character",
-    "java/lang/Long",
-    // Native
-    "java/lang/Math",
-    // I/O natives
-    "java/io/UnixFileSystem", "java/io/FileSystem", "java/io/DefaultFileSystem", "java/io/File", "java/net/URL",
-    "java/io/FileInputStream", "java/io/OutputStream", "java/io/InputStream",
-    // Hard to get model/java/util/Iterator from JDK collection classes.
-    "java/util/Iterator",
-    // Not sure
-    "java/lang/Runtime", "java/util/TimeZone", "java/util/Locale", "java/util/Date", "java/util/Calendar",
-    // checkstyle
-    "java/util/Properties", "java/net/URI", "javax/xml/parsers/FactoryFinder", "javax/xml/parsers/SAXParserFactory",
-    "javax/xml/parsers/SAXParser", "java/lang/ClassLoader", "java/util/Map", "java/util/Set", "java/lang/Enum",
-    "java/security/AccessController", "java/security/PrivilegedAction", "java/lang/Thread", "java/lang/Boolean",
-    "java/beans/PropertyDescriptor", "java/lang/reflect/Method", "java/nio/charset/spi/CharsetProvider", "java/lang/ThreadLocal",
-    "java/nio/charset/Charset", "java/util/Enumeration", "java/util/concurrent/ConcurrentHashMap",
-    "java/util/concurrent/atomic/AtomicReferenceFieldUpdater",
-    "java/io/BufferedInputStream",
-    "java/io/Closeable",
-    "java/util/Collection",
-    "java/util/concurrent/ConcurrentMap",
-    "java/lang/reflect/Field",
-    "java/util/regex/Pattern",
-    "java/lang/reflect/Constructor",
-    "java/lang/Comparable",
-    "java/util/Arrays",
-    "java/util/List",
-    "java/nio/charset/CharsetDecoder",
-    "java/nio/charset/CodingErrorAction",
-    "java/lang/CharSequence",
-    "java/util/regex/Matcher",
-    "java/io/RandomAccessFile",
-    "java/io/Reader",
-    "java/util/Hashtable",
-    "java/lang/SecurityManager",
-    "java/lang/reflect/Array",
-    "java/lang/ThreadGroup",
-    "java/util/HashMap",
-    "java/util/LinkedHashMap",
-    "java/util/ResourceBundle",
-    "java/util/ResourceBundle$Control",
-    "java/util/Locale$Category",
-    "java/lang/StringBuffer"
-
-  )
-
   /** Get the corresponding model class
     *
     * @return
@@ -112,9 +52,7 @@ case class Owner(name: String) extends TypeVerifier {
   def toModel: Owner = name match {
     case s: String if s.startsWith("[") => Owner("[" + TypeDesc(s.tail).toModel)
     case s: String if s.startsWith("java") =>
-      if (modelExceptionList.contains(name))
-        this
-      else if (name.endsWith("Exception") || name.endsWith("Error"))
+      if (Launcher.config.jdkNotLiftingClasses.exists(name.matches))
         this
       else
         Owner(VBCModel.prefix + "/" + name)
