@@ -24,9 +24,14 @@ import scala.collection.mutable
 class VBCClassLoader(parentClassLoader: ClassLoader,
                      isLift: Boolean = true,
                      rewriter: (VBCMethodNode, VBCClassNode) => VBCMethodNode = (a, b) => a,
-                     toFileDebugging: Boolean = true) extends ClassLoader(parentClassLoader) with LazyLogging {
+                     toFileDebugging: Boolean = true,
+                     configFile: Option[String] = None) extends ClassLoader(parentClassLoader) with LazyLogging {
 
   val loader = new Loader()
+  if (configFile.isDefined) {
+    val config = new ModelConfig(configFile.get)
+    LiftingPolicy.setConfig(config)
+  }
 
   override def loadClass(name: String): Class[_] = {
     VBCClassLoader.loadedClasses.getOrElseUpdate(name, {

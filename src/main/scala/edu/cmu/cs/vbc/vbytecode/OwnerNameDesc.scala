@@ -2,9 +2,8 @@ package edu.cmu.cs.vbc.vbytecode
 
 import javax.lang.model.SourceVersion
 
-import edu.cmu.cs.vbc.Launcher
 import edu.cmu.cs.vbc.utils.LiftUtils._
-import edu.cmu.cs.vbc.utils.VBCModel
+import edu.cmu.cs.vbc.utils.{LiftingPolicy, VBCModel}
 import org.objectweb.asm.Type
 
 /**
@@ -52,7 +51,7 @@ case class Owner(name: String) extends TypeVerifier {
   def toModel: Owner = name match {
     case s: String if s.startsWith("[") => Owner("[" + TypeDesc(s.tail).toModel)
     case s: String if s.startsWith("java") =>
-      if (Launcher.config.jdkNotLiftingClasses.exists(name.matches))
+      if (LiftingPolicy.getConfig.jdkNotLiftingClasses.exists(name.matches))
         this
       else
         Owner(VBCModel.prefix + "/" + name)

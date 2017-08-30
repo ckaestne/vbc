@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.utils
 
-import edu.cmu.cs.vbc.Launcher.config
+import edu.cmu.cs.vbc.ModelConfig
 import edu.cmu.cs.vbc.vbytecode._
 
 /**
@@ -15,6 +15,10 @@ import edu.cmu.cs.vbc.vbytecode._
   */
 object LiftingPolicy {
 
+  private var currentConfig: ModelConfig = ModelConfig.defaultConfig
+  private[vbc] def setConfig(_config: ModelConfig) = currentConfig = _config
+  def getConfig: ModelConfig = currentConfig
+
   /**
     * Return true if we lift this class
     *
@@ -28,8 +32,8 @@ object LiftingPolicy {
     *               If this is a JDK class, it will be prefixed with "model".
     */
   def shouldLiftClass(owner: Owner): Boolean = {
-    if (config.jdkLiftingClasses.exists(n => owner.name.matches(".*" + n))) true
-    else if (owner.name.startsWith("edu/cmu/cs/vbc/prog/") && !config.programNotLiftingClasses.exists(n => owner.name.matches(".*" + n))) true
+    if (currentConfig.jdkLiftingClasses.exists(n => owner.name.matches(".*" + n))) true
+    else if (owner.name.startsWith("edu/cmu/cs/vbc/prog/") && !currentConfig.programNotLiftingClasses.exists(n => owner.name.matches(".*" + n))) true
     else false
   }
 
@@ -39,7 +43,7 @@ object LiftingPolicy {
     * The parameter ``owner`` might be renamed to model classes later.
     */
   def shouldLiftMethodCall(owner: Owner, name: MethodName, desc: MethodDesc): Boolean = {
-    if (config.notLiftingClasses.contains(owner.name)) false
+    if (currentConfig.notLiftingClasses.contains(owner.name)) false
     else true
   }
 
