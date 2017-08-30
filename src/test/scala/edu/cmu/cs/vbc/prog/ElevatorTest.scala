@@ -10,7 +10,7 @@ import org.scalatest.FunSuite
 class ElevatorTest extends FunSuite with DiffLaunchTestInfrastructure {
   FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
   test("Elevator") {
-    testMain(classOf[elevator.PL_Interface_impl], fm = fm)
+    testMain(classOf[elevator.PL_Interface_impl], fm = fm, configFile = Some("elevator.conf"))
   }
 
   def fm(config: Map[String, Boolean]): Boolean = {

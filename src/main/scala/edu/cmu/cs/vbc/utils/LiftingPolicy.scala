@@ -43,7 +43,7 @@ object LiftingPolicy {
     * The parameter ``owner`` might be renamed to model classes later.
     */
   def shouldLiftMethodCall(owner: Owner, name: MethodName, desc: MethodDesc): Boolean = {
-    if (currentConfig.notLiftingClasses.contains(owner.name)) false
+    if (currentConfig.notLiftingClasses.exists(n => owner.name.matches(n))) false
     else true
   }
 

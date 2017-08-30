@@ -82,20 +82,20 @@ trait DiffLaunchTestInfrastructure {
     )
 
 
-  def checkCrash(clazz: Class[_]): Unit = testMain(clazz, false)
+//  def checkCrash(clazz: Class[_]): Unit = testMain(clazz, false)
 
-  def testMain(clazz: Class[_], compareTraceAgainstBruteForce: Boolean = true, runBenchmark: Boolean = true, fm: (Map[String, Boolean]) => Boolean = _ => true): Unit = {
+  def testMain(clazz: Class[_], compareTraceAgainstBruteForce: Boolean = true, runBenchmark: Boolean = true, fm: (Map[String, Boolean]) => Boolean = _ => true, configFile: Option[String] = None): Unit = {
     //test uninstrumented variational execution to see whether it crashes
     val classname = clazz.getName
     //VBCLauncher.launch(classname)
-    val testCrashLoader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, true, avoidOutput)
+    val testCrashLoader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, true, avoidOutput, configFile = configFile)
     val testCrash = testCrashLoader.loadClass(classname)
     VBCLauncher.invokeMain(testCrash, new Array[String](0))
 
     //test instrumented version, executed variationally
     TestTraceOutput.trace = Nil
     TraceConfig.options = Set()
-    val vloader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, true, instrumentMethod)
+    val vloader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, true, instrumentMethod, configFile = configFile)
     val vcls: Class[_] = vloader.loadClass(classname)
     VBCLauncher.invokeMain(vcls, new Array[String](0))
 
@@ -105,7 +105,7 @@ trait DiffLaunchTestInfrastructure {
     println("Used Options: " + TraceConfig.options.mkString(", "))
 
     if (compareTraceAgainstBruteForce) {
-      val loader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, false, instrumentMethod, toFileDebugging = false)
+      val loader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, false, instrumentMethod, toFileDebugging = false, configFile = configFile)
       val cls: Class[_] = loader.loadClass(classname)
       //run against brute force instrumented execution and compare traces
       for ((sel, desel) <- explode(usedOptions.toList) if fm(configToMap((sel, desel)))) {
@@ -123,9 +123,9 @@ trait DiffLaunchTestInfrastructure {
 
     if (runBenchmark) {
       //run benchmark (without instrumentation)
-      val vbenchmarkloader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, true, prepareBenchmark)
+      val vbenchmarkloader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, true, prepareBenchmark, configFile = configFile)
       val vbenchmarkcls: Class[_] = vbenchmarkloader.loadClass(classname)
-      val benchmarkloader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, false, prepareBenchmark)
+      val benchmarkloader: VBCClassLoader = new VBCClassLoader(this.getClass.getClassLoader, false, prepareBenchmark, configFile = configFile)
       val benchmarkcls: Class[_] = benchmarkloader.loadClass(classname)
       benchmark(classname, vbenchmarkcls, benchmarkcls, usedOptions, fm)
     }
