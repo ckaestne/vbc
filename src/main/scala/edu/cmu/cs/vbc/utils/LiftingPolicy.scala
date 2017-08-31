@@ -56,6 +56,14 @@ object LiftingPolicy {
     (owner, name, desc) match {
       case (Owner("java/lang/System"), FieldName("out"), _) => false
       case (Owner("java/util/Locale"), FieldName("GERMAN"), _) => false
+      case (Owner("java/lang/Boolean"), FieldName("TYPE"), _) => false
+      case (Owner("java/lang/Byte"), FieldName("TYPE"), _) => false
+      case (Owner("java/lang/Integer"), FieldName("TYPE"), _) => false
+      case (Owner("java/lang/Character"), FieldName("TYPE"), _) => false
+      case (Owner("java/lang/Float"), FieldName("TYPE"), _) => false
+      case (Owner("java/lang/Double"), FieldName("TYPE"), _) => false
+      case (Owner("java/lang/Long"), FieldName("TYPE"), _) => false
+      case (Owner("java/lang/Short"), FieldName("TYPE"), _) => false
       case _ => true
     }
   }
