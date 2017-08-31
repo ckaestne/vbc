@@ -3,7 +3,7 @@ package edu.cmu.cs.vbc.vbytecode
 import edu.cmu.cs.vbc.analysis.{VBCAnalyzer, VBCFrame}
 import edu.cmu.cs.vbc.utils.{LiftUtils, Statistics}
 import edu.cmu.cs.vbc.vbytecode.instructions.{InstrGOTO, Instruction, JumpInstruction}
-import org.objectweb.asm.Type
+import org.objectweb.asm.{Label, Type}
 
 /**
   * Environment used during generation of the byte code and variational
@@ -245,6 +245,11 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
       if (idx >= parameterCount) idx + 1
       else idx
     }
+
+  val blockEndLabel: List[Label] = for (i <- blocks.indices.toList) yield new Label(s"END_OF_BLOCK_$i")
+  val allHandlerBlocks: List[Block] = blocks.flatMap(_.exceptionHandlers).distinct.map(handler => getBlock(handler.handlerBlockIdx))
+  def isHandlerBlock(b: Block): Boolean = allHandlerBlocks.contains(b)
+  def getBlockEndLabel(b: Block): Label = blockEndLabel(blocks.indexOf(b))
 
   //////////////////////////////////////////////////
   // Statistics

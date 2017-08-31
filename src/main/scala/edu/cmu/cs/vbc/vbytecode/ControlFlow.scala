@@ -35,6 +35,17 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
     //a unique first block always has a satisfiable condition and no stack variables
     //exception blocks have no stack variables and always a satisfiable condition
     if (env.isVBlockHead(this) && !isUniqueFirstBlock(env)) {
+      if (env.isHandlerBlock(this)) {
+        val expectingVars = env.getExpectingVars(this)
+        assert(expectingVars.length == 1, "Handler block should expect exactly one value on the operand stack")
+        val expectingVar = expectingVars.head
+        callVCreateOne(mv, (m) => loadCurrentCtx(m, env, this))
+        loadCurrentCtx(mv, env, this)
+        mv.visitInsn(SWAP)
+        mv.visitVarInsn(ALOAD, env.getVarIdx(expectingVar))
+        callVCreateChoice(mv)
+        mv.visitVarInsn(ASTORE, env.getVarIdx(expectingVar))
+      }
       vblockSkipIfCtxContradition(mv, env)
       loadUnbalancedStackVariables(mv, env)
     }
@@ -51,7 +62,8 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
       nonvariationalJump(mv, env)
     }
 
-    writeExceptions(mv, env)
+    mv.visitLabel(env.getBlockEndLabel(this))
+//    writeExceptions(mv, env)
   }
 
 
@@ -290,10 +302,45 @@ case class CFG(blocks: List[Block]) {
     blocks.foreach(_.toByteCode(mv, env))
   }
 
+  def writeHandler(mv: MethodVisitor,
+                   env: VMethodEnv,
+                   handler: VBCHandler,
+                   startIdx: Int,
+                   endIdx: Int,
+                   remaining: List[Int]): Unit = {
+    def write(): Unit = {
+      mv.visitTryCatchBlock(
+        env.getBlockLabel(env.getBlock(startIdx)),  // start label
+        env.getBlockEndLabel(env.getBlock(endIdx)), // end label
+        env.getBlockLabel(env.getBlock(handler.handlerBlockIdx)), // handler block label
+        handler.exceptionType // exception type
+      )
+      for (an <- handler.visibleTypeAnnotations)
+        an.accept(mv.visitTryCatchAnnotation(an.typeRef, an.typePath, an.desc, true))
+      for (an <- handler.invisibleTypeAnnotations)
+        an.accept(mv.visitTryCatchAnnotation(an.typeRef, an.typePath, an.desc, true))
+    }
+    if (remaining.isEmpty)
+      write()
+    else {
+      val next = remaining.head
+      if (next == endIdx + 1)
+        writeHandler(mv, env, handler, startIdx, next, remaining.tail)
+      else {
+        write()
+        writeHandler(mv, env, handler, remaining.head, remaining.head, remaining.tail)
+      }
+    }
+  }
 
   def toVByteCode(mv: MethodVisitor, env: VMethodEnv) = {
-//    println(env.method.name)
-//    println(env.toDot)
+    // Write exception handler table
+    val allHandlers = blocks.flatMap(_.exceptionHandlers).distinct
+    for (handler <- allHandlers) {
+      val bs = blocks.filter(_.exceptionHandlers.contains(handler))
+      val indexes = bs.map(blocks.indexOf(_))
+      writeHandler(mv, env, handler, indexes.head, indexes.head, indexes.tail)
+    }
 
     var initializeVars: List[LocalVar] = Nil
 
