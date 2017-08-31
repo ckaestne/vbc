@@ -69,7 +69,7 @@ trait MethodInstruction extends Instruction {
         // Box primitive type
         boxReturnValue(liftedCall.desc, mv)
         // perf: Necessary because we assume V[] everywhere.
-        primitiveArray2VArray(liftedCall.desc, mv, nArgs)
+        toVArray(liftedCall.desc, mv, nArgs)
         if (!LiftingPolicy.shouldLiftMethodCall(owner, name, desc) && !isReturnVoid)
           callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, nArgs))
         //cpwtodo: when calling RETURN, there might be a V<Exception> on stack, but for now just ignore it.
@@ -115,10 +115,18 @@ trait MethodInstruction extends Instruction {
   /**
     * Turn primitive array to V array
     */
-  def primitiveArray2VArray(desc: MethodDesc, mv: MethodVisitor, ctxIdx: Int): Unit = {
+  def toVArray(desc: MethodDesc, mv: MethodVisitor, ctxIdx: Int): Unit = {
     desc.getReturnType match {
       case Some(TypeDesc("[I")) => ???
-      case Some(TypeDesc("[C")) => ???
+      case Some(TypeDesc("[C")) =>
+        mv.visitVarInsn(ALOAD, ctxIdx)
+        mv.visitMethodInsn(
+          INVOKESTATIC,
+          Owner.getArrayOps,
+          "CArray2VArray",
+          MethodDesc(s"([C$fexprclasstype)[$vclasstype"),
+          false
+        )
       case Some(TypeDesc("[S")) => ???
       case Some(TypeDesc("[Z")) => ???
       case Some(TypeDesc("[B")) =>
@@ -133,6 +141,15 @@ trait MethodInstruction extends Instruction {
       case Some(TypeDesc("[J")) => ???
       case Some(TypeDesc("[F")) => ???
       case Some(TypeDesc("[D")) => ???
+      case Some(t) if t.isArray =>
+        mv.visitVarInsn(ALOAD, ctxIdx)
+        mv.visitMethodInsn(
+          INVOKESTATIC,
+          Owner.getArrayOps,
+          "ObjectArray2VArray",
+          MethodDesc(s"([Ljava/lang/Object;$fexprclasstype)[$vclasstype"),
+          false
+        )
       case _ => // do nothing
     }
   }
@@ -315,6 +332,10 @@ case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, 
         mv.visitMethodInsn(INVOKESPECIAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
         //cpwtodo: handle exceptions in <init>
       }
+      else if (!liftedCall.isLifting && hasVArgs) {
+        loadCurrentCtx(mv, env, block)
+        invokeOnNonV(owner, name, desc, itf, mv, env, block)
+      }
       else {
         mv.visitMethodInsn(INVOKESPECIAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
         boxReturnValue(liftedCall.desc, mv)
@@ -328,7 +349,7 @@ case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, 
   }
 
   def invokeInitWithVs(liftedCall: LiftedCall, itf: Boolean, mv: MethodVisitor, env: VMethodEnv): Unit = {
-    val args = liftedCall.desc.getArgs
+    val args = liftedCall.desc.getArgs.map(_.castInt)
     val nArgs = args.length
     val shortClsName = liftedCall.owner.name.split("/").last
     val helperName = "helper$" + shortClsName + "$init$" + env.clazz.lambdaMethods.size

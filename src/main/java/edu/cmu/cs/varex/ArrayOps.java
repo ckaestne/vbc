@@ -383,4 +383,20 @@ public class ArrayOps {
         }
         return vs;
     }
+
+    public static V<?>[] ObjectArray2VArray(Object[] objects, FeatureExpr ctx) {
+        V<?>[] vs = new V<?>[objects.length];
+        for (int i = 0; i < objects.length; i++) {
+            vs[i] = V.one(ctx, objects[i]);
+        }
+        return vs;
+    }
+
+    public static V<?>[] CArray2VArray(char[] chars, FeatureExpr ctx) {
+        V<?>[] vs = new V<?>[chars.length];
+        for (int i = 0; i < chars.length; i++) {
+            vs[i] = V.one(ctx, (int) chars[i]);
+        }
+        return vs;
+    }
 }
