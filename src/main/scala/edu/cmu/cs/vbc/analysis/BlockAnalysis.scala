@@ -178,7 +178,10 @@ trait VBlockAnalysis extends CFGAnalysis {
     val b = vblocks.dropWhile(_ != vblock)
     if (b.isEmpty)
       None
-    else b.tail.headOption
+    else {
+      val bb = b.tail.dropWhile(vblock => isExceptionHandlerBlock(vblock.firstBlock))
+      bb.headOption
+    }
   }
 
   /**
