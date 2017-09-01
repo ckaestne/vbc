@@ -247,9 +247,9 @@ public final class LocalizedMessage
     /** Clears the cache. */
     public static void clearCache()
     {
-        synchronized (BUNDLE_CACHE) {
+//        synchronized (BUNDLE_CACHE) {
             BUNDLE_CACHE.clear();
-        }
+//        }
     }
 
     /** @return the translated message **/
@@ -302,7 +302,7 @@ public final class LocalizedMessage
      */
     private ResourceBundle getBundle(String bundleName)
     {
-        synchronized (BUNDLE_CACHE) {
+//        synchronized (BUNDLE_CACHE) {
             ResourceBundle bundle = BUNDLE_CACHE
                     .get(bundleName);
             if (bundle == null) {
@@ -312,7 +312,7 @@ public final class LocalizedMessage
                 BUNDLE_CACHE.put(bundleName, bundle);
             }
             return bundle;
-        }
+//        }
     }
 
     /** @return the line number **/
