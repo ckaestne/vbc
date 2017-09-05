@@ -64,6 +64,7 @@ object LiftingPolicy {
       case (Owner("java/lang/Double"), FieldName("TYPE"), _) => false
       case (Owner("java/lang/Long"), FieldName("TYPE"), _) => false
       case (Owner("java/lang/Short"), FieldName("TYPE"), _) => false
+      case (Owner("edu/cmu/cs/vbc/prog/checkstyle/api/SeverityLevel"), FieldName("ERROR"), _) => false
       case _ => true
     }
   }
