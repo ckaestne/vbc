@@ -61,7 +61,9 @@ public class TryCatchExample {
 
     public static void main(String[] args) {
         TryCatchExample example = new TryCatchExample();
-//        example.tryCatch1(1, 1);
+        System.out.println("Expect an exception under B");
+        example.tryCatch1(1, 1);
+        System.out.println("Should have no exceptions:");
         example.tryCatch1(1, 2);
         example.tryFinally(1, 2);
         example.tryWithIf();
