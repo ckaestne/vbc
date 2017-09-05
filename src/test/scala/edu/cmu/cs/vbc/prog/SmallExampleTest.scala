@@ -59,7 +59,7 @@ class SmallExampleTest extends FunSuite with DiffLaunchTestInfrastructure {
   }
 
   test("LinkedList") {
-    testMain(classOf[LinkedListExample])
+    testMain(classOf[LinkedListExample], configFile = Some("email.conf"))
   }
 
   test("Different ways of superclass initialization") {

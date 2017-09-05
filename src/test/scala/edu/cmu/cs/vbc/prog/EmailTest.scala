@@ -11,7 +11,7 @@ import org.scalatest.FunSuite
 class EmailTest extends FunSuite with DiffLaunchTestInfrastructure {
   FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
   test("Email") {
-    testMain(classOf[email.PL_Interface_impl], fm = featureModel)
+    testMain(classOf[email.PL_Interface_impl], fm = featureModel, configFile = Some("email.conf"))
   }
 
   def featureModel(config: Map[String, Boolean]): Boolean = {
