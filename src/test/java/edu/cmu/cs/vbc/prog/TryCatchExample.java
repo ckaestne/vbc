@@ -59,6 +59,22 @@ public class TryCatchExample {
         }
     }
 
+    /**
+     * IncompatibleClassChangeError from Checkstyle.
+     *
+     * This is caused by the ASTORE instruction in the catch block, which assumes the values on the
+     * operand stack are Vs, but this assumption does not hold for catching exceptions.
+     */
+    Integer tryCatch2(Integer someNumber) {
+        Integer result = -1;
+        try {
+            result = 1 / someNumber;
+        } catch (Exception e) {
+            System.out.println("Something went wrong: " + e.getMessage());
+        }
+        return result;
+    }
+
     public static void main(String[] args) {
         TryCatchExample example = new TryCatchExample();
         System.out.println("Expect an exception under B");
@@ -66,6 +82,8 @@ public class TryCatchExample {
         System.out.println("Should have no exceptions:");
         example.tryCatch1(1, 2);
         example.tryFinally(1, 2);
+        System.out.println("Expect an exception under True");
+        example.tryCatch2(0);
         example.tryWithIf();
     }
 }
