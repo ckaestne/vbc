@@ -37,7 +37,7 @@ class DetectorOptions
     /** Used for reporting violations. */
     private final AbstractViolationReporter reporter;
     /** Format of the regular expression to check for. */
-    private String format;
+    private String format = ".*(\r\n)(.*|\r\n|\n)*";
     /** The message to report on detection. If blank, then use the format. */
     private String message = "";
     /** Minimum number of times regular expression should occur in a file. */

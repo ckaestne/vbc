@@ -21,7 +21,6 @@ package edu.cmu.cs.vbc.prog.checkstyle.api;
 import org.apache.commons.beanutils.*;
 import org.apache.commons.beanutils.converters.*;
 
-import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -121,48 +120,48 @@ public class AutomaticBean
         for (final String key : attributes) {
             final String value = configuration.getAttribute(key);
 
-            try {
-                // BeanUtilsBean.copyProperties silently ignores missing setters
-                // for key, so we have to go through great lengths here to
-                // figure out if the bean property really exists.
-                final PropertyDescriptor pd =
-                    PropertyUtils.getPropertyDescriptor(this, key);
-                if ((pd == null) || (pd.getWriteMethod() == null)) {
-                    throw new CheckstyleException(
-                        "Property '" + key + "' in module "
-                        + configuration.getName()
-                        + " does not exist, please check the documentation");
-                }
-
-                // finally we can set the bean property
-                beanUtils.copyProperty(this, key, value);
-            }
-            catch (final InvocationTargetException e) {
-                throw new CheckstyleException(
-                    "Cannot set property '" + key + "' in module "
-                    + configuration.getName() + " to '" + value
-                    + "': " + e.getTargetException().getMessage(), e);
-            }
-            catch (final IllegalAccessException e) {
-                throw new CheckstyleException(
-                    "cannot access " + key + " in "
-                    + this.getClass().getName(), e);
-            }
-            catch (final NoSuchMethodException e) {
-                throw new CheckstyleException(
-                    "cannot access " + key + " in "
-                    + this.getClass().getName(), e);
-            }
-            catch (final IllegalArgumentException e) {
-                throw new CheckstyleException(
-                    "illegal value '" + value + "' for property '" + key
-                    + "' of module " + configuration.getName(), e);
-            }
-            catch (final ConversionException e) {
-                throw new CheckstyleException(
-                    "illegal value '" + value + "' for property '" + key
-                    + "' of module " + configuration.getName(), e);
-            }
+//            try {
+//                // BeanUtilsBean.copyProperties silently ignores missing setters
+//                // for key, so we have to go through great lengths here to
+//                // figure out if the bean property really exists.
+//                final PropertyDescriptor pd =
+//                    PropertyUtils.getPropertyDescriptor(this, key);
+//                if ((pd == null) || (pd.getWriteMethod() == null)) {
+//                    throw new CheckstyleException(
+//                        "Property '" + key + "' in module "
+//                        + configuration.getName()
+//                        + " does not exist, please check the documentation");
+//                }
+//
+//                // finally we can set the bean property
+//                beanUtils.copyProperty(this, key, value);
+//            }
+//            catch (final InvocationTargetException e) {
+//                throw new CheckstyleException(
+//                    "Cannot set property '" + key + "' in module "
+//                    + configuration.getName() + " to '" + value
+//                    + "': " + e.getTargetException().getMessage(), e);
+//            }
+//            catch (final IllegalAccessException e) {
+//                throw new CheckstyleException(
+//                    "cannot access " + key + " in "
+//                    + this.getClass().getName(), e);
+//            }
+//            catch (final NoSuchMethodException e) {
+//                throw new CheckstyleException(
+//                    "cannot access " + key + " in "
+//                    + this.getClass().getName(), e);
+//            }
+//            catch (final IllegalArgumentException e) {
+//                throw new CheckstyleException(
+//                    "illegal value '" + value + "' for property '" + key
+//                    + "' of module " + configuration.getName(), e);
+//            }
+//            catch (final ConversionException e) {
+//                throw new CheckstyleException(
+//                    "illegal value '" + value + "' for property '" + key
+//                    + "' of module " + configuration.getName(), e);
+//            }
 
         }
 
