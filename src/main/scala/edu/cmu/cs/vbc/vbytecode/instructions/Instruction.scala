@@ -1,8 +1,8 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.OpcodePrint
-import edu.cmu.cs.vbc.analysis.VBCFrame
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
+import edu.cmu.cs.vbc.analysis.{VBCFrame, V_TYPE}
 import edu.cmu.cs.vbc.utils.LiftUtils
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
@@ -203,4 +203,20 @@ case class InstrStopTimer(id: String) extends Instruction {
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = (s, Set())
+}
+
+/**
+  * Our own instruction for wrapping the value on stack into V.One
+  *
+  * This is used, for example, in our fake TryCatchBlocks to wrap the exceptions.
+  */
+case class InstrWrapOne() extends Instruction {
+  import LiftUtils._
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {} // do nothing
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit =
+    callVCreateOne(mv, loadCurrentCtx(_, env, block))
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    val (_, _, frame) = s.pop()
+    (frame.push(V_TYPE(), Set(this)), Set())
+  }
 }

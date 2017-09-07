@@ -89,4 +89,8 @@ class SmallExampleTest extends FunSuite with DiffLaunchTestInfrastructure {
   test("ExpandObjectArrayExample") {
     testMain(classOf[ExpandObjectArrayExample], configFile = Some("checkstyle.conf"))
   }
+
+  test("TryCatchExample") {
+    testMain(classOf[TryCatchExample])
+  }
 }
