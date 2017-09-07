@@ -21,11 +21,14 @@ object Rewrite {
     if (m.body.blocks.nonEmpty) {
 //      profiling(
         initializeConditionalFields(
-          appendGOTO(
-            ensureUniqueReturnInstr(
-              replaceAthrowWithAreturn(m)
+          addFakeHanlderBlocks(
+            appendGOTO(
+              ensureUniqueReturnInstr(
+                replaceAthrowWithAreturn(m)
+              )
             )
-          ), cls
+          ),
+          cls
       )
 //        , cls)
     }
@@ -137,4 +140,40 @@ object Rewrite {
       m.copy(body = CFG(newBlocks))
     } else m
 
+  /**
+    * Attach one or more fake handler blocks to each Block.
+    *
+    * This way we ensure that each fake handler block is part of only one VBlock, so that the context is available
+    * in handler block. Each fake handler block is simply one GOTO instruction that jumps to the original handler
+    * block.
+    *
+    * Note that we add all fake blocks to the end of method, so that we do not need to change indexes of existing
+    * jump instructions
+    */
+  private def addFakeHanlderBlocks(m: VBCMethodNode): VBCMethodNode = {
+    var currentIdx: Int = m.body.blocks.size
+    val pairs: List[(Block, List[Block])] = m.body.blocks.map(b => {
+      if (b.exceptionHandlers.isEmpty) (b, Nil)
+      else {
+        // replace exceptionHandlers in current block to point to new fake blocks
+        val fakePairs: List[(VBCHandler, Block)] = b.exceptionHandlers.toList.map { h =>
+          val fakeHandler = new VBCHandler(
+            h.exceptionType,
+            currentIdx,
+            h.visibleTypeAnnotations,
+            h.invisibleTypeAnnotations
+          )
+          val fakeBlock = Block(InstrGOTO(h.handlerBlockIdx))
+          currentIdx = currentIdx + 1
+          (fakeHandler, fakeBlock)
+        }
+        val (fakeExceptionHandlers, fakeBlocks) = fakePairs.unzip
+        val newBlock: Block = b.copy(exceptionHandlers = fakeExceptionHandlers)
+        (newBlock, fakeBlocks)
+      }
+    })
+    val newBlocks: List[Block] = pairs.unzip._1
+    val fakeBlocks: List[Block] = pairs.unzip._2.flatten
+    m.copy(body = new CFG(newBlocks ::: fakeBlocks))
+  }
 }

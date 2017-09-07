@@ -78,8 +78,8 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
   def vvalidate(env: VMethodEnv): Unit = {
     validate()
     //additionally ensure that the last block is the only one that contains a return statement
-    if (this != env.getLastBlock())
-      assert(!instr.last.isReturnInstr, "only the last block may contain a return instruction in variational byte code")
+//    if (this != env.getLastBlock())
+//      assert(!instr.last.isReturnInstr, "only the last block may contain a return instruction in variational byte code")
   }
 
 
