@@ -75,4 +75,20 @@ public class Arrays {
     public static int binarySearch(int[] array, int key) {
         return java.util.Arrays.binarySearch(array, key);
     }
+
+    public static int binarySearch(double[] a, double key) {
+        return java.util.Arrays.binarySearch(a, key);
+    }
+
+    public static List asList(Object[] array) {
+        ArrayList list = new ArrayList();
+        for (int i = 0; i < array.length; i++) {
+            list.add(array[i]);
+        }
+        return list;
+    }
+
+    public static int[] copyOfRange(int[] original, int from, int to) {
+        return java.util.Arrays.copyOfRange(original, from, to);
+    }
 }

@@ -12,6 +12,7 @@ import java.util.function.Function;
 public class ArrayList implements List {
 
     private V<? extends MyArrayList> vActual;
+    private MyArrayList actual;
 
     /**
      * Split vActual LinkedLists according to current ctx
@@ -31,6 +32,17 @@ public class ArrayList implements List {
             Object[] o = l.toArray();
             return java.util.Arrays.copyOf(o, l.size(), c);
         });
+    }
+
+    //////////////////////////////////////////////////
+    // Non-V methods
+    //////////////////////////////////////////////////
+    public ArrayList() {
+        actual = new MyArrayList();
+    }
+
+    public boolean add(Object o) {
+        return actual.add(o);
     }
 
     //////////////////////////////////////////////////
