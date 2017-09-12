@@ -1,9 +1,9 @@
 package edu.cmu.cs.vbc.utils
 
+import org.objectweb.asm._
 import org.objectweb.asm.tree.{ClassNode, MethodNode}
 import org.objectweb.asm.util.Printer
 import org.objectweb.asm.util.Printer.{OPCODES, TYPES}
-import org.objectweb.asm._
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
@@ -12,12 +12,15 @@ import scala.collection.mutable.ListBuffer
 /**
   * A printer that prints dot files of classes it visits
   *
+  * Note that current version relies on certain assumptions of our lifted bytecode, so
+  * it might not work for some generic unlifted bytecode.
+  *
   * @author chupanw
   */
 class Dotifier(clazz: ClassNode) extends Printer(Opcodes.ASM5) {
 
   val textBuf: ListBuffer[String] = ListBuffer.empty[String]
-  val edges: ListBuffer[(String, Label)] = ListBuffer.empty
+  val edges: ListBuffer[(String, Label, Boolean)] = ListBuffer.empty
   val tryCatchEdges: ListBuffer[(Label, Label, Label, String)] = ListBuffer.empty
   val label2Node: mutable.Map[Label, String] = mutable.Map.empty[Label, String]
   val tab1 = "    "
@@ -25,6 +28,7 @@ class Dotifier(clazz: ClassNode) extends Printer(Opcodes.ASM5) {
   val tab3 = "            "
   var currentBlock: Int = 0
   var currentMethod: MethodNode = _
+  var currentMethodCount: Int = 0
 
   override def visit(version: Int,
                      access: Int,
@@ -32,7 +36,7 @@ class Dotifier(clazz: ClassNode) extends Printer(Opcodes.ASM5) {
                      signature: String,
                      superName: String,
                      interfaces: Array[String]) = {
-    textBuf += s"digraph $name {\n"
+    textBuf += s"digraph ${name.replace('/', '_')} {\n"
   }
 
   override def visitSource(file: String, debug: String) = {}
@@ -48,9 +52,14 @@ class Dotifier(clazz: ClassNode) extends Printer(Opcodes.ASM5) {
   override def visitField(access: Int, name: String, desc: String, signature: String, value: scala.Any) = new Dotifier(clazz)
 
   override def visitMethod(access: Int, name: String, desc: String, signature: String, exceptions: Array[String]) = {
-    textBuf += tab1 + "subgraph " + name + s"($desc)" + " {\n" + tab2 + s"b$currentBlock [shape=box, label=" + '\"'
+    val clusterName = "cluster_" + name.replace('<', '_').replace('>', '_')
+    textBuf += tab1 +
+      "subgraph " + clusterName + " {\n" +
+      tab2 + "label=\"" + name + "\"\n" +
+      tab2 + s"b$currentMethodCount$currentBlock [fontname=monaco, shape=box, label=" +
+      '\"'
     currentMethod = clazz.methods.toList.find(m => m.name == name && m.desc == desc).get
-    new Dotifier(clazz)
+    this
   }
 
   override def visitClassEnd() = textBuf += "}"
@@ -84,7 +93,18 @@ class Dotifier(clazz: ClassNode) extends Printer(Opcodes.ASM5) {
   override def visitFrame(`type`: Int, nLocal: Int, local: Array[AnyRef], nStack: Int, stack: Array[AnyRef]) = {}
 
   override def visitInsn(opcode: Int) = {
-    textBuf += OPCODES(opcode) + "\\n"
+    if (opcode == Opcodes.ARETURN || opcode == Opcodes.RETURN) {
+      val buf = new StringBuilder
+      // finish the current node
+      buf ++= OPCODES(opcode) + "\\l"
+      buf ++= "\"]\n"
+      // start the next node
+      buf ++= tab2 + s"b$currentMethodCount${currentBlock + 1} [fontname=monaco, shape=none, label=" + '\"'
+      currentBlock += 1
+      textBuf += buf.toString()
+    }
+    else
+      textBuf += OPCODES(opcode) + "\\l"
   }
 
   override def visitIntInsn(opcode: Int, operand: Int) = {
@@ -92,50 +112,57 @@ class Dotifier(clazz: ClassNode) extends Printer(Opcodes.ASM5) {
     buf.append(OPCODES(opcode))
       .append(' ')
       .append(if (opcode == Opcodes.NEWARRAY) TYPES(operand) else operand)
-      .append("\\n")
+      .append("\\l")
     textBuf += buf.toString()
   }
 
-  /**
-    * @todo Add type information
-    */
   override def visitVarInsn(opcode: Int, `var`: Int) = {
-    textBuf += OPCODES(opcode) + " " + `var` + s"// ${currentMethod.localVariables.toList(`var`).desc}" + "\\n"
+    val localVars = currentMethod.localVariables.toList
+    textBuf += OPCODES(opcode) + " " + `var` +
+      s" // ${if (localVars.size - 1 >= `var`) localVars(`var`).desc}" +
+      "\\l"
   }
 
   override def visitTypeInsn(opcode: Int, `type`: String) = {
-    textBuf += OPCODES(opcode) + " " + `type` + "\\n"
+    textBuf += OPCODES(opcode) + " " + `type` + "\\l"
   }
 
   override def visitFieldInsn(opcode: Int, owner: String, name: String, desc: String) = {
-    textBuf += OPCODES(opcode) + " " + s"$owner.$name : $desc\\n"
+    textBuf += OPCODES(opcode) + " " + s"$owner.$name : $desc\\l"
   }
 
   override def visitInvokeDynamicInsn(name: String, desc: String, bsm: Handle, bsmArgs: AnyRef*) = {
     val buf = new StringBuilder
-    buf.append("INVOKEDYNAMIC " + name + desc + "[\\n")
+    buf.append("INVOKEDYNAMIC " + name + desc + "[\\l")
     //todo: shorten for efficient graph representation, but we might want to see more information
     textBuf += buf.toString()
   }
 
   override def visitMethodInsn(opcode: Int, owner: String, name: String, desc: String, itf: Boolean) = {
-    textBuf += OPCODES(opcode) + " " + s"$owner.$name $desc\\n"
+    textBuf += OPCODES(opcode) + " " + s"$owner.$name $desc\\l"
   }
 
   override def visitJumpInsn(opcode: Int, label: Label) = {
     val buf = new StringBuilder
     // finish the current node
+    buf ++= OPCODES(opcode) + "\\l"
     buf ++= "\"]\n"
     // start the next node
-    buf ++= tab2 + s"b${currentBlock + 1} [shape=box, label=" + '\"'
-    edges.append((s"b$currentBlock", label))
+    buf ++= tab2 + s"b$currentMethodCount${currentBlock + 1} [fontname=monaco, shape=box, label=" + '\"'
+    edges.append((s"b$currentMethodCount$currentBlock", label, opcode == Opcodes.GOTO))
     currentBlock += 1
+    textBuf += buf.toString()
   }
 
   override def visitLabel(label: Label) = {
     // due to redundant labels, there might be multiple labels inside one block, but
     // one of them must be the start of the block
-    label2Node += (label -> s"b$currentBlock")
+    if (edges.exists(e => e._2 == label)) {
+      currentBlock += 1
+      textBuf += "\"]\n" + tab2 + s"b$currentMethodCount$currentBlock [fontname=monaco, shape=box, label=" + '\"'
+      edges.append((s"b$currentMethodCount${currentBlock - 1}", label, true))
+    }
+    label2Node += (label -> s"b$currentMethodCount$currentBlock")
   }
 
   override def visitLdcInsn(cst: scala.Any) = {
@@ -144,11 +171,11 @@ class Dotifier(clazz: ClassNode) extends Printer(Opcodes.ASM5) {
       case t: Type => t.getDescriptor + ".class"
       case _ => cst.toString
     }
-    textBuf += "LDC " + cstString + "\\n"
+    textBuf += "LDC " + cstString + "\\l"
   }
 
   override def visitIincInsn(`var`: Int, increment: Int) = {
-    textBuf += "IINC " + `var` + " " + increment + "\\n"
+    textBuf += "IINC " + `var` + " " + increment + "\\l"
   }
 
   override def visitTableSwitchInsn(min: Int, max: Int, dflt: Label, labels: Label*) = ???  // should not happen
@@ -156,7 +183,7 @@ class Dotifier(clazz: ClassNode) extends Printer(Opcodes.ASM5) {
   override def visitLookupSwitchInsn(dflt: Label, keys: Array[Int], labels: Array[Label]) = ??? // should not happen
 
   override def visitMultiANewArrayInsn(desc: String, dims: Int) = {
-    textBuf += "MULTIANEWARRAY " + desc + " " + dims + "\\n"
+    textBuf += "MULTIANEWARRAY " + desc + " " + dims + "\\l"
   }
 
   override def visitTryCatchBlock(start: Label, end: Label, handler: Label, `type`: String) = {
@@ -166,25 +193,32 @@ class Dotifier(clazz: ClassNode) extends Printer(Opcodes.ASM5) {
   override def visitLocalVariable(name: String, desc: String, signature: String, start: Label, end: Label, index: Int) = {}
 
   override def visitLineNumber(line: Int, start: Label) = {
-    textBuf += tab2 + "LINENUMBER " + line + " " + start + "\\n"
+    textBuf += "LINENUMBER " + line + " " + start + "\\l"
   }
 
   override def visitMaxs(maxStack: Int, maxLocals: Int) = {}
 
   override def visitMethodEnd() = {
     val buf = new mutable.StringBuilder()
-    for ((start: String, end: Label) <- edges) {
+    buf ++= "\"]\n"
+    for ((start: String, end: Label, isGoto: Boolean) <- edges) {
       buf.append(tab2).append(start).append(" -> ").append(label2Node(end)).append("\n")
+      if (!isGoto)
+        buf.append(tab2).append(start).append(" -> ").append(s"${start.take(2)}${start.drop(2).toInt + 1}").append("\n")
     }
     for ((start: Label, end: Label, handler: Label, exp: String) <- tryCatchEdges) {
-      val startID: Int = label2Node(start).tail.toInt
-      val endID: Int = label2Node(end).tail.toInt
+      val startID: Int = label2Node(start).drop(2).toInt
+      val endID: Int = label2Node(end).drop(2).toInt
       val handlerBlock: String = label2Node(handler)
+      val bPrefix = label2Node(start).take(2)
       for (i <- Range.inclusive(startID, endID)) {
-        buf.append(tab2).append(s"b$i -> $handlerBlock [style=dashed, taillabel=$exp]\n")
+        buf.append(tab2).append(s"$bPrefix$i -> $handlerBlock [style=dashed, headlabel=" + "\"" + s"$exp" + "\"]\n")
       }
     }
-    buf ++= tab1 + "}"
+    buf ++= tab1 + "}\n"
+    currentMethodCount += 1
     textBuf += buf.toString()
+    edges.clear()
+    tryCatchEdges.clear()
   }
 }
