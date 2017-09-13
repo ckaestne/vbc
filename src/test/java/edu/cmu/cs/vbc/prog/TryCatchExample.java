@@ -77,6 +77,22 @@ public class TryCatchExample {
         return result;
     }
 
+    /**
+     * Comes from CheckStyle
+     */
+    void tryCatch3() {
+        Integer i = 0;
+        try {
+            while (true) {
+                i++;
+                if (i == 10)
+                    break;
+            }
+        } finally {
+            System.out.println(i);
+        }
+    }
+
     public static void main(String[] args) {
         TryCatchExample example = new TryCatchExample();
         // Since we do not handle partial exception (i.e., exception context that is smaller than
@@ -88,5 +104,6 @@ public class TryCatchExample {
         example.tryCatch2(1);
         example.tryWithIf(0);
         example.tryWithIf(1);
+        example.tryCatch3();
     }
 }
