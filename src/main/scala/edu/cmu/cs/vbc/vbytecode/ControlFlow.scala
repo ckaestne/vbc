@@ -35,17 +35,6 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
     //a unique first block always has a satisfiable condition and no stack variables
     //exception blocks have no stack variables and always a satisfiable condition
     if (env.isVBlockHead(this) && !isUniqueFirstBlock(env)) {
-      if (env.isHandlerBlock(this)) {
-        val expectingVars = env.getExpectingVars(this)
-        assert(expectingVars.length == 1, "Handler block should expect exactly one value on the operand stack")
-        val expectingVar = expectingVars.head
-        callVCreateOne(mv, (m) => loadCurrentCtx(m, env, this))
-        loadCurrentCtx(mv, env, this)
-        mv.visitInsn(SWAP)
-        mv.visitVarInsn(ALOAD, env.getVarIdx(expectingVar))
-        callVCreateChoice(mv)
-        mv.visitVarInsn(ASTORE, env.getVarIdx(expectingVar))
-      }
       vblockSkipIfCtxContradition(mv, env)
       loadUnbalancedStackVariables(mv, env)
     }
