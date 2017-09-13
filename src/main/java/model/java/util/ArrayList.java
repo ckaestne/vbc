@@ -159,6 +159,25 @@ public class ArrayList implements List {
         Profiler.stopTimer(id);
         return res;
     }
+
+    /**
+     * Probably not efficient, but we need to wrap elements into Vs.
+     *
+     * perf: maybe use System.arrayCopy for larger arrays?
+     */
+    public V toArray__Array_Ljava_lang_Object__Array_Ljava_lang_Object(V<V[]> a, FeatureExpr ctx) {
+        return a.sflatMap(ctx, (fe, aa) -> vActual.smap(fe, (fe2, l) -> {
+            Object[] elements = l.toArray();
+            V[] destArray = aa;
+            if (aa.length < elements.length) {
+                destArray = new V[elements.length];
+            }
+            for (int i = 0; i < elements.length; i++) {
+                destArray[i] = V.one(fe2, elements[i]);
+            }
+            return destArray;
+        }));
+    }
 }
 
 /**
