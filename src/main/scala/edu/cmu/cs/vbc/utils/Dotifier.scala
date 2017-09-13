@@ -126,8 +126,7 @@ class Dotifier() extends Printer(Opcodes.ASM5) {
 
   override def visitInvokeDynamicInsn(name: String, desc: String, bsm: Handle, bsmArgs: AnyRef*): Unit = {
     val buf = new StringBuilder
-    buf.append("INVOKEDYNAMIC " + name + desc + "[\\l")
-    //todo: shorten for efficient graph representation, but we might want to see more information
+    buf.append("INVOKEDYNAMIC " + bsmArgs(1) + "\\l")
     textBuf += buf.toString()
   }
 
@@ -148,7 +147,7 @@ class Dotifier() extends Printer(Opcodes.ASM5) {
   }
 
   override def visitLabel(label: Label) = {
-    // due to redundant labels, there might be multiple labels inside one block, but
+    // Due to redundant labels, there might be multiple labels inside one block, but
     // one of them must be the start of the block
     if (edges.exists(e => e._2 == label)) {
       currentBlock += 1
