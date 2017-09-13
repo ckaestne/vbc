@@ -138,8 +138,11 @@ case class InstrGOTO(targetBlockIdx: Int) extends JumpInstruction {
   override def getSuccessor() = (Some(targetBlockIdx), None)
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
-    //lift only if it is jump across VBlock boundary
-    if (env.getVBlock(env.getBlockForInstruction(this)) != env.getVBlock(env.getBlock(targetBlockIdx)))
+    // Lift only if it is jump across VBlock boundary
+    // OR
+    // if it is jump to a VBlock head because this block might leave some value on the operand stack
+    if (env.getVBlock(env.getBlockForInstruction(this)) != env.getVBlock(env.getBlock(targetBlockIdx)) ||
+      env.isVBlockHead(env.getBlock(targetBlockIdx)))
       env.setLift(this)
     val backtrack = backtrackNonVStackElements(s)
     (s, backtrack)

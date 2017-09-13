@@ -198,6 +198,16 @@ case class Block(instr: Seq[Instruction], exceptionHandlers: Seq[VBCHandler]) {
 
   private def nonvariationalJump(mv: MethodVisitor, env: VMethodEnv): Unit = {
     //nothing to do. already handled as part of the normal instruction
+    val (unconditional, conditional) = env.getJumpTargets(this)
+    assert(conditional.isEmpty, "Non-variational jump could not jump to a conditional target")
+    if (unconditional.isDefined) {
+      val jumpTarget: Block = unconditional.get
+      if (env.isVBlockHead(jumpTarget))
+        storeUnbalancedStackVariables(mv, env)
+      mv.visitJumpInsn(GOTO, env.getBlockLabel(jumpTarget))
+    } else {
+      // last block, do nothing
+    }
   }
 
   private def variationalJump(mv: MethodVisitor, env: VMethodEnv): Unit = {
