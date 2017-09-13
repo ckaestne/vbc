@@ -200,7 +200,10 @@ trait VBlockAnalysis extends CFGAnalysis {
 
     val succ: Set[Block] = getSuccessors(block)
 
-    assert(currentVBlock.allBlocks.size == 1 || succ.forall(currentVBlock.allBlocks contains _) || succ.forall(s => !(currentVBlock.allBlocks contains s)), "either all or none of the successors should be in the current VBlock")
+    assert(currentVBlock.allBlocks.size == 1 ||
+      succ.filter(_ != block).forall(currentVBlock.allBlocks contains _) ||
+      succ.filter(_ != block).forall(s => !(currentVBlock.allBlocks contains s)),
+      "either all or none of the successors should be in the current VBlock")
 
     !succ.forall(currentVBlock.allBlocks contains _)
   }
