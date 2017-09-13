@@ -27,7 +27,7 @@ object DotifierPrinter extends App {
   val cr = new ClassReader(args(0))
   val cn = new ClassNode(Opcodes.ASM5)
   cr.accept(cn, 0)
-  val dot = new Dotifier(cn)
+  val dot = new Dotifier()
   cr.accept(new TraceClassVisitor(null, dot, new PrintWriter(System.out)), 0)
   val writer = new PrintWriter(new File("/tmp/cfg.gv"))
   writer.write(dot.textBuf.mkString(""))

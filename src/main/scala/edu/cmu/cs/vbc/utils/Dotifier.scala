@@ -1,11 +1,9 @@
 package edu.cmu.cs.vbc.utils
 
 import org.objectweb.asm._
-import org.objectweb.asm.tree.{ClassNode, MethodNode}
 import org.objectweb.asm.util.Printer
 import org.objectweb.asm.util.Printer.{OPCODES, TYPES}
 
-import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
@@ -17,7 +15,7 @@ import scala.collection.mutable.ListBuffer
   *
   * @author chupanw
   */
-class Dotifier(clazz: ClassNode) extends Printer(Opcodes.ASM5) {
+class Dotifier() extends Printer(Opcodes.ASM5) {
 
   val textBuf: ListBuffer[String] = ListBuffer.empty[String]
   val edges: ListBuffer[(String, Label, Boolean)] = ListBuffer.empty
@@ -27,7 +25,6 @@ class Dotifier(clazz: ClassNode) extends Printer(Opcodes.ASM5) {
   val tab2 = "        "
   val tab3 = "            "
   var currentBlock: Int = 0
-  var currentMethod: MethodNode = _
   var currentMethodCount: Int = 0
 
   override def visit(version: Int,
@@ -43,13 +40,13 @@ class Dotifier(clazz: ClassNode) extends Printer(Opcodes.ASM5) {
 
   override def visitOuterClass(owner: String, name: String, desc: String) = {}
 
-  override def visitClassAnnotation(desc: String, visible: Boolean): Dotifier = new Dotifier(clazz)
+  override def visitClassAnnotation(desc: String, visible: Boolean): Dotifier = this
 
   override def visitClassAttribute(attr: Attribute) = {}
 
   override def visitInnerClass(name: String, outerName: String, innerName: String, access: Int) = {}
 
-  override def visitField(access: Int, name: String, desc: String, signature: String, value: scala.Any) = new Dotifier(clazz)
+  override def visitField(access: Int, name: String, desc: String, signature: String, value: scala.Any) = this
 
   override def visitMethod(access: Int, name: String, desc: String, signature: String, exceptions: Array[String]) = {
     val clusterName = "cluster_" + name.replace('<', '_').replace('>', '_')
@@ -58,7 +55,6 @@ class Dotifier(clazz: ClassNode) extends Printer(Opcodes.ASM5) {
       tab2 + "label=\"" + name + "\"\n" +
       tab2 + s"b$currentMethodCount$currentBlock [fontname=monaco, shape=box, label=" +
       '\"'
-    currentMethod = clazz.methods.toList.find(m => m.name == name && m.desc == desc).get
     this
   }
 
@@ -68,23 +64,23 @@ class Dotifier(clazz: ClassNode) extends Printer(Opcodes.ASM5) {
 
   override def visitEnum(name: String, desc: String, value: String) = {}
 
-  override def visitAnnotation(name: String, desc: String) = new Dotifier(clazz)
+  override def visitAnnotation(name: String, desc: String) = this
 
-  override def visitArray(name: String) = new Dotifier(clazz)
+  override def visitArray(name: String) = this
 
   override def visitAnnotationEnd() = {}
 
-  override def visitFieldAnnotation(desc: String, visible: Boolean) = new Dotifier(clazz)
+  override def visitFieldAnnotation(desc: String, visible: Boolean) = this
 
   override def visitFieldAttribute(attr: Attribute) = {}
 
   override def visitFieldEnd() = {}
 
-  override def visitAnnotationDefault() = new Dotifier(clazz)
+  override def visitAnnotationDefault() = this
 
-  override def visitMethodAnnotation(desc: String, visible: Boolean) = new Dotifier(clazz)
+  override def visitMethodAnnotation(desc: String, visible: Boolean) = this
 
-  override def visitParameterAnnotation(parameter: Int, desc: String, visible: Boolean) = new Dotifier(clazz)
+  override def visitParameterAnnotation(parameter: Int, desc: String, visible: Boolean) = this
 
   override def visitMethodAttribute(attr: Attribute) = {}
 
@@ -117,10 +113,7 @@ class Dotifier(clazz: ClassNode) extends Printer(Opcodes.ASM5) {
   }
 
   override def visitVarInsn(opcode: Int, `var`: Int) = {
-    val localVars = currentMethod.localVariables.toList
-    textBuf += OPCODES(opcode) + " " + `var` +
-      s" // ${if (localVars.size - 1 >= `var`) localVars(`var`).desc}" +
-      "\\l"
+    textBuf += OPCODES(opcode) + " " + `var` + "\\l"
   }
 
   override def visitTypeInsn(opcode: Int, `type`: String) = {
@@ -131,7 +124,7 @@ class Dotifier(clazz: ClassNode) extends Printer(Opcodes.ASM5) {
     textBuf += OPCODES(opcode) + " " + s"$owner.$name : $desc\\l"
   }
 
-  override def visitInvokeDynamicInsn(name: String, desc: String, bsm: Handle, bsmArgs: AnyRef*) = {
+  override def visitInvokeDynamicInsn(name: String, desc: String, bsm: Handle, bsmArgs: AnyRef*): Unit = {
     val buf = new StringBuilder
     buf.append("INVOKEDYNAMIC " + name + desc + "[\\l")
     //todo: shorten for efficient graph representation, but we might want to see more information
@@ -196,9 +189,7 @@ class Dotifier(clazz: ClassNode) extends Printer(Opcodes.ASM5) {
     textBuf += "LINENUMBER " + line + " " + start + "\\l"
   }
 
-  override def visitMaxs(maxStack: Int, maxLocals: Int) = {}
-
-  override def visitMethodEnd() = {
+  override def visitMaxs(maxStack: Int, maxLocals: Int) = {
     val buf = new mutable.StringBuilder()
     buf ++= "\"]\n"
     for ((start: String, end: Label, isGoto: Boolean) <- edges) {
@@ -220,5 +211,8 @@ class Dotifier(clazz: ClassNode) extends Printer(Opcodes.ASM5) {
     textBuf += buf.toString()
     edges.clear()
     tryCatchEdges.clear()
+  }
+
+  override def visitMethodEnd() = {
   }
 }
