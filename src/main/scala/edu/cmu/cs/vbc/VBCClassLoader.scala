@@ -4,14 +4,15 @@ import java.io._
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.cmu.cs.vbc.loader.Loader
-import edu.cmu.cs.vbc.utils.{LiftingPolicy, MyClassWriter, VBCModel}
+import edu.cmu.cs.vbc.utils.{Dotifier, LiftingPolicy, MyClassWriter, VBCModel}
 import edu.cmu.cs.vbc.vbytecode.{Owner, VBCClassNode, VBCMethodNode}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.tree.ClassNode
-import org.objectweb.asm.util.{CheckClassAdapter, TraceClassVisitor}
+import org.objectweb.asm.util.{CheckClassAdapter, Textifier, TraceClassVisitor}
 import org.objectweb.asm.{ClassReader, ClassVisitor, ClassWriter}
 
 import scala.collection.mutable
+import scala.sys.process.Process
 
 /**
   * Custom class loader to modify bytecode before loading the class.
@@ -65,7 +66,9 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
   def liftClass(name: String, clazz: VBCClassNode): Class[_] = {
     import scala.collection.JavaConversions._
     val cw = new MyClassWriter(ClassWriter.COMPUTE_FRAMES) // COMPUTE_FRAMES implies COMPUTE_MAX
-    val cv = new TraceClassVisitor(cw, null)
+    val dotifier = new Dotifier()
+    val textifier = new Textifier()
+    val cv = new TraceClassVisitor(new TraceClassVisitor(cw, textifier, null), dotifier, null)
     try {
       if (isLift) {
         logger.info(s"lifting $name")
@@ -78,12 +81,17 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
       case e: Throwable =>
         println("Exception thrown in ASM: ")
         println(e.getClass + ": " + e.getMessage)
-        logger.debug(e.getStackTrace.toList mkString("\t", "\n\t", "\n"))
-        logger.debug("Please check the following generated code")
-        cv.p.text.toList.foreach(e => e match {
-          case s: String => logger.debug(s)
-          case l: java.util.List[_] => logger.debug(l.toList mkString "")
-        })
+        println(e.getStackTrace.toList mkString("\t", "\n\t", "\n"))
+        println("Please check bug.gv and bug.txt")
+        val writer = new PrintWriter(new File("bug.gv"))
+        writer.write(dotifier.textBuf.mkString(""))
+        writer.write("}")
+        writer.close()
+        val writer2 = new PrintWriter(new File("bug.txt"))
+        writer2.write(textifier.text.mkString(""))
+        writer2.close()
+        val output = Process("dot -Tpdf -O bug.gv").lineStream
+        println("Output from dot: " + output)
         System.exit(1)
     }
 
