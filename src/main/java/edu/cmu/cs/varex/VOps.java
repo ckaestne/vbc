@@ -258,4 +258,21 @@ public class VOps {
     public static Integer truncS(Integer o) {
         return (int) (short) o.intValue();
     }
+
+    public static V<Object> verifyAndThrowException(V<Object> e, FeatureExpr methodCtx) throws Throwable {
+        if (e.hasThrowable()) {
+            if (e instanceof One) {
+                Throwable t = (Throwable) ((One) e).getOne();
+                FeatureExpr ctx = e.getConfigSpace();
+                if (!ctx.equivalentTo(methodCtx))
+                    throw new RuntimeException("An exception/error was thrown under subcontext of method");
+                throw t;
+            } else {
+                // must be a Choice
+                throw new RuntimeException("An exception/error was thrown under subcontext of method");
+            }
+        } else {
+            return e;
+        }
+    }
 }

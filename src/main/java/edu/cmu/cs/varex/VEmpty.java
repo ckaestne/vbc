@@ -81,6 +81,11 @@ public class VEmpty<T> implements V<T> {
     }
 
     @Override
+    public boolean hasThrowable() {
+        return false;
+    }
+
+    @Override
     public int hashCode() {
         return 17;
     }

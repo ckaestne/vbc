@@ -246,6 +246,15 @@ class VImpl<T> implements V<T> {
         return equals(o);
     }
 
+    @Override
+    public boolean hasThrowable() {
+        for (Object o : values.keySet()) {
+            if (o instanceof Throwable)
+                return true;
+        }
+        return false;
+    }
+
 }
 
 

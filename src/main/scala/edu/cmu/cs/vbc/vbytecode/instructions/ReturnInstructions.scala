@@ -68,8 +68,11 @@ case class InstrARETURN() extends ReturnInstruction {
     * $result stands for normal return values as well as exceptions thrown by ATHROW.
     */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    import edu.cmu.cs.vbc.utils.LiftUtils._
     // $result should be on top of operand stack already
     // For ARETURN, exceptions are stored into $result, so $exceptionVar is useless.
+    loadCurrentCtx(mv, env, block)
+    mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, MethodName("verifyAndThrowException"), MethodDesc(s"($vclasstype$fexprclasstype)$vclasstype"), false)
     mv.visitInsn(ARETURN)
   }
 

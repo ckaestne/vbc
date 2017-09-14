@@ -123,4 +123,12 @@ public class One<T> implements V<T> {
         }
         return super.equals(o);
     }
+
+    @Override
+    public boolean hasThrowable() {
+        if (value instanceof Throwable)
+            return true;
+        else
+            return false;
+    }
 }

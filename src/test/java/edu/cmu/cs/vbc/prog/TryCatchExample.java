@@ -102,7 +102,11 @@ public class TryCatchExample {
         example.tryFinally(1, 2);
         example.tryCatch2(0);
         example.tryCatch2(1);
-        example.tryWithIf(0);
+        try {
+            example.tryWithIf(0);
+        } catch (Exception e) {
+            System.out.println("Correct if you see this");
+        }
         example.tryWithIf(1);
         example.tryCatch3();
     }
