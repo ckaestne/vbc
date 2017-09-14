@@ -18,11 +18,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle;
 
-import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
 import edu.cmu.cs.vbc.prog.checkstyle.api.Context;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 
 /**
@@ -43,9 +42,13 @@ public final class DefaultContext implements Context
 
     /** {@inheritDoc} */
     @Override
-    public ImmutableCollection<String> getAttributeNames()
+    public LinkedList<String> getAttributeNames()
     {
-        return ImmutableList.copyOf(entries.keySet());
+        LinkedList<String> list = new LinkedList<>();
+        for (String e : entries.keySet()) {
+            list.add(e);
+        }
+        return list;
     }
 
     /**

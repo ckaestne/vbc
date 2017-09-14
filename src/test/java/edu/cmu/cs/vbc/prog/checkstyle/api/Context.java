@@ -18,7 +18,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.api;
 
-import com.google.common.collect.ImmutableCollection;
+import java.util.LinkedList;
 
 /**
  * A context to be used in subcomponents. The general idea of
@@ -40,5 +40,5 @@ public interface Context
      * Returns the names of all atttributes of this context.
      * @return the names of all atttributes of this context.
      */
-    ImmutableCollection<String> getAttributeNames();
+    LinkedList<String> getAttributeNames();
 }

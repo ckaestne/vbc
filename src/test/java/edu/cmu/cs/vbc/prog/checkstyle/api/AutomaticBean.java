@@ -23,7 +23,7 @@ import org.apache.commons.beanutils.converters.*;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.StringTokenizer;
 
@@ -186,7 +186,7 @@ public class AutomaticBean
         final BeanUtilsBean beanUtils = createBeanUtilsBean();
 
         // TODO: debug log messages
-        final Collection<String> attributes = context.getAttributeNames();
+        final LinkedList<String> attributes = context.getAttributeNames();
 
         for (final String key : attributes) {
             final Object value = context.get(key);
