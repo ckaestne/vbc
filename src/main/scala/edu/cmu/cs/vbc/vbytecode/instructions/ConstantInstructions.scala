@@ -178,3 +178,14 @@ case class InstrDCONST_1() extends Instruction {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
 }
+
+/**
+  * Push the float constant 0.0 onto the operand stack
+  */
+case class InstrFCONST_0() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(FCONST_0)
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+}

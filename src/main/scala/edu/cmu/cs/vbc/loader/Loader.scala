@@ -187,7 +187,7 @@ class Loader {
       case ICONST_5 => InstrICONST(5)
       case LCONST_0 => InstrLCONST(0)
       case LCONST_1 => InstrLCONST(1)
-      case FCONST_0 => UNKNOWN(FCONST_0)
+      case FCONST_0 => InstrFCONST_0()
       case FCONST_1 => UNKNOWN(FCONST_1)
       case FCONST_2 => UNKNOWN(FCONST_2)
       case DCONST_0 => InstrDCONST_0()
