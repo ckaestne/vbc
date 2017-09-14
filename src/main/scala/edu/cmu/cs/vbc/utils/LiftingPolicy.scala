@@ -33,6 +33,7 @@ object LiftingPolicy {
     */
   def shouldLiftClass(owner: Owner): Boolean = {
     if (currentConfig.jdkLiftingClasses.exists(n => owner.name.matches(".*" + n))) true
+    if (currentConfig.libraryLiftingClasses.exists(n => owner.name.matches(".*" + n))) true
     else if (owner.name.startsWith("edu/cmu/cs/vbc/prog/") && !currentConfig.programNotLiftingClasses.exists(n => owner.name.matches(".*" + n))) true
     else false
   }
@@ -65,6 +66,7 @@ object LiftingPolicy {
       case (Owner("java/lang/Long"), FieldName("TYPE"), _) => false
       case (Owner("java/lang/Short"), FieldName("TYPE"), _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/api/SeverityLevel"), FieldName("ERROR"), _) => false
+      case (Owner("java/nio/charset/CodingErrorAction"), FieldName("REPLACE"), _) => false
       case _ => true
     }
   }

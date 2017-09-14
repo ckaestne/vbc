@@ -69,6 +69,14 @@ class ModelConfig(fileName: String) {
     }
   }
 
+  val libraryLiftingClasses: List[String] = {
+    try {
+      config.getStringList("library-lifting").toList
+    } catch {
+      case _: Throwable => List()
+    }
+  }
+
   require(jdkNotLiftingClasses intersect jdkLiftingClasses isEmpty, "Conflicting model class configuration")
 }
 
