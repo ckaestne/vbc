@@ -91,4 +91,8 @@ public class Arrays {
     public static int[] copyOfRange(int[] original, int from, int to) {
         return java.util.Arrays.copyOfRange(original, from, to);
     }
+
+    public static void fill(Object[] a, Object value) {
+        java.util.Arrays.fill(a, value);
+    }
 }
