@@ -145,3 +145,18 @@ case class InstrDRETURN() extends ReturnInstruction {
 //    (newFrame, backtrack)
   }
 }
+
+/**
+  * Return float from method
+  *
+  * ..., value(double) -> [empty]  (left values are discarded)
+  */
+case class InstrFRETURN() extends ReturnInstruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitInsn(FRETURN)
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+}

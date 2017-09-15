@@ -387,7 +387,7 @@ class Loader {
       case LOOKUPSWITCH => UNKNOWN(LOOKUPSWITCH)
       case IRETURN => InstrIRETURN()
       case LRETURN => InstrLRETURN()
-      case FRETURN => UNKNOWN(FRETURN)
+      case FRETURN => InstrFRETURN()
       case DRETURN => InstrDRETURN()
       case ARETURN => InstrARETURN()
       case RETURN => InstrRETURN()
