@@ -137,6 +137,7 @@ public class Checker extends AutomaticBean implements MessageDispatcher
         final String name = childConf.getName();
         try {
             final Object child = moduleFactory.createModule(name);
+            System.out.println("Module created: " + name + " " + child);
             if (child instanceof AutomaticBean) {
                 final AutomaticBean bean = (AutomaticBean) child;
                 bean.contextualize(childContext);
@@ -237,6 +238,7 @@ public class Checker extends AutomaticBean implements MessageDispatcher
             	fsc.beginProcessing(charset);
             }
         }
+        System.out.println("#checks: " + fileSetChecks.size());
 
         // Process each file
         for (final File f : files) {
@@ -245,7 +247,7 @@ public class Checker extends AutomaticBean implements MessageDispatcher
             }
             final String fileName = f.getAbsolutePath();
             fireFileStarted(fileName);
-            final SortedSet<LocalizedMessage> fileMessages = new TreeSet<>();
+//            final SortedSet<LocalizedMessage> fileMessages = new TreeSet<>();
             try {
                 final FileText theText = new FileText(f.getAbsoluteFile(),
                         charset);
@@ -259,18 +261,18 @@ public class Checker extends AutomaticBean implements MessageDispatcher
             catch (final FileNotFoundException fnfe) {
                 Utils.getExceptionLogger().debug(
                         "FileNotFoundException occured.", fnfe);
-                fileMessages.add(new LocalizedMessage(0,
-                        Defn.CHECKSTYLE_BUNDLE, "general.fileNotFound", null,
-                        null, this.getClass(), null));
+//                fileMessages.add(new LocalizedMessage(0,
+//                        Defn.CHECKSTYLE_BUNDLE, "general.fileNotFound", null,
+//                        null, this.getClass(), null));
             }
             catch (final IOException ioe) {
                 Utils.getExceptionLogger().debug("IOException occured.", ioe);
-                fileMessages.add(new LocalizedMessage(0,
-                        Defn.CHECKSTYLE_BUNDLE, "general.exception",
-                        new String[] {ioe.getMessage()}, null, this.getClass(),
-                        null));
+//                fileMessages.add(new LocalizedMessage(0,
+//                        Defn.CHECKSTYLE_BUNDLE, "general.exception",
+//                        new String[] {ioe.getMessage()}, null, this.getClass(),
+//                        null));
             }
-            fireErrors(fileName, fileMessages);
+//            fireErrors(fileName, fileMessages);
             fireFileFinished(fileName);
         }
 
