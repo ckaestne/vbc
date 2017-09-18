@@ -63,7 +63,7 @@ trait MethodInstruction extends Instruction {
         if (liftedCall.isLifting) mv.visitVarInsn(ALOAD, nArgs) // ctx
         // would need to push nulls if invoking <init>, but this is strange
         assert(name != MethodName("<init>"), "calling <init> on a V object")
-        interceptPrintlns(liftedCall, mv, nArgs) {
+        interceptCalls(liftedCall, mv, nArgs) {
           mv.visitMethodInsn(invokeType, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
         }
         // Box primitive type
@@ -78,10 +78,16 @@ trait MethodInstruction extends Instruction {
     }
   }
 
-  def interceptPrintlns(call: LiftedCall, mv: MethodVisitor, ctxIdx: Int)(otherwise: => Unit): Unit = {
-    if (call.owner == Owner("java/io/PrintStream") && call.name == "println") {
+  def interceptCalls(call: LiftedCall, mv: MethodVisitor, ctxIdx: Int)(otherwise: => Unit): Unit = {
+    if (call.owner == Owner("java/io/PrintStream") && call.name.name == "println") {
       mv.visitVarInsn(ALOAD, ctxIdx)  // load context
       mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.prependPrintStream.appendFE, false)
+    } else if (call.owner == Owner("java/lang/Class") && call.name.name == "newInstance") {
+      mv.visitVarInsn(ALOAD, ctxIdx)  // load context
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, s"(Ljava/lang/Class;$fexprclasstype)Ljava/lang/Object;", false)
+    } else if (call.owner == Owner("org/apache/commons/beanutils/BeanUtilsBean") && call.name.name == "copyProperty") {
+      mv.visitVarInsn(ALOAD, ctxIdx)  // load context
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.prepend(call.owner.getTypeDesc).appendFE, false)
     }
     else
       otherwise
@@ -465,7 +471,7 @@ case class InstrINVOKEVIRTUAL(owner: Owner, name: MethodName, desc: MethodDesc, 
       }
       else {
         if (liftedCall.isLifting) loadCurrentCtx(mv, env, block)
-        interceptPrintlns(liftedCall, mv, env.getVarIdx(env.getVBlockVar(block))) {
+        interceptCalls(liftedCall, mv, env.getVarIdx(env.getVBlockVar(block))) {
           mv.visitMethodInsn(INVOKEVIRTUAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
         }
         if (env.getTag(this, env.TAG_NEED_V)) {

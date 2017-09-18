@@ -3,6 +3,8 @@ package edu.cmu.cs.varex;
 import de.fosd.typechef.featureexpr.FeatureExpr;
 
 import java.io.PrintStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 
 /**
  * Created by ckaestne on 1/16/2016.
@@ -273,6 +275,28 @@ public class VOps {
             }
         } else {
             return e;
+        }
+    }
+
+    /**
+     * TODO: Needs to check whether we are lifting this class
+     */
+    public static Object newInstance(Class clazz, FeatureExpr ctx) throws Throwable {
+        try {
+            Constructor c = clazz.getConstructor(FeatureExpr.class);
+            return c.newInstance(new Object[]{ctx});
+        } catch (NoSuchMethodException e) {
+            System.out.println("Could not found constructor with ctx");
+            throw e;
+        } catch (IllegalAccessException e) {
+            System.out.println("Error initializing " + clazz.getName());
+            throw e;
+        } catch (InstantiationException e) {
+            System.out.println("Error initializing " + clazz.getName());
+            throw e;
+        } catch (InvocationTargetException e) {
+            System.out.println("Error initializing " + clazz.getName());
+            throw e;
         }
     }
 }
