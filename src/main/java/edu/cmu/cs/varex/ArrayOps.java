@@ -371,7 +371,15 @@ public class ArrayOps {
         V choice = V.choice(ctx, newValue, oldValue);
         arrayref[index] = choice;
     }
-    
+
+    public static void aastore(V[] arrayref, V<Integer> index, V newValue, FeatureExpr ctx) {
+        index.sforeach(ctx, (fe, i) -> {
+            V oldValue = arrayref[i];
+            V choice = V.choice(ctx, newValue, oldValue);
+            arrayref[i] = choice;
+        });
+    }
+
     //////////////////////////////////////////////////
     // Transform a primitive array to an array of Vs
     //////////////////////////////////////////////////

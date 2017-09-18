@@ -321,7 +321,7 @@ case class InstrAASTORE() extends ArrayStoreInstructions {
         INVOKESTATIC,
         Owner.getArrayOps,
         MethodName("aastore"),
-        MethodDesc(s"([${vclasstype}I${vclasstype}${fexprclasstype})V"),
+        MethodDesc(s"([${vclasstype}${vclasstype}${vclasstype}${fexprclasstype})V"),
         false
       )
     }
