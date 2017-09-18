@@ -1,10 +1,12 @@
 package edu.cmu.cs.varex;
 
 import de.fosd.typechef.featureexpr.FeatureExpr;
+import org.apache.commons.beanutils.BeanUtilsBean;
 
 import java.io.PrintStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 /**
  * Created by ckaestne on 1/16/2016.
@@ -297,6 +299,33 @@ public class VOps {
         } catch (InvocationTargetException e) {
             System.out.println("Error initializing " + clazz.getName());
             throw e;
+        }
+    }
+
+
+    /**
+     * Replacement for BeanUtilsBean.copyProperty()
+     *
+     * Use reflection to find the corresponding set method and then invoke it.
+     */
+    public static void copyProperty(BeanUtilsBean bean, Object target, String key, Object value, FeatureExpr ctx) {
+        Method[] methods = target.getClass().getMethods();
+        String setterName = "set" + key.substring(0, 1).toUpperCase() + key.substring(1);
+        for (int i = 0; i < methods.length; i++) {
+            Method m = methods[i];
+            // Lifted classes have parameter type embedded in method names, but it shouldn't matter
+            // because standard JavaBean prohibits setters with the same names but different types
+            if (m.getName().startsWith(setterName)) {
+                // TODO: convert value to appropriate types if necessary
+                V vValue = V.one(ctx, value);
+                try {
+                    m.invoke(target, vValue, ctx);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 }
