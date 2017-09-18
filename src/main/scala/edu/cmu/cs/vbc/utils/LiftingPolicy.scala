@@ -67,6 +67,7 @@ object LiftingPolicy {
       case (Owner("java/lang/Short"), FieldName("TYPE"), _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/api/SeverityLevel"), FieldName("ERROR"), _) => false
       case (Owner("java/nio/charset/CodingErrorAction"), FieldName("REPLACE"), _) => false
+      case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/LineSeparatorOption"), FieldName("SYSTEM"), _) => false
       case _ => true
     }
   }
