@@ -170,8 +170,8 @@ public final class MethodCountCheck extends Check
             || (TokenTypes.ENUM_CONSTANT_DEF == ast.getType())
             || (TokenTypes.ENUM_DEF == ast.getType()))
         {
-            counters.push(new MethodCounter(
-                TokenTypes.INTERFACE_DEF == ast.getType()));
+            boolean foo = TokenTypes.INTERFACE_DEF == ast.getType();
+            counters.push(new MethodCounter(foo));
         }
         else if (TokenTypes.METHOD_DEF == ast.getType()) {
             raiseCounter(ast);
