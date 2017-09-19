@@ -66,10 +66,12 @@ object LiftingPolicy {
       case (Owner("java/lang/Long"), FieldName("TYPE"), _) => false
       case (Owner("java/lang/Short"), FieldName("TYPE"), _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/api/SeverityLevel"), FieldName("ERROR"), _) => false
+      case (Owner("edu/cmu/cs/vbc/prog/checkstyle/api/SeverityLevel"), FieldName("INFO"), _) => false
       case (Owner("java/nio/charset/CodingErrorAction"), FieldName("REPLACE"), _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/LineSeparatorOption"), FieldName("SYSTEM"), _) => false
       case (Owner("java/math/BigInteger"), FieldName("ONE"), _) => false
       case (Owner("java/math/BigInteger"), FieldName("ZERO"), _) => false
+      case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/whitespace/PadOption"), FieldName("NOSPACE"), _) => false
       case _ => true
     }
   }
