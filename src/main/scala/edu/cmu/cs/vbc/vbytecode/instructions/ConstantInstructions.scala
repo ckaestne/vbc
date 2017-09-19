@@ -101,6 +101,7 @@ case class InstrLDC(o: Object) extends Instruction {
           case i: java.lang.Integer => s.push(INT_TYPE(), Set(this))
           case str: java.lang.String => s.push(VBCType(Type.getObjectType("java/lang/String")), Set(this))
           case l: java.lang.Long => s.push(LONG_TYPE(), Set(this))
+          case _: java.lang.Double => s.push(DOUBLE_TYPE(), Set(this))
           case t: Type => s.push(REF_TYPE(), Set(this))
           case _ => throw new RuntimeException("Incomplete support for LDC")
         }
