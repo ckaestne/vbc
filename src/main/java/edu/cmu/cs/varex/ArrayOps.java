@@ -19,6 +19,23 @@ public class ArrayOps {
     private static HashMap<V[], V> cached = new HashMap<>();
 
     //////////////////////////////////////////////////
+    // double
+    //////////////////////////////////////////////////
+
+    public static V<Double>[] initDArray(Integer length, FeatureExpr ctx) {
+        V<?>[] array = new V<?>[length];
+        ArrayList<V<Double>> arrayList = new ArrayList<>();
+        for (int i = 0; i < length; i++) {
+            arrayList.add(i, V.one(ctx, 0.0));
+        }
+        return arrayList.toArray((V<Double>[])array);
+    }
+
+    public static V<Double>[] initDArray(int length, FeatureExpr ctx) {
+        return initDArray(Integer.valueOf(length), ctx);
+    }
+
+    //////////////////////////////////////////////////
     // short
     //////////////////////////////////////////////////
 
