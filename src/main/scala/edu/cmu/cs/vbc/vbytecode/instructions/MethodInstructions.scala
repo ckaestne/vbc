@@ -49,7 +49,7 @@ trait MethodInstruction extends Instruction {
       OpcodePrint.print(invokeType) + "$" + name.name,
       s"$objType$argTypeDesc$retType",
       nExplodeArgs = if (liftedCall.isLifting) 0 else desc.getArgCount,
-      expandArgArray = !liftedCall.isLifting
+      expandArgArray = !liftedCall.isLifting && desc.getArgs.exists(_.isArray)
     ) {
       (mv: MethodVisitor) => {
         if (!liftedCall.isLifting && hasVArgs) {

@@ -110,6 +110,8 @@ object LiftingPolicy {
         LiftedCall(Owner(VBCModel.prefix + "/java/lang/Integer"), name, desc, isLifting = false)
       case ("java/lang/Integer", "getChars", _) =>
         LiftedCall(Owner(VBCModel.prefix + "/java/lang/Integer"), name, desc, isLifting = false)
+      case (o, _, _) if o.startsWith("[") && isVE =>
+        LiftedCall(Owner(s"[Ledu/cmu/cs/varex/V;"), name, desc, isLifting = false)
       case _ => LiftedCall(owner.toModel, name, desc.toModels, isLifting = false)
     }
   }
