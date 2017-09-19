@@ -72,6 +72,9 @@ object LiftingPolicy {
       case (Owner("java/math/BigInteger"), FieldName("ONE"), _) => false
       case (Owner("java/math/BigInteger"), FieldName("ZERO"), _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/whitespace/PadOption"), FieldName("NOSPACE"), _) => false
+      case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/blocks/BlockOption"), FieldName("STMT"), _) => false
+      case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/blocks/LeftCurlyOption"), FieldName("EOL"), _) => false
+      case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/blocks/RightCurlyOption"), FieldName("SAME"), _) => false
       case _ => true
     }
   }
