@@ -232,12 +232,12 @@ public class HiddenFieldCheck
                 (typeMods != null)
                         && typeMods.branchContains(TokenTypes.LITERAL_STATIC);
 
-        final FieldFrame frame =
-            new FieldFrame(currentFrame, isStaticInnerType, type,
+        String foo =
                 (type == TokenTypes.CLASS_DEF || type == TokenTypes.ENUM_DEF)
-                    ? ast.findFirstToken(TokenTypes.IDENT).getText()
-                    : null
-            );
+                        ? ast.findFirstToken(TokenTypes.IDENT).getText()
+                        : null;
+        final FieldFrame frame =
+            new FieldFrame(currentFrame, isStaticInnerType, type, foo);
 
         //add fields to container
         final DetailAST objBlock = ast.findFirstToken(TokenTypes.OBJBLOCK);
