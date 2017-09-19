@@ -88,6 +88,10 @@ trait MethodInstruction extends Instruction {
     } else if (call.owner == Owner("org/apache/commons/beanutils/BeanUtilsBean") && call.name.name == "copyProperty") {
       mv.visitVarInsn(ALOAD, ctxIdx)  // load context
       mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.prepend(call.owner.getTypeDesc).appendFE, false)
+    } else if (call.owner == Owner("java/lang/reflect/Field") && call.name.name == "getType") {
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.prepend(call.owner.getTypeDesc), false)
+    } else if (call.owner == Owner("java/lang/reflect/Field") && call.name.name == "getInt") {
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.prepend(call.owner.getTypeDesc), false)
     }
     else
       otherwise

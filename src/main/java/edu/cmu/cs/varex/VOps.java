@@ -2,11 +2,10 @@ package edu.cmu.cs.varex;
 
 import de.fosd.typechef.featureexpr.FeatureExpr;
 import org.apache.commons.beanutils.BeanUtilsBean;
+import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
 import java.io.PrintStream;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 
 /**
  * Created by ckaestne on 1/16/2016.
@@ -326,6 +325,32 @@ public class VOps {
                     e.printStackTrace();
                 }
             }
+        }
+    }
+
+    /**
+     * Get the argument of parameterized type instead of V
+     */
+    public static Class getType(Field f) {
+        Type t = f.getGenericType();
+        assert t instanceof ParameterizedTypeImpl : "Not a parameterized type";
+        assert ((ParameterizedTypeImpl) t).getActualTypeArguments().length == 1 :
+                "Parameterized type with more than one argument";
+        return (Class) ((ParameterizedTypeImpl) t).getActualTypeArguments()[0];
+    }
+
+    public static int getInt(Field f, Object obj) throws IllegalAccessException {
+        try {
+            Object value = f.get(obj);
+            assert value instanceof One :
+                    "Value of field " + f.getName() + " in " + obj + " is not V.One";
+            Object actualValue = ((One) value).getOne();
+            assert actualValue instanceof Integer :
+                    "Actual value of field " + f.getName() + "in " + obj + " is not Integer";
+            return (Integer) actualValue;
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+            throw e;
         }
     }
 }
