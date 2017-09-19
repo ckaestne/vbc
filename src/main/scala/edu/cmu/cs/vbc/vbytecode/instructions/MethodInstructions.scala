@@ -475,6 +475,7 @@ case class InstrINVOKEVIRTUAL(owner: Owner, name: MethodName, desc: MethodDesc, 
           mv.visitMethodInsn(INVOKEVIRTUAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
         }
         if (env.getTag(this, env.TAG_NEED_V)) {
+          toVArray(liftedCall.desc, mv, env.getBlockVarVIdx(block))
           boxReturnValue(liftedCall.desc, mv)
           callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
         }
