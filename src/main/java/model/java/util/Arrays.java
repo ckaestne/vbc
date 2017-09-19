@@ -72,6 +72,16 @@ public class Arrays {
         java.util.Arrays.sort(a);
     }
 
+    public static V<?> sort__Array_I__V(V<V<Integer>[]> vArray, FeatureExpr ctx) {
+        vArray.sforeach(ctx, (FeatureExpr fe, V<Integer>[] array) -> {
+            V<Integer[]> expanded = ArrayOps.expandArray(array, Integer[].class, fe);
+            expanded.sforeach(fe, expandedArray -> java.util.Arrays.sort(expandedArray));
+            V[] compressed = ArrayOps.compressArray(expanded);
+            ArrayOps.copyVArray(compressed, array);
+        });
+        return null;    // dummy return value
+    }
+
     public static int binarySearch(int[] array, int key) {
         return java.util.Arrays.binarySearch(array, key);
     }
