@@ -145,5 +145,6 @@ object LiftUtils {
     mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getChar, "charValue", MethodDesc("()C"), false)
   def char2Character(mv: MethodVisitor) =
     mv.visitMethodInsn(INVOKESTATIC, Owner.getChar, "valueOf", MethodDesc(s"(C)${TypeDesc.getChar}"), false)
-
+  def double2Double(mv: MethodVisitor) =
+    mv.visitMethodInsn(INVOKESTATIC, Owner.getDouble, "valueOf", MethodDesc(s"(D)${TypeDesc.getDouble}"), false)
 }

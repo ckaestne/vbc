@@ -58,6 +58,7 @@ case class InstrLDC(o: Object) extends Instruction {
         case s: String => mv.visitLdcInsn(o); wrapString(mv)
         case i: Integer => mv.visitLdcInsn(o); int2Integer(mv)
         case l: java.lang.Long => mv.visitLdcInsn(o); long2Long(mv)
+        case _: java.lang.Double => mv.visitLdcInsn(o); double2Double(mv)
         case t: Type =>
           if (t.getSort == Type.ARRAY) {
             val t = Type.getObjectType(s"[$vclasstype")
@@ -65,7 +66,7 @@ case class InstrLDC(o: Object) extends Instruction {
           }
           else
             mv.visitLdcInsn(o)
-        case _ => throw new UnsupportedOperationException("Unsupported LDC type")
+        case _ => throw new UnsupportedOperationException("Unsupported LDC type: " + o.getClass)
       }
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, blockA))
     }
@@ -75,7 +76,7 @@ case class InstrLDC(o: Object) extends Instruction {
         case s: String => wrapString(mv)
         case i: Integer =>  // do nothing
         case t: Type => // do nothing
-        case _ => throw new UnsupportedOperationException("Unsupported LDC type")
+        case _ => throw new UnsupportedOperationException("Unsupported LDC type: " + o.getClass)
       }
     }
   }
