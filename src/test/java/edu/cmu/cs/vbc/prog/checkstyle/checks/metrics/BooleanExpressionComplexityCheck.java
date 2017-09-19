@@ -191,7 +191,8 @@ public final class BooleanExpressionComplexityCheck extends Check
     private void visitMethodDef(DetailAST ast)
     {
         contextStack.push(context);
-        context = new Context(!CheckUtils.isEqualsMethod(ast));
+        boolean foo = !CheckUtils.isEqualsMethod(ast);
+        context = new Context(foo);
     }
 
     /** Removes old context. */
@@ -204,7 +205,8 @@ public final class BooleanExpressionComplexityCheck extends Check
     private void visitExpr()
     {
         contextStack.push(context);
-        context = new Context((context == null) || context.isChecking());
+        boolean foo = (context == null) || context.isChecking();
+        context = new Context(foo);
     }
 
     /**

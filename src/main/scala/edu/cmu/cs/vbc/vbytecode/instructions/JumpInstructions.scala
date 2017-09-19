@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.{FrameEntry, UpdatedFrame}
-import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_TYPE}
+import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_REF_TYPE, V_TYPE}
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
@@ -44,6 +44,8 @@ trait JumpInstruction extends Instruction {
     (Tuple2[VBCType, Set[Instruction]](V_TYPE(), Set()) /: f.stack) (
       (a: FrameEntry, b: FrameEntry) => {
         // a is always V_TYPE()
+        if (b._1.isInstanceOf[V_REF_TYPE])
+          throw new RuntimeException("Could not store uninitialized objects to unbalanced stack variables")
         if (a._1 != b._1) (a._1, a._2 ++ b._2)
         else a
       })._2
