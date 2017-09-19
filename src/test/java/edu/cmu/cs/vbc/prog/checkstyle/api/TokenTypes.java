@@ -3510,7 +3510,7 @@ public final class TokenTypes
         String[] tempTokenValueToName = new String[0];
         for (final Field f : fields) {
             // Only process the int declarations.
-            if (f.getType() != Integer.TYPE) {
+            if (f.getType() != Integer.class && f.getType() != Integer.TYPE) {
                 continue;
             }
 
