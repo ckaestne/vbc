@@ -684,12 +684,29 @@ case class InstrDMUL() extends BinOpNonIntInstruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, DOUBLE_TYPE())
 }
 
+/**
+  * Compare double
+  *
+  * ..., value1(double), value2(double) -> ..., result(int)
+  *
+  * If value1 is greater than value2, 1(int) is pushed onto the operand stack.
+  * If value1 is equal to value2, 0 is pushed.
+  * If value1 is less than value2, -1 is pushed.
+  * If at least one of value1 and value2 is NaN, -1 is pushed.
+  */
 case class InstrDCMPL() extends BinOpNonIntInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(DCMPL)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, "dcmpl", s"($vclasstype$vclasstype$fexprclasstype)$vclasstype", false)
+    }
+    else
+      mv.visitInsn(DCMPL)
+  }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, DOUBLE_TYPE())
 }

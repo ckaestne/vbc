@@ -231,6 +231,15 @@ public class VOps {
     public static V<? extends Double> dmul(V<? extends Double> value1, V<? extends Double> value2, FeatureExpr ctx) {
         return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.doubleValue() * v2.doubleValue()));
     }
+
+    public static V<? extends Integer> dcmpl(V<? extends Double> value1, V<? extends Double> value2, FeatureExpr ctx) {
+        return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> {
+            if (v1.isNaN() || v2.isNaN()) return -1;
+            else if (v1.doubleValue() > v2.doubleValue()) return 1;
+            else if (v1.doubleValue() == v2.doubleValue()) return 0;
+            else return -1;
+        }));
+    }
     //////////////////////////////////////////////////
     // Special println that prints configuration as well
     //////////////////////////////////////////////////
