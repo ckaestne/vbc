@@ -98,6 +98,10 @@ public class Arrays {
         return list;
     }
 
+    public static V<? extends List> asList__Array_Ljava_lang_Object__Lmodel_java_util_List(V<Object[]> vObjectArrays, FeatureExpr ctx) {
+        return vObjectArrays.smap(ctx, Arrays::asList);
+    }
+
     public static int[] copyOfRange(int[] original, int from, int to) {
         return java.util.Arrays.copyOfRange(original, from, to);
     }
