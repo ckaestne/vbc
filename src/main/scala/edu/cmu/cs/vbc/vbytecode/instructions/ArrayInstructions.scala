@@ -561,7 +561,15 @@ case class InstrLASTORE() extends ArrayStoreInstructions {
     mv.visitInsn(LASTORE)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      storeOperation(mv, env, block)
+    }
+    else {
+      ??? // should not happen because currently everything is V
+      mv.visitInsn(AASTORE)
+    }
+  }
 }
 
 case class InstrLALOAD() extends ArrayLoadInstructions {
