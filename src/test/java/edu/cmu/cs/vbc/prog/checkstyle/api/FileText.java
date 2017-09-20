@@ -40,7 +40,7 @@ import java.util.regex.Pattern;
  *
  * @author Martin von Gagern
  */
-public final class FileText extends AbstractList<String>
+public final class FileText extends LinkedList<String>
 {
 
     /**
