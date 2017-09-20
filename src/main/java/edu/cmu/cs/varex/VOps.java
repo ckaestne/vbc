@@ -357,4 +357,25 @@ public class VOps {
             throw e;
         }
     }
+
+    /**
+     * Assume we are getting constructor from a LIFTED class
+     *
+     * TODO: check that we are actually lifting this class
+     */
+    public static Constructor getConstructor(Class c, Class[] typeArgs) throws NoSuchMethodException {
+        int numArgs = typeArgs.length;
+        Class[] newTypeArgs = new Class[numArgs * 2 + 1];
+        for (int i = 0; i < numArgs; i++) {
+            newTypeArgs[i] = V.class;
+            newTypeArgs[i + numArgs + 1] = typeArgs[i];
+        }
+        newTypeArgs[numArgs] = FeatureExpr.class;
+        try {
+            return c.getConstructor(newTypeArgs);
+        } catch (NoSuchMethodException e) {
+            System.err.println("Exception in VOps");
+            throw e;
+        }
+    }
 }
