@@ -39,11 +39,15 @@ public class MethodCallHandler extends ExpressionHandler
     public MethodCallHandler(IndentationCheck indentCheck,
         DetailAST ast, ExpressionHandler parent)
     {
+//        super(indentCheck,
+//            ast.getType() == TokenTypes.METHOD_CALL
+//                ? "method call" : "ctor call",
+//            ast,
+//            parent);
         super(indentCheck,
-            ast.getType() == TokenTypes.METHOD_CALL
-                ? "method call" : "ctor call",
-            ast,
-            parent);
+                "cheated call",
+                ast,
+                parent);
     }
 
     @Override
