@@ -190,7 +190,14 @@ public class VisibilityModifierCheck
     private boolean allowPublicImmutableFields = true;
 
     /** List of immutable classes canonical names. */
-    private List<String> immutableClassCanonicalNames = new ArrayList<>(DEFAULT_IMMUTABLE_TYPES);
+    private List<String> immutableClassCanonicalNames;
+
+    public VisibilityModifierCheck() {
+        immutableClassCanonicalNames = new ArrayList<>();
+        for (String s : DEFAULT_IMMUTABLE_TYPES) {
+            immutableClassCanonicalNames.add(s);
+        }
+    }
 
     /** List of immutable classes short names. */
     private final List<String> immutableClassShortNames =
