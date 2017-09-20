@@ -90,6 +90,13 @@ public class Arrays {
         return java.util.Arrays.binarySearch(a, key);
     }
 
+    public static V<?> binarySearch__Array_I_I__I(V<V<Integer>[]> vIntegerArray, V<Integer> key, FeatureExpr ctx) {
+        return key.sflatMap(ctx, (fe, k) -> vIntegerArray.sflatMap(fe, (FeatureExpr fe2, V<Integer>[] vArray) -> {
+            V<Integer[]> expanded = ArrayOps.expandArray(vArray, Integer[].class, fe2);
+            return expanded.smap(fe2, array -> java.util.Arrays.binarySearch(array, k));
+        }));
+    }
+
     public static List asList(Object[] array) {
         ArrayList list = new ArrayList();
         for (int i = 0; i < array.length; i++) {
