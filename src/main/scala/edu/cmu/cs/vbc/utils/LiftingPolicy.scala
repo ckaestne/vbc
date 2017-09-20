@@ -77,6 +77,10 @@ object LiftingPolicy {
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/blocks/RightCurlyOption"), FieldName("SAME"), _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/api/Scope"), FieldName("PRIVATE"), _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/whitespace/WrapOption"), FieldName("EOL"), _) => false
+      case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/annotation/AnnotationUseStyleCheck$ElementStyle"), FieldName("COMPACT_NO_ARRAY"), _) => false
+      case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/annotation/AnnotationUseStyleCheck$TrailingArrayComma"), FieldName("NEVER"), _) => false
+      case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/annotation/AnnotationUseStyleCheck$ClosingParens"), FieldName("NEVER"), _) => false
+      case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/imports/ImportOrderOption"), FieldName("UNDER"), _) => false
       case _ => true
     }
   }
