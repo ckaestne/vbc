@@ -66,6 +66,13 @@ public class ArrayList implements List {
         });
     }
 
+    /**
+     * In case we don't lift java.util.Collection
+     */
+    public ArrayList(V<java.util.Collection> vc, FeatureExpr ctx, java.util.Collection dummy) {
+        vActual = vc.smap(ctx, MyArrayList::new);
+    }
+
     public V<?> add__Ljava_lang_Object__Z(V<?> elem, FeatureExpr ctx) {
         String id = "ArrayList#add#";
         Profiler.startTimer(id);
@@ -193,6 +200,7 @@ class MyArrayList extends java.util.ArrayList {
     MyArrayList(MyArrayList origin) {
         super(origin);
     }
+    MyArrayList(java.util.Collection c) { super(c); }
     @Override
     public boolean equals(Object o) {
         return o == this;
