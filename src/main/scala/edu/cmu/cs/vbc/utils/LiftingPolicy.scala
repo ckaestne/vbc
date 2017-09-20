@@ -75,6 +75,8 @@ object LiftingPolicy {
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/blocks/BlockOption"), FieldName("STMT"), _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/blocks/LeftCurlyOption"), FieldName("EOL"), _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/blocks/RightCurlyOption"), FieldName("SAME"), _) => false
+      case (Owner("edu/cmu/cs/vbc/prog/checkstyle/api/Scope"), FieldName("PRIVATE"), _) => false
+      case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/whitespace/WrapOption"), FieldName("EOL"), _) => false
       case _ => true
     }
   }
