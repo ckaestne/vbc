@@ -35,6 +35,41 @@ public class ArrayOps {
         return initJArray(Integer.valueOf(length), ctx);
     }
 
+    public static V<?> expandJArray(V<Long>[] array, FeatureExpr ctx) {
+        return expandJArrayElements(array, ctx, 0, new ArrayList<>());
+    }
+
+    private static V<?> expandJArrayElements(V<Long>[] array, FeatureExpr ctx, Integer index, ArrayList<Long> soFar) {
+        model.java.util.ArrayList list = new model.java.util.ArrayList(ctx);
+        for (int i = 0; i < array.length; i++) {
+            list.add__Ljava_lang_Object__Z(array[i], ctx);
+        }
+        V<Long[]> vList = (V<Long[]>) list.getVOfArrays(Long[].class, ctx);
+        return vList.map(l -> {
+            long[] ll = new long[l.length];
+            for (int i = 0; i < ll.length; i++) {
+                ll[i] = l[i];
+            }
+            return ll;
+        });
+    }
+
+    public static V<?>[] compressJArray(V<long[]> arrays) {
+        V<?> sizes = arrays.map(t -> t.length);
+        Integer size = (Integer) sizes.getOne(); // if results in a choice, exceptions will be thrown.
+        ArrayList<V<?>> array = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            array.add(compressJArrayElement(arrays, i));
+        }
+        V<?>[] result = new V<?>[size];
+        array.toArray(result);
+        return result;
+    }
+
+    private static V<?> compressJArrayElement(V<long[]> arrays, Integer index) {
+        return arrays.map(ts -> ts[index]);
+    }
+
     //////////////////////////////////////////////////
     // double
     //////////////////////////////////////////////////
