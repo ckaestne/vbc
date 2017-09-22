@@ -300,7 +300,7 @@ public class VOps {
             Constructor c = clazz.getConstructor(FeatureExpr.class);
             return c.newInstance(new Object[]{ctx});
         } catch (NoSuchMethodException e) {
-            System.out.println("Could not found constructor with ctx");
+            System.out.println("Could not find constructor with ctx");
             throw e;
         } catch (IllegalAccessException e) {
             System.out.println("Error initializing " + clazz.getName());

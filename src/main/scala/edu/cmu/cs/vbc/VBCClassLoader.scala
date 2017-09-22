@@ -49,6 +49,8 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
       }
       else if (shouldLift(name))
         findClass(name)
+      else if (name.startsWith("edu.cmu.cs.vbc.prog") || name.startsWith("antlr")) // todo: do this more systematically
+        simpleLoadClass(name)
       else
         super.loadClass(name)
     })
@@ -63,6 +65,16 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
     liftClass(name, clazz)
   }
 
+  def simpleLoadClass(name: String): Class[_] = {
+    val resource: String = name.replace('.', '/') + ".class"
+    val is: InputStream = getResourceAsStream(resource)
+    if (is == null) throw new ClassNotFoundException(name)
+    val cr = new ClassReader(is)
+    val cw = new MyClassWriter(ClassWriter.COMPUTE_FRAMES) // COMPUTE_FRAMES implies COMPUTE_MAX
+    cr.accept(cw, 0)
+    defineClass(name, cw.toByteArray, 0, cw.toByteArray.length)
+  }
+
   def liftClass(name: String, clazz: VBCClassNode): Class[_] = {
     import scala.collection.JavaConversions._
     val cw = new MyClassWriter(ClassWriter.COMPUTE_FRAMES) // COMPUTE_FRAMES implies COMPUTE_MAX
@@ -75,6 +87,7 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
         clazz.toVByteCode(cv, rewriter)
       }
       else {
+        logger.info(s"lifting $name")
         clazz.toByteCode(cv, rewriter)
       }
     } catch {
