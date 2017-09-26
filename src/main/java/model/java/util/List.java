@@ -24,4 +24,12 @@ public interface List extends Collection {
     V<?> contains__Ljava_lang_Object__Z(V<?> vO, FeatureExpr ctx);
 
     V<?> remove__Ljava_lang_Object__Z(V<?> vO, FeatureExpr ctx);
+
+    boolean isEmpty();
+    boolean add(Object o);
+    java.util.Iterator iterator();
+    int size();
+    Object get(int index);
+    Object remove(int index);
+    Object[] toArray(Object[] a);
 }

@@ -45,6 +45,36 @@ public class ArrayList implements List {
         return actual.add(o);
     }
 
+    @Override
+    public java.util.Iterator iterator() {
+        return actual.iterator();
+    }
+
+    @Override
+    public int size() {
+        return actual.size();
+    }
+
+    @Override
+    public Object get(int index) {
+        return actual.get(index);
+    }
+
+    @Override
+    public Object remove(int index) {
+        return actual.remove(index);
+    }
+
+    @Override
+    public Object[] toArray(Object[] a) {
+        return actual.toArray(a);
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return actual.isEmpty();
+    }
+
     //////////////////////////////////////////////////
     // V methods
     //////////////////////////////////////////////////

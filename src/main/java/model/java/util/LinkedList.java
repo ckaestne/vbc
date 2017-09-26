@@ -18,6 +18,7 @@ public class LinkedList implements List {
     }
 
     private V<? extends MyLinkedList> vActual;
+    private MyLinkedList actual;
 
     /**
      * Split vActual LinkedLists according to current ctx
@@ -132,6 +133,43 @@ public class LinkedList implements List {
     @Override
     public V<?> getVCopies(FeatureExpr ctx) {
         throw new RuntimeException("Not implemented");
+    }
+
+    //////////////////////////////////////////////////
+    // Non-V part
+    //////////////////////////////////////////////////
+    public boolean isEmpty() {
+        return actual.isEmpty();
+    }
+
+    @Override
+    public boolean add(Object o) {
+        return actual.add(o);
+    }
+
+    @Override
+    public java.util.Iterator iterator() {
+        return actual.iterator();
+    }
+
+    @Override
+    public int size() {
+        return actual.size();
+    }
+
+    @Override
+    public Object get(int index) {
+        return actual.get(index);
+    }
+
+    @Override
+    public Object remove(int index) {
+        return actual.remove(index);
+    }
+
+    @Override
+    public Object[] toArray(Object[] a) {
+        return actual.toArray(a);
     }
 }
 
