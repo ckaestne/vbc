@@ -49,8 +49,10 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
       }
       else if (shouldLift(name))
         findClass(name)
-      else if (name.startsWith("edu.cmu.cs.vbc.prog") || name.startsWith("antlr")) // todo: do this more systematically
-        simpleLoadClass(name)
+      else if (name.startsWith("edu.cmu.cs.vbc.prog"))
+        loadClassAndUseModelClasses(name)
+      else if (name.startsWith("antlr")) // todo: do this more systematically
+        loadClassWithoutChanges(name) // avoid LinkageError
       else
         super.loadClass(name)
     })
@@ -65,13 +67,24 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
     liftClass(name, clazz)
   }
 
-  def simpleLoadClass(name: String): Class[_] = {
+  def loadClassWithoutChanges(name: String): Class[_] = {
     val resource: String = name.replace('.', '/') + ".class"
     val is: InputStream = getResourceAsStream(resource)
     if (is == null) throw new ClassNotFoundException(name)
     val cr = new ClassReader(is)
     val cw = new MyClassWriter(ClassWriter.COMPUTE_FRAMES) // COMPUTE_FRAMES implies COMPUTE_MAX
     cr.accept(cw, 0)
+    defineClass(name, cw.toByteArray, 0, cw.toByteArray.length)
+  }
+
+  def loadClassAndUseModelClasses(name: String): Class[_] = {
+    val resource: String = name.replace('.', '/') + ".class"
+    val is: InputStream = getResourceAsStream(resource)
+    val clazz: VBCClassNode = loader.loadClass(is)
+    val cw = new MyClassWriter(ClassWriter.COMPUTE_FRAMES) // COMPUTE_FRAMES implies COMPUTE_MAX
+    clazz.toByteCode(cw, rewriter)
+    if (toFileDebugging)
+      toFile(name, cw)
     defineClass(name, cw.toByteArray, 0, cw.toByteArray.length)
   }
 
