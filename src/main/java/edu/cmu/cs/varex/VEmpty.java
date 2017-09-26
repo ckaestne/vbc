@@ -86,6 +86,11 @@ public class VEmpty<T> implements V<T> {
     }
 
     @Override
+    public V<T> simplified() {
+        return this;
+    }
+
+    @Override
     public int hashCode() {
         return 17;
     }

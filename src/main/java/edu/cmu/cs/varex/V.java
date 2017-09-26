@@ -251,4 +251,6 @@ public interface V<T> {
     boolean equalValue(Object o);
 
     boolean hasThrowable();
+
+    V<T> simplified();
 }

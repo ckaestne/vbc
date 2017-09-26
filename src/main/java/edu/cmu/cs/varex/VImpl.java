@@ -255,6 +255,26 @@ class VImpl<T> implements V<T> {
         return false;
     }
 
+    /**
+     * Remove values that have False context
+     * @return
+     */
+    @Override
+    public V<T> simplified() {
+        HashMap<T, FeatureExpr> simplified = new HashMap<>();
+        for (HashMap.Entry<T, FeatureExpr> entry : values.entrySet()) {
+            if (entry.getValue().isSatisfiable()) {
+                simplified.put(entry.getKey(), entry.getValue());
+            }
+        }
+        if (simplified.size() == 1) {
+            HashMap.Entry<T, FeatureExpr> entry = simplified.entrySet().iterator().next();
+            return V.one(entry.getValue(), entry.getKey());
+        } else {
+            return new VImpl<T>(simplified);
+        }
+    }
+
 }
 
 

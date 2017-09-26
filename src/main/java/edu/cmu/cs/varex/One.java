@@ -131,4 +131,16 @@ public class One<T> implements V<T> {
         else
             return false;
     }
+
+    /**
+     * Return Empty if the value has False context
+     */
+    @Override
+    public V<T> simplified() {
+        if (configSpace.isSatisfiable()) {
+            return this;
+        } else {
+            return new VEmpty();
+        }
+    }
 }
