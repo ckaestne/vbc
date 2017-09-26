@@ -280,10 +280,11 @@ public class VOps {
     }
 
     public static V<Object> verifyAndThrowException(V<Object> e, FeatureExpr methodCtx) throws Throwable {
-        if (e.hasThrowable()) {
-            if (e instanceof One) {
-                Throwable t = (Throwable) ((One) e).getOne();
-                FeatureExpr ctx = e.getConfigSpace();
+        V<Object> simplifiedV = e.simplified();
+        if (simplifiedV.hasThrowable()) {
+            if (simplifiedV instanceof One) {
+                Throwable t = (Throwable) ((One) simplifiedV).getOne();
+                FeatureExpr ctx = simplifiedV.getConfigSpace();
                 if (!ctx.equivalentTo(methodCtx))
                     throw new RuntimeException("An exception/error was thrown under subcontext of method");
                 throw t;
