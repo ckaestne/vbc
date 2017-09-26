@@ -577,5 +577,12 @@ case class InstrLALOAD() extends ArrayLoadInstructions {
     mv.visitInsn(LALOAD)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadOperation(mv, env, block)
+    }
+    else {
+      mv.visitInsn(AALOAD)
+    }
+  }
 }
