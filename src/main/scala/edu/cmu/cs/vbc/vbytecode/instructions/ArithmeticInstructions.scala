@@ -729,14 +729,24 @@ case class InstrLOR() extends BinOpNonIntInstruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, LONG_TYPE())
 }
 
-case class InstrLSHL() extends Instruction {
+/**
+  * ..., value1(long), value2(int) -> ..., result(long)
+  */
+case class InstrLSHL() extends BinOpNonIntInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(LSHL)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, "lshl", s"($vclasstype$vclasstype$fexprclasstype)$vclasstype", false)
+    }
+    else
+      mv.visitInsn(LSHL)
+  }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, LONG_TYPE())
 }
 
 case class InstrLXOR() extends BinOpNonIntInstruction {
