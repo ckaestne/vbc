@@ -38,12 +38,29 @@ case class InstrGETSTATIC(owner: Owner, name: FieldName, desc: TypeDesc) extends
       }
       else {
         // fields are not lifted but we need a V, so we wrap it into a V
-        mv.visitFieldInsn(GETSTATIC, owner.toModel, name, desc.toObject.toModel)
+        mv.visitFieldInsn(GETSTATIC, owner.toModel, name, desc.toModel)
+        if (desc.isPrimitive) boxField(desc, mv)
         callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
       }
     }
     else {
       mv.visitFieldInsn(GETSTATIC, owner.toModel, name, desc.toModel)
+    }
+  }
+
+  def boxField(desc: TypeDesc, mv: MethodVisitor): Unit = {
+    Type.getType(desc).getSort match {
+      case Type.INT =>
+        mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, MethodName("valueOf"), MethodDesc(s"(I)${TypeDesc.getInt}"), false)
+      case Type.BOOLEAN =>
+        mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, MethodName("valueOf"), MethodDesc(s"(I)${TypeDesc.getInt}"), false)
+      case Type.LONG =>
+        mv.visitMethodInsn(INVOKESTATIC, Owner.getLong, MethodName("valueOf"), MethodDesc(s"(J)${TypeDesc.getLong}"), false)
+      case Type.CHAR =>
+        mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, MethodName("valueOf"), MethodDesc(s"(I)${TypeDesc.getInt}"), false)
+      case Type.OBJECT => // do nothing
+      case Type.ARRAY => // do nothing
+      case _ => ???
     }
   }
 
