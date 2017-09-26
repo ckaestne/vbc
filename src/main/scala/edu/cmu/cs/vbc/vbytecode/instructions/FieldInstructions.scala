@@ -166,7 +166,12 @@ case class InstrGETFIELD(owner: Owner, name: FieldName, desc: TypeDesc) extends 
       (visitor: MethodVisitor) => {
         val label = new Label()
         visitor.visitVarInsn(ALOAD, 1) //obj ref
-        visitor.visitFieldInsn(GETFIELD, owner, name, vclasstype)
+        if (LiftingPolicy.shouldLiftField(this.owner, this.name, this.desc))
+          visitor.visitFieldInsn(GETFIELD, owner, name, vclasstype)
+        else {
+          visitor.visitFieldInsn(GETFIELD, owner, name, desc)
+          callVCreateOne(visitor, (m) => m.visitVarInsn(ALOAD, 0))
+        }
         visitor.visitInsn(ARETURN)
       }
     }
