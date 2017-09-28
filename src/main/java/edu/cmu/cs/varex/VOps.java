@@ -253,6 +253,10 @@ public class VOps {
         return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.longValue() << v2.intValue()));
     }
 
+    public static V<? extends Long> lxor(V<? extends Long> value1, V<? extends Long> value2, FeatureExpr ctx) {
+        return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.longValue() ^ v2.longValue()));
+    }
+
     //////////////////////////////////////////////////
     // Special println that prints configuration as well
     //////////////////////////////////////////////////

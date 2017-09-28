@@ -754,7 +754,15 @@ case class InstrLXOR() extends BinOpNonIntInstruction {
     mv.visitInsn(LXOR)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, "lxor", s"($vclasstype$vclasstype$fexprclasstype)$vclasstype", false)
+    }
+    else
+      mv.visitInsn(LXOR)
+
+  }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, LONG_TYPE())
 }
