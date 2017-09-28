@@ -131,6 +131,14 @@ public class LinkedList implements List {
     }
 
     @Override
+    public V<?> addAll__Ljava_util_Collection__Z(V<? extends java.util.Collection> vCollection, FeatureExpr ctx) {
+        return vCollection.sflatMap(ctx, (fe, collection) -> {
+            split(fe);
+            return vActual.smap(fe, list -> list.addAll(collection));
+        });
+    }
+
+    @Override
     public V<?> getVCopies(FeatureExpr ctx) {
         throw new RuntimeException("Not implemented");
     }

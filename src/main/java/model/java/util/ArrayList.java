@@ -173,6 +173,14 @@ public class ArrayList implements List {
         return res;
     }
 
+    @Override
+    public V<?> addAll__Ljava_util_Collection__Z(V<? extends java.util.Collection> vCollection, FeatureExpr ctx) {
+        return vCollection.sflatMap(ctx, (fe, collection) -> {
+            split(fe);
+            return vActual.smap(fe, l -> l.addAll(collection));
+        });
+    }
+
     public V<?> clear____V(FeatureExpr ctx) {
         String id = "ArrayList#clear#";
         Profiler.startTimer(id);

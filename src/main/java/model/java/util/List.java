@@ -25,6 +25,8 @@ public interface List extends Collection {
 
     V<?> remove__Ljava_lang_Object__Z(V<?> vO, FeatureExpr ctx);
 
+    V<?> addAll__Ljava_util_Collection__Z(V<? extends java.util.Collection> vCollection, FeatureExpr ctx);
+
     boolean isEmpty();
     boolean add(Object o);
     java.util.Iterator iterator();
