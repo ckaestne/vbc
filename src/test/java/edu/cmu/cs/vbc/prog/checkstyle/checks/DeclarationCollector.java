@@ -149,7 +149,7 @@ public abstract class DeclarationCollector extends Check
      * @param frameStack Stack containing the FrameTree being built
      * @param ast AST that was parsed
      */
-    private void endCollectingDeclarations(Queue<LexicalFrame> frameStack,
+    private void endCollectingDeclarations(LinkedList<LexicalFrame> frameStack,
         DetailAST ast)
     {
         if (ast.getType() == TokenTypes.CLASS_DEF ||
