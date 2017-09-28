@@ -328,7 +328,10 @@ public class VisibilityModifierCheck
     {
         immutableClassShortNames.clear();
         final List<String> shortNames = getClassShortNames(immutableClassCanonicalNames);
-        immutableClassShortNames.addAll(shortNames);
+//        immutableClassShortNames.addAll(shortNames);
+        for (String e : shortNames) {
+            immutableClassCanonicalNames.add(e);
+        }
     }
 
     @Override
