@@ -46,7 +46,7 @@ public abstract class DeclarationCollector extends Check
     @Override
     public void beginTree(DetailAST rootAST)
     {
-        final Deque<LexicalFrame> frameStack = new LinkedList<>();
+        final LinkedList<LexicalFrame> frameStack = new LinkedList<>();
         frameStack.add(new GlobalFrame());
 
         frames = new HashMap<>();
@@ -88,7 +88,7 @@ public abstract class DeclarationCollector extends Check
      * @param frameStack Stack containing the FrameTree being built
      * @param ast AST to parse
      */
-    private void collectDeclarations(Deque<LexicalFrame> frameStack,
+    private void collectDeclarations(LinkedList<LexicalFrame> frameStack,
         DetailAST ast)
     {
         final LexicalFrame frame = frameStack.peek();
