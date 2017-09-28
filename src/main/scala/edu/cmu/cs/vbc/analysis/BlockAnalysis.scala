@@ -164,7 +164,10 @@ trait VBlockAnalysis extends CFGAnalysis {
         val thisBlockIdx = blocks.indexOf(block)
         // the last filter is used to handle loops introduced by finally.
         val predVBlockIdxs = pred.filter(_ != block).map(vblockId).filter(_ != thisBlockIdx)
-        if (predVBlockIdxs.size == 1 && predVBlockIdxs.head != thisVBlockIdx) {
+        // condition 1: the first block must be the start of a VBlock todo: add test case
+        // condition 2: all predecessors must come from the same VBlock
+        // condition 3: must be in different VBlocks so that they can be merged
+        if (thisBlockIdx != 0 && predVBlockIdxs.size == 1 && predVBlockIdxs.head != thisVBlockIdx) {
           vblockId += (block -> predVBlockIdxs.head)
           queue = queue.enqueue(getSuccessorsAndExceptionHandlers(block))
         }
