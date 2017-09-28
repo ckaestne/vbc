@@ -347,7 +347,13 @@ public class VOps {
             // because standard JavaBean prohibits setters with the same names but different types
             if (m.getName().startsWith(setterName)) {
                 // TODO: convert value to appropriate types if necessary
-                V vValue = V.one(ctx, value);
+                V vValue;
+                if (setterName.equals("setTabWidth")) {
+                    Integer iValue = Integer.valueOf((String) value);
+                    vValue = V.one(ctx, iValue);
+                } else {
+                    vValue = V.one(ctx, value);
+                }
                 try {
                     m.invoke(target, vValue, ctx);
                 } catch (IllegalAccessException e) {
