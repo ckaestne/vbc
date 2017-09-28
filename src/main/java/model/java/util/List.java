@@ -32,4 +32,5 @@ public interface List extends Collection {
     Object get(int index);
     Object remove(int index);
     Object[] toArray(Object[] a);
+    void clear();
 }

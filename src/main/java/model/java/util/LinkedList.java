@@ -171,6 +171,11 @@ public class LinkedList implements List {
     public Object[] toArray(Object[] a) {
         return actual.toArray(a);
     }
+
+    @Override
+    public void clear() {
+        actual.clear();
+    }
 }
 
 class MyLinkedList extends java.util.LinkedList {

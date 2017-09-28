@@ -71,6 +71,11 @@ public class ArrayList implements List {
     }
 
     @Override
+    public void clear() {
+        actual.clear();
+    }
+
+    @Override
     public boolean isEmpty() {
         return actual.isEmpty();
     }
