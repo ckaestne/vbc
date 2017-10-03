@@ -18,9 +18,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 package edu.cmu.cs.vbc.prog.checkstyle.checks;
 
-import com.google.common.collect.Maps;
 import edu.cmu.cs.vbc.prog.checkstyle.api.*;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -331,7 +331,7 @@ public abstract class AbstractTypeAwareCheck extends Check
         final DetailAST params =
             ast.findFirstToken(TokenTypes.TYPE_PARAMETERS);
 
-        final Map<String, ClassInfo> paramsMap = Maps.newHashMap();
+        final Map<String, ClassInfo> paramsMap = new HashMap<>();
         typeParams.push(paramsMap);
 
         if (params == null) {
