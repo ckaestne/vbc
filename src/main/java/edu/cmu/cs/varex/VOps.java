@@ -411,4 +411,26 @@ public class VOps {
             throw e;
         }
     }
+
+    public static Object newInstance(Constructor c, Object[] args, FeatureExpr ctx) throws InstantiationException, IllegalAccessException, InvocationTargetException {
+        int argsCount = args.length;
+        Object[] newArgs = new Object[argsCount * 2 + 1];
+        for (int i = 0; i < argsCount; i++) {
+            newArgs[i] = V.one(ctx, args[i]);
+            newArgs[i + args.length + 1] = null;
+        }
+        newArgs[argsCount] = ctx;
+        try {
+            return c.newInstance(newArgs);
+        } catch (InstantiationException e) {
+            System.err.println("Exception in VOps");
+            throw e;
+        } catch (IllegalAccessException e) {
+            System.err.println("Exception in VOps");
+            throw e;
+        } catch (InvocationTargetException e) {
+            System.err.println("Exception in VOps");
+            throw e;
+        }
+    }
 }

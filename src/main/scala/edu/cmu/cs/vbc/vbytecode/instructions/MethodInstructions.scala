@@ -94,6 +94,9 @@ trait MethodInstruction extends Instruction {
       mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.prepend(call.owner.getTypeDesc), false)
     } else if (call.owner == Owner("java/lang/Class") && call.name.name == "getConstructor") {
       mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.prepend(call.owner.getTypeDesc), false)
+    } else if (call.owner == Owner("java/lang/reflect/Constructor") && call.name.name == "newInstance") {
+      mv.visitVarInsn(ALOAD, ctxIdx)  // load context
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.prepend(call.owner.getTypeDesc).appendFE, false)
     }
     else
       otherwise
