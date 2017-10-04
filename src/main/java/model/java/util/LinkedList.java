@@ -138,6 +138,14 @@ public class LinkedList implements List {
         });
     }
 
+    public V<?> peek____Ljava_lang_Object(FeatureExpr ctx) {
+        return vActual.smap(ctx, l -> l.peek());
+    }
+
+    public V<?> poll____Ljava_lang_Object(FeatureExpr ctx) {
+        return vActual.smap(ctx, l -> l.poll());
+    }
+
     @Override
     public V<?> getVCopies(FeatureExpr ctx) {
         throw new RuntimeException("Not implemented");
