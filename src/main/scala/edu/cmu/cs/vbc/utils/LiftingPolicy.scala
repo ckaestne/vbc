@@ -56,6 +56,7 @@ object LiftingPolicy {
   def shouldLiftField(owner: Owner, name: FieldName, desc: TypeDesc): Boolean = {
     (owner, name, desc) match {
       case (Owner("java/lang/System"), FieldName("out"), _) => false
+      case (Owner("java/lang/System"), FieldName("err"), _) => false
       case (Owner("java/util/Locale"), FieldName("GERMAN"), _) => false
       case (Owner("java/lang/Boolean"), FieldName("TYPE"), _) => false
       case (Owner("java/lang/Byte"), FieldName("TYPE"), _) => false
@@ -73,15 +74,17 @@ object LiftingPolicy {
       case (Owner("java/math/BigInteger"), FieldName("ZERO"), _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/whitespace/PadOption"), FieldName("NOSPACE"), _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/blocks/BlockOption"), FieldName("STMT"), _) => false
-      case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/blocks/LeftCurlyOption"), FieldName("EOL"), _) => false
+      case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/blocks/LeftCurlyOption"), _, _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/blocks/RightCurlyOption"), FieldName("SAME"), _) => false
-      case (Owner("edu/cmu/cs/vbc/prog/checkstyle/api/Scope"), FieldName("PRIVATE"), _) => false
+      case (Owner("edu/cmu/cs/vbc/prog/checkstyle/api/Scope"), _, _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/whitespace/WrapOption"), _, _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/annotation/AnnotationUseStyleCheck$ElementStyle"), FieldName("COMPACT_NO_ARRAY"), _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/annotation/AnnotationUseStyleCheck$TrailingArrayComma"), FieldName("NEVER"), _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/annotation/AnnotationUseStyleCheck$ClosingParens"), FieldName("NEVER"), _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/checks/imports/ImportOrderOption"), FieldName("UNDER"), _) => false
       case (Owner("antlr/TokenStreamRecognitionException"), _, _) => false
+      case (Owner("edu/cmu/cs/vbc/prog/checkstyle/TreeWalker$AstState"), _, _) => false
+      case (Owner("java/io/File"), _, _) => false
       case _ => true
     }
   }
