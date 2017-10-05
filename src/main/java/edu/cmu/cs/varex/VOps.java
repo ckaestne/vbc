@@ -269,6 +269,10 @@ public class VOps {
         return value1.smap(ctx, d -> (float) d.doubleValue());
     }
 
+    public static V<? extends Double> f2d(V<? extends Float> value1, FeatureExpr ctx) {
+        return value1.smap(ctx, f -> (double) f.floatValue());
+    }
+
     //////////////////////////////////////////////////
     // Special println that prints configuration as well
     //////////////////////////////////////////////////
