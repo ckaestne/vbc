@@ -33,7 +33,7 @@ public class VOps {
             else if (v instanceof Integer)
                 return (Integer) v == 0;
             else
-                throw new RuntimeException("Unsupported whenEQ type");
+                throw new RuntimeException("Unsupported whenEQ type: " + v.getClass());
         }, true);
     }
 
