@@ -37,4 +37,5 @@ public interface List extends Collection {
     Object remove(int index);
     Object[] toArray(Object[] a);
     void clear();
+    boolean contains(Object o);
 }

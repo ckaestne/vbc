@@ -192,6 +192,11 @@ public class LinkedList implements List {
     public void clear() {
         actual.clear();
     }
+
+    @Override
+    public boolean contains(Object o) {
+        return actual.contains(o);
+    }
 }
 
 class MyLinkedList extends java.util.LinkedList {

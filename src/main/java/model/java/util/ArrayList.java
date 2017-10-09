@@ -76,6 +76,11 @@ public class ArrayList implements List {
     }
 
     @Override
+    public boolean contains(Object o) {
+        return actual.contains(o);
+    }
+
+    @Override
     public boolean isEmpty() {
         return actual.isEmpty();
     }
