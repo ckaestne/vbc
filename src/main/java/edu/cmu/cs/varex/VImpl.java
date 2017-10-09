@@ -195,8 +195,16 @@ class VImpl<T> implements V<T> {
         while (it.hasNext()) {
             Map.Entry<T, FeatureExpr> entry = it.next();
             FeatureExpr newCondition = entry.getValue().and(reducedConfigSpace);
-            if (newCondition.isSatisfiable())
-                result.put(entry.getKey(), newCondition);
+            if (newCondition.isSatisfiable()) {
+                if (result.containsKey(entry.getKey())) {
+                    // duplicate values, merge conditions
+                    FeatureExpr existingCond = result.get(entry.getKey());
+                    FeatureExpr combinedCond = existingCond.or(newCondition);
+                    result.put(entry.getKey(), combinedCond);
+                } else {
+                    result.put(entry.getKey(), newCondition);
+                }
+            }
         }
         return createV(result);
     }
