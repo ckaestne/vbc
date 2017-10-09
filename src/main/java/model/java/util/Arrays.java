@@ -97,6 +97,13 @@ public class Arrays {
         }));
     }
 
+    public static V<?> binarySearch__Array_D_D__I(V<V<Double>[]> vDoubleArray, V<Double> key, FeatureExpr ctx) {
+        return key.sflatMap(ctx, (fe, k) -> vDoubleArray.sflatMap(fe, (FeatureExpr fe2, V<Double>[] vArray) -> {
+            V<Double[]> expanded = ArrayOps.expandArray(vArray, Double[].class, fe2);
+            return expanded.smap(fe2, array -> java.util.Arrays.binarySearch(array, k));
+        }));
+    }
+
     public static List asList(Object[] array) {
         ArrayList list = new ArrayList();
         for (int i = 0; i < array.length; i++) {
