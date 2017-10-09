@@ -10,7 +10,10 @@ case class InstrMONITORENTER() extends Instruction {
     mv.visitInsn(MONITORENTER)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    System.err.println("WARNING: MONITOR is used in: " + env.clazz.name + "#" + env.method.name)
+    mv.visitInsn(MONITORENTER)
+  }
 
   /**
     * Update the stack symbolically after executing this instruction
@@ -24,7 +27,10 @@ case class InstrMONITORENTER() extends Instruction {
     *         If backtrack instruction set is not empty, the returned VBCFrame is useless, current frame will be pushed
     *         to queue again and reanalyze later. (see [[edu.cmu.cs.vbc.analysis.VBCAnalyzer.computeBeforeFrames]]
     */
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    val (_, _, frame) = s.pop()
+    (frame, Set())
+  }
 }
 
 case class InstrMONITOREXIT() extends Instruction {
@@ -32,7 +38,12 @@ case class InstrMONITOREXIT() extends Instruction {
     mv.visitInsn(MONITOREXIT)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    mv.visitInsn(MONITOREXIT)
+  }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    val (_, _, frame) = s.pop()
+    (frame, Set())
+  }
 }
