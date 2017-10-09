@@ -181,6 +181,11 @@ public class ArrayList implements List {
         });
     }
 
+    @Override
+    public V<?> indexOf__Ljava_lang_Object__I(V<?> vObject, FeatureExpr ctx) {
+        return vObject.sflatMap(ctx, (fe, o) -> vActual.smap(fe, l -> l.indexOf(o)));
+    }
+
     public V<?> clear____V(FeatureExpr ctx) {
         String id = "ArrayList#clear#";
         Profiler.startTimer(id);
