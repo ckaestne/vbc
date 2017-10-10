@@ -173,4 +173,5 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
 
 object VBCClassLoader {
   val loadedClasses = mutable.Map[String, Class[_]]()
+  def clearCache(): Unit = loadedClasses.clear
 }
