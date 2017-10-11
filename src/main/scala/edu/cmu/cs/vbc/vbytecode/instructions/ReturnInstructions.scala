@@ -73,7 +73,14 @@ case class InstrARETURN() extends ReturnInstruction {
     // For ARETURN, exceptions are stored into $result, so $exceptionVar is useless.
     loadCurrentCtx(mv, env, block)
     mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, MethodName("verifyAndThrowException"), MethodDesc(s"($vclasstype$fexprclasstype)$vclasstype"), false)
-    mv.visitInsn(ARETURN)
+    // Special handling for ATHROW in <init> methods:
+    // ATHROW gets replaced with ARETURN, but an <init> method should not return any values
+    val isReturningVoid: Boolean = MethodDesc(env.method.desc).isReturnVoid
+    if (env.method.name == "<init>" && isReturningVoid) {
+      mv.visitInsn(RETURN)  // discard the value left by verifyAndReturn()
+    } else {
+      mv.visitInsn(ARETURN)
+    }
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
