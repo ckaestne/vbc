@@ -321,7 +321,7 @@ class Loader {
       case FCMPL => UNKNOWN(FCMPL)
       case FCMPG => UNKNOWN(FCMPG)
       case DCMPL => InstrDCMPL()
-      case DCMPG => UNKNOWN(DCMPG)
+      case DCMPG => InstrDCMPG()
       case IFEQ => {
         val insIFEQ = inst.asInstanceOf[JumpInsnNode]
         val label = insIFEQ.label
