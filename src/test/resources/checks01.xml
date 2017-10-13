@@ -257,12 +257,12 @@
 		<module name="EqualsAvoidNull" />
 		<module name="ParameterAssignment" />
 		<module name="Indentation">
-			<property name="basicOffset" value="2" />
-			<property name="braceAdjustment" value="0" />
-			<property name="caseIndent" value="2" />
-			<property name="throwsIndent" value="4" />
-			<property name="lineWrappingIndentation" value="4" />
-			<property name="arrayInitIndent" value="2" />
+<!-- 			<property name="basicOffset" value="2" /> -->
+<!-- 			<property name="braceAdjustment" value="0" /> -->
+<!-- 			<property name="caseIndent" value="2" /> -->
+<!-- 			<property name="throwsIndent" value="4" /> -->
+<!-- 			<property name="lineWrappingIndentation" value="4" /> -->
+<!-- 			<property name="arrayInitIndent" value="2" /> -->
 		</module>
 		<module name="ArrayTrailingComma" />
 		<module name="AbbreviationAsWordInName">
@@ -284,11 +284,11 @@
 		<module name="MethodParamPad" />
 		<module name="MissingDeprecated" />
 		<module name="NestedIfDepth">
-			<property name="max" value="3" />
+<!-- 			<property name="max" value="3" /> -->
 		</module>
 		<module name="NestedTryDepth" />
 		<module name="NestedForDepth">
-			<property name="max" value="2" />
+<!-- 			<property name="max" value="2" /> -->
 		</module>
 		<module name="JavadocVariable" />
 		<module name="JavadocStyle">
