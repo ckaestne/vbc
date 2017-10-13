@@ -67,6 +67,9 @@ public class Arrays {
     public static long[] copyOf(long[] original, int newLength) {
         return java.util.Arrays.copyOf(original, newLength);
     }
+    public static byte[] copyOf(byte[] original, int newLength) {
+        return java.util.Arrays.copyOf(original, newLength);
+    }
 
     public static void sort(int[] a) {
         java.util.Arrays.sort(a);
