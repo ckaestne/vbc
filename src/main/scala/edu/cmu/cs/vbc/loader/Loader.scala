@@ -160,8 +160,8 @@ class Loader {
 
 
 
-    val blocks = for (i <- 0 to ordered.length - 2)
-      yield createBlock(ordered(i), ordered(i + 1))
+    val blocks = for (i <- 0 to ordered.length - 2) yield createBlock(ordered(i), ordered(i + 1))
+    val nonEmptyBlocks = blocks.filter(_.instr.nonEmpty)
 
     VBCMethodNode(
       m.access,
@@ -169,7 +169,7 @@ class Loader {
       m.desc,
       if (m.signature == null) None else Some(m.signature),
       if (m.exceptions == null) Nil else m.exceptions.toList,
-      new CFG(blocks.toList),
+      new CFG(nonEmptyBlocks.toList),
       varCache.values.toList
     )
   }
@@ -277,7 +277,7 @@ class Loader {
       case IDIV => InstrIDIV()
       case LDIV => InstrLDIV()
       case FDIV => UNKNOWN(FDIV)
-      case DDIV => UNKNOWN(DDIV)
+      case DDIV => InstrDDIV()
       case IREM => InstrIREM()
       case LREM => UNKNOWN(LREM)
       case FREM => UNKNOWN(FREM)
