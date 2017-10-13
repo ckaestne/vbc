@@ -28,6 +28,7 @@ class VBCModel(fqName: String) extends LazyLogging {
 
   val alwaysUseModelClass: List[String] = List(
     "model/java/lang/Integer",  // stringSize()
+    "model/java/lang/Long",  // stringSize()
     "model/java/lang/System", // arrayCopy()
     "model/java/util/Arrays"  // native sorting methods
   )
