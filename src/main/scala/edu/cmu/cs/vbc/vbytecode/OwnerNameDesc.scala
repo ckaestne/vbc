@@ -262,6 +262,23 @@ case class MethodDesc(descString: String) extends TypeVerifier {
     else
       this
   }
+
+
+  /**
+    * Given local variable index, return the index of this parameter in the parameter list (0-based)
+    *
+    * For example, given a non-static method descriptor (JI) and local variable index 3, this
+    * method should return 2, so that local variable 3 corresponds to the second parameter
+    */
+  def getParameterIndex(localVarIndex: Int, isStatic: Boolean): Int = {
+    val staticOffset: Int = if (isStatic) 0 else 1
+    val expandedArgs: List[(TypeDesc, Int)] = getArgs.toList.zipWithIndex.flatMap(pair =>
+      if (pair._1.is64Bit) List(pair, (TypeDesc.getSecondSlotType, pair._2)) else List(pair)
+    )
+    val (resType, resIndex) = expandedArgs(localVarIndex - staticOffset)
+    if (resType.isSecondSlot) throw new RuntimeException("Indexing the second slot of long or double")
+    else resIndex
+  }
 }
 
 object MethodDesc {
@@ -288,6 +305,8 @@ case class TypeDesc(desc: String) extends TypeVerifier {
     case "J" | "D" => true
     case _ => false
   }
+
+  def isSecondSlot: Boolean = desc == "Ledu/cmu/cs/vbc/SecondSlotOfLongOrDouble;"
 
   def toObject: TypeDesc = desc match {
     case "Z" => TypeDesc("Ljava/lang/Boolean;")
@@ -361,6 +380,8 @@ object TypeDesc {
   def getChar: TypeDesc = TypeDesc("Ljava/lang/Character;")
   def getBoolean: TypeDesc = TypeDesc("Ljava/lang/Boolean;")
   def getDouble: TypeDesc = TypeDesc("Ljava/lang/Double;")
+  // a special type to represent the second slot of double and long
+  def getSecondSlotType: TypeDesc = TypeDesc("Ledu/cmu/cs/vbc/SecondSlotOfLongOrDouble;")
 }
 
 trait TypeVerifier {

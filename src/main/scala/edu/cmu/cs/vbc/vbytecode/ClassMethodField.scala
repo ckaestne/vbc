@@ -57,8 +57,11 @@ case class VBCMethodNode(access: Int,
       for (v <- localVar ++ env.getFreshVars()) v match {
         case p: Parameter =>
           val pidx = if (isStatic) p.idx else p.idx - 1
-          if (p.name != "$unknown")
-            mv.visitLocalVariable(p.name, if (pidx == -1) "L" + clazz.name + ";" else Type.getArgumentTypes(liftedMethodDesc)(p.idx).getDescriptor, null, labelStart, labelEnd, p.idx)
+          if (p.name != "$unknown") {
+            lazy val indexOfParameter: Int = MethodDesc(desc).getParameterIndex(p.idx, isStatic)
+            lazy val liftedTypeString: String = Type.getArgumentTypes(liftedMethodDesc)(indexOfParameter).getDescriptor
+            mv.visitLocalVariable(p.name, if (pidx == -1) "L" + clazz.name + ";" else liftedTypeString, null, labelStart, labelEnd, p.idx)
+          }
         case l: LocalVar =>
           if (l.name != "$unknown")
             mv.visitLocalVariable(l.name, l.desc, null, labelStart, labelEnd, env.getVarIdx(l))
