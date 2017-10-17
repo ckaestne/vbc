@@ -792,9 +792,36 @@ case class InstrDCMPG() extends BinOpNonIntInstruction {
     mv.visitInsn(DCMPG)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, "dcmpg", s"($vclasstype$vclasstype$fexprclasstype)$vclasstype", false)
+    } else {
+      mv.visitInsn(DCMPG)
+    }
+  }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    if (s.stack.take(2).exists(_._1 == V_TYPE()))
+      env.setLift(this)
+    val (v1, prev1, frame1) = s.pop()
+    val (v2, prev2, frame2) = frame1.pop()
+    val newFrame =
+      if (env.shouldLiftInstr(this))
+        frame2.push(V_TYPE(), Set(this))
+      else {
+        frame2.push(INT_TYPE(), Set(this))
+      }
+    val backtrack: Set[Instruction] =
+      if (env.shouldLiftInstr(this)) {
+        if (v1 != V_TYPE()) prev1
+        else if (v2 != V_TYPE()) prev2
+        else Set()
+      }
+      else
+        Set()
+    (newFrame, backtrack)
+  }
 }
 
 case class InstrDDIV() extends BinOpNonIntInstruction {

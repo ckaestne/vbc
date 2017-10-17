@@ -273,6 +273,16 @@ public class VOps {
         return value1.smap(ctx, f -> (double) f.floatValue());
     }
 
+    public static V<? extends Integer> dcmpg(V<? extends Double> value1, V<? extends Double> value2, FeatureExpr ctx) {
+        return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> {
+            if (v1.isNaN() || v2.isNaN()) return 1;
+            else if (v1.doubleValue() > v2.doubleValue()) return 1;
+            else if (v1.doubleValue() == v2.doubleValue()) return 0;
+            else return -1;
+        }));
+    }
+
+
     //////////////////////////////////////////////////
     // Special println that prints configuration as well
     //////////////////////////////////////////////////
