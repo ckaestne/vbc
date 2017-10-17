@@ -83,6 +83,16 @@ public class StringBuilder {
         return V.one(ctx, this);
     }
 
+    public V<?> append__J__Lmodel_java_lang_StringBuilder(V<? extends java.lang.Long> vJ, FeatureExpr ctx) {
+        vActual = vActual.sflatMap(ctx, (fe, sb) -> {
+            if (vJ instanceof One)
+                return V.one(ctx, sb.append((char)vJ.getOne().longValue()));
+            else
+                return vJ.smap(fe, j -> new java.lang.StringBuilder(sb.toString()).append(j.longValue()));
+        });
+        return V.one(ctx, this);
+    }
+
     public V<?> toString____Ljava_lang_String(FeatureExpr ctx) {
         return vActual.smap(ctx, sb -> sb.toString());
     }
