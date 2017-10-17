@@ -144,8 +144,8 @@ case class InstrGETFIELD(owner: Owner, name: FieldName, desc: TypeDesc) extends 
       mv.visitFieldInsn(GETFIELD, owner, name, "Ledu/cmu/cs/varex/V;")
 
     //select V to current context
-    loadCurrentCtx(mv, env, block)
-    mv.visitMethodInsn(INVOKEINTERFACE, vclassname, "select", s"($fexprclasstype)$vclasstype", true)
+//    loadCurrentCtx(mv, env, block)
+//    mv.visitMethodInsn(INVOKEINTERFACE, vclassname, "select", s"($fexprclasstype)$vclasstype", true)
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
