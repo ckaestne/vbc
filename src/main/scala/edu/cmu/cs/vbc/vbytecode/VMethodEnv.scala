@@ -241,9 +241,18 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
   override def getVarIdx(variable: Variable): Int =
     if (variable eq ctxParameter) parameterCount
     else {
-      val idx = super.getVarIdx(variable: Variable)
-      if (idx >= parameterCount) idx + 1
-      else idx
+      val idx = super.getVarIdx(variable)
+      variable match {
+        case p: Parameter =>
+          // need to shift because we use V to represent long and double
+          if (!method.isStatic && idx == 0)
+            idx
+          else
+            MethodDesc(method.desc).getParameterIndex(idx, method.isStatic) + (if (method.isStatic) 0 else 1)
+        case _: LocalVar =>
+          if (idx >= parameterCount) idx + 1
+          else idx
+      }
     }
 
   val blockEndLabel: List[Label] = for (i <- blocks.indices.toList) yield new Label(s"END_OF_BLOCK_$i")

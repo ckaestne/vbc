@@ -41,7 +41,7 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) extends CFGA
 
   def getVarIdx(variable: Variable): Int = variable match {
     case p: Parameter =>
-      assert(p.idx >= 0, "parameter with negative index not supported")
+      assert(p.idx >= 0, "Parameter with negative index")
       p.idx
     case l: LocalVar =>
       val localIdxPos = localVars.reverse.indexOf(l)

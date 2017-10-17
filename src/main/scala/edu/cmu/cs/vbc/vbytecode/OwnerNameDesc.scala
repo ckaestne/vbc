@@ -271,12 +271,14 @@ case class MethodDesc(descString: String) extends TypeVerifier {
     * method should return 2, so that local variable 3 corresponds to the second parameter
     */
   def getParameterIndex(localVarIndex: Int, isStatic: Boolean): Int = {
+    if (!isStatic) assert(localVarIndex != 0, "Not a parameter")
     val staticOffset: Int = if (isStatic) 0 else 1
     val expandedArgs: List[(TypeDesc, Int)] = getArgs.toList.zipWithIndex.flatMap(pair =>
       if (pair._1.is64Bit) List(pair, (TypeDesc.getSecondSlotType, pair._2)) else List(pair)
     )
     val (resType, resIndex) = expandedArgs(localVarIndex - staticOffset)
-    if (resType.isSecondSlot) throw new RuntimeException("Indexing the second slot of long or double")
+    if (resType.isSecondSlot)
+      throw new RuntimeException("Indexing the second slot of long or double")
     else resIndex
   }
 }
