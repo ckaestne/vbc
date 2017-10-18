@@ -4,12 +4,13 @@ import de.fosd.typechef.featureexpr.FeatureExpr;
 import de.fosd.typechef.featureexpr.FeatureExprFactory;
 
 import javax.annotation.Nonnull;
+import java.io.Serializable;
 import java.util.function.*;
 
 /**
  * Created by ckaestne on 11/27/2015.
  */
-public class One<T> implements V<T> {
+public class One<T> implements V<T>, Serializable {
     final FeatureExpr configSpace;
     final T value;
 

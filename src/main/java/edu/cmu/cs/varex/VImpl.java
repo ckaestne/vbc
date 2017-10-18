@@ -4,13 +4,14 @@ import de.fosd.typechef.featureexpr.FeatureExpr;
 import de.fosd.typechef.featureexpr.FeatureExprFactory;
 
 import javax.annotation.Nonnull;
+import java.io.Serializable;
 import java.util.*;
 import java.util.function.*;
 
 /**
  * internal implementation of V
  */
-class VImpl<T> implements V<T> {
+class VImpl<T> implements V<T>, Serializable {
 
     static <U> V<? extends U> choice(FeatureExpr condition, U a, U b) {
         Map<U, FeatureExpr> result = new HashMap<>(2);

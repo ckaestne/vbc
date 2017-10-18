@@ -4,13 +4,14 @@ import de.fosd.typechef.featureexpr.FeatureExpr;
 import de.fosd.typechef.featureexpr.FeatureExprFactory;
 
 import javax.annotation.Nonnull;
+import java.io.Serializable;
 import java.util.function.*;
 
 
 /**
  * represents a V for an empty configuration space without any values
  */
-public class VEmpty<T> implements V<T> {
+public class VEmpty<T> implements V<T>, Serializable {
 
     public static <U> VEmpty<U> instance() {
         return new VEmpty<>();
