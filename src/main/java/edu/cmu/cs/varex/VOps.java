@@ -305,6 +305,9 @@ public class VOps {
     public static void println(PrintStream out, boolean b, FeatureExpr ctx) {
         out.println("[" + ctx + "]: " + b);
     }
+    public static void println(PrintStream out, FeatureExpr ctx) {
+        out.println("[" + ctx + "]: ");
+    }
 
     //////////////////////////////////////////////////
     // Truncating primitive types to int
@@ -461,6 +464,16 @@ public class VOps {
         } catch (InvocationTargetException e) {
             System.err.println("Exception in VOps");
             throw e;
+        }
+    }
+
+    public static Object monitorVerify(V<?> syncRef, FeatureExpr ctx) {
+        V selected = syncRef.select(ctx);
+        if (selected instanceof One) {
+            Object ref = ((One) selected).getOne();
+            return ref;
+        } else {
+            throw new RuntimeException("MONITORENTER or MONITOREXIT on a choice: " + selected.toString());
         }
     }
 }
