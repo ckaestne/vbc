@@ -49,7 +49,7 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
       }
       else if (shouldLift(name))
         findClass(name)
-      else if (name.startsWith("edu.cmu.cs.vbc.prog"))
+      else if (name.startsWith("edu.cmu.cs.vbc.prog") || name.startsWith("org.prevayler"))
         loadClassAndUseModelClasses(name)
       else if (name.startsWith("antlr")) // todo: do this more systematically
         loadClassWithoutChanges(name) // avoid LinkageError
