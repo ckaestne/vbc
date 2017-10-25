@@ -18,27 +18,27 @@ import java.io.File;
 
 public class RunNumberKeeper {
 
-    //	@Conditional
+    @VConditional
     public static boolean USE_LOG4J_MONITOR = false;
     @VConditional
     public static boolean USE_NULL_MONITOR = false;
-    //	@Conditional
+    @VConditional
     public static boolean USE_BROKEN_CLOCK = false;
-    //	@Conditional
+    @VConditional
     public static boolean USE_PAUSABLE_CLOCK = false;
-    //	@Conditional // TODO not working for tutorialTest()
+    @VConditional // TODO not working for tutorialTest()
     public static boolean USE_XSTREAM = false;
-    //	@Conditional
+	@VConditional
     public static boolean USE_TRANSIENT_MODE = false;
-    //	@Conditional
+    @VConditional
     public static boolean USE_JOURNAL_DISK_SYNC = false;
-    //	@Conditional
+    @VConditional
     public static boolean FILE_AGE_THREASHOLD = false;
-    //	@Conditional // TODO not working
+    @VConditional // TODO not working
     static boolean FILE_SIZE_THREASHOLD = false;
-    //  @Conditional // TODO not working
+//    @VConditional // NOTE: not working even unlifted
     static boolean USE_XSTREAM_JOURNAL = false;
-    //	@Conditional // TODO not working
+//    @VConditional // TODO not working
     static boolean USE_FILTERING = false;
     private static String NUMBER_KEEPER = "NumberKeeper";
 
@@ -145,10 +145,10 @@ public class RunNumberKeeper {
         factory.configureJournalDiskSync(USE_JOURNAL_DISK_SYNC);
 
         if (FILE_AGE_THREASHOLD) {
-            factory.configureJournalFileAgeThreshold(100);
+            factory.configureJournalFileAgeThreshold(1_000_000);
         }
         if (FILE_SIZE_THREASHOLD) {
-            factory.configureJournalFileSizeThreshold(100);
+            factory.configureJournalFileSizeThreshold(1_000_000);
         }
         if (USE_XSTREAM_JOURNAL) {
             factory.configureJournalSerializer(new XStreamSerializer());
