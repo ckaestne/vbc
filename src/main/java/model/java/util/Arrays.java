@@ -39,6 +39,11 @@ public class Arrays {
     public static void fill(int[] a, int val) {
         java.util.Arrays.fill(a, val);
     }
+
+    public static void fill(char[] a, char val) {
+        java.util.Arrays.fill(a, val);
+    }
+
     public static V<?> fill__Array_I_I__V(V<V[]> varray, V<Integer> vvalue, FeatureExpr ctx) {
         vvalue.sforeach(ctx, value -> varray.sforeach(ctx, array -> {
             for (int i = 0; i < array.length; i++) {
