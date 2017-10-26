@@ -265,7 +265,7 @@ class Loader {
       case IADD => InstrIADD()
       case LADD => InstrLADD()
       case FADD => UNKNOWN(FADD)
-      case DADD => UNKNOWN(DADD)
+      case DADD => InstrDADD()
       case ISUB => InstrISUB()
       case LSUB => InstrLSUB()
       case FSUB => UNKNOWN(FSUB)
