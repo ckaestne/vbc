@@ -298,3 +298,11 @@ case class InstrSWAP() extends Instruction {
     (frame2.push(v1, prev1).push(v2, prev2), Set())
   }
 }
+
+case class InstrPOP2() extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(POP2)
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+}
