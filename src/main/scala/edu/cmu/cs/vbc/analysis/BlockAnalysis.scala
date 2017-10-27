@@ -162,8 +162,12 @@ trait VBlockAnalysis extends CFGAnalysis {
       if (!variationalEdgeFromPred && !variationalEdgeToPred) {
         val thisVBlockIdx = vblockId(block)
         val thisBlockIdx = blocks.indexOf(block)
-        // the last filter is used to handle loops introduced by finally.
-        val predVBlockIdxs = pred.filter(_ != block).map(vblockId).filter(_ != thisBlockIdx)
+        // 1. First filter excludes self loop. We do not need to consider the node itself since
+        //  we are updating the node itself.
+        // 2. Second filter excludes exception handler blocks of the current block. If we take
+        //  those into account, we might get distracted by the old vblock values. Exception handler
+        //  blocks are in the same vblock anyway.
+        val predVBlockIdxs = pred.filter(_ != block).filter(!isExceptionHandlerBlockOf(_, block)).map(vblockId)
         // condition 1: the first block must be the start of a VBlock todo: add test case
         // condition 2: all predecessors must come from the same VBlock
         // condition 3: must be in different VBlocks so that they can be merged
@@ -177,6 +181,12 @@ trait VBlockAnalysis extends CFGAnalysis {
       yield VBlock(vblockHead(vblockId), blocks.keys.toSet)
   }
 
+  /**
+    * Check if b1 is the exception handler block of b2
+    */
+  def isExceptionHandlerBlockOf(b1: Block, b2: Block): Boolean = {
+    b2.exceptionHandlers.exists(h => blocks(h.handlerBlockIdx) == b1)
+  }
 
   def getNextVBlock(vblock: VBlock): Option[VBlock] = {
     assert(vblocks.contains(vblock), s"parameter $vblock is not a vblock")
