@@ -109,6 +109,7 @@ case class InstrLDC(o: Object) extends Instruction {
           case l: java.lang.Long => s.push(LONG_TYPE(), Set(this))
           case _: java.lang.Double => s.push(DOUBLE_TYPE(), Set(this))
           case t: Type => s.push(REF_TYPE(), Set(this))
+          case _: java.lang.Float => s.push(FLOAT_TYPE(), Set(this))
           case _ => throw new RuntimeException("Incomplete support for LDC")
         }
     (newFrame, Set())
