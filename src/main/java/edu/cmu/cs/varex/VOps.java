@@ -298,6 +298,14 @@ public class VOps {
         return value.smap(ctx, f -> (int) f.floatValue());
     }
 
+    public static V<? extends Integer> fcmpg(V<? extends Float> value1, V<? extends Float> value2, FeatureExpr ctx) {
+        return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> {
+            if (v1.isNaN() || v2.isNaN()) return 1;
+            else if (v1.floatValue() > v2.floatValue()) return 1;
+            else if (v1.floatValue() == v2.floatValue()) return 0;
+            else return -1;
+        }));
+    }
     //////////////////////////////////////////////////
     // Special println that prints configuration as well
     //////////////////////////////////////////////////

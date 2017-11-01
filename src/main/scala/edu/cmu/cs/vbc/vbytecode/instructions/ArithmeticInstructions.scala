@@ -905,12 +905,22 @@ case class InstrFDIV() extends BinOpNonIntInstruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, FLOAT_TYPE())
 }
 
-case class InstrFCMPG() extends BinOpNonIntInstruction {
+/**
+  * Compare float
+  *
+  * ..., value1 (float), value2 (float) -> ..., result (int)
+  */
+case class InstrFCMPG() extends BinOpInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(FCMPG)
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, "fcmpg", s"($vclasstype$vclasstype$fexprclasstype)$vclasstype", false)
+    } else {
+      mv.visitInsn(FCMPG)
+    }
+  }
 }
 
 case class InstrFMUL() extends BinOpNonIntInstruction {
