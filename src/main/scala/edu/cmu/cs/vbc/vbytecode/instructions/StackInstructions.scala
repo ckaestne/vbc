@@ -309,17 +309,30 @@ case class InstrSWAP() extends Instruction {
 case class InstrPOP2() extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(POP2)
 
+  /**
+    * Lifting means top two slots together represent a long or double
+    */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-
+    if (env.shouldLiftInstr(this))
+      mv.visitInsn(POP)
+    else
+      mv.visitInsn(POP2)
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
     val (value, prev, frame) = s.pop()
     value match {
-      case v: V_TYPE => if (v.is64Bit) (frame, Set()) else (frame.pop()._3, Set())
+      case v: V_TYPE =>
+        if (v.is64Bit) {
+          env.setLift(this)
+          (frame, Set())
+        }
+        else (frame.pop()._3, Set())
       case _: DOUBLE_TYPE => (frame, Set())
       case _: LONG_TYPE => (frame, Set())
       case _ => (frame.pop()._3, Set())
     }
   }
+
+  override def doBacktrack(env: VMethodEnv): Unit = {} //  lifting or not is determined by DFA
 }
