@@ -382,6 +382,7 @@ object TypeDesc {
   def getChar: TypeDesc = TypeDesc("Ljava/lang/Character;")
   def getBoolean: TypeDesc = TypeDesc("Ljava/lang/Boolean;")
   def getDouble: TypeDesc = TypeDesc("Ljava/lang/Double;")
+  def getFloat: TypeDesc = TypeDesc("Ljava/lang/Float;")
   // a special type to represent the second slot of double and long
   def getSecondSlotType: TypeDesc = TypeDesc("Ledu/cmu/cs/vbc/SecondSlotOfLongOrDouble;")
 }

@@ -59,6 +59,7 @@ case class InstrLDC(o: Object) extends Instruction {
         case i: Integer => mv.visitLdcInsn(o); int2Integer(mv)
         case l: java.lang.Long => mv.visitLdcInsn(o); long2Long(mv)
         case _: java.lang.Double => mv.visitLdcInsn(o); double2Double(mv)
+        case _: java.lang.Float => mv.visitLdcInsn(o); float2Float(mv)
         case t: Type =>
           if (t.getSort == Type.ARRAY) {
             val t = Type.getObjectType(s"[$vclasstype")

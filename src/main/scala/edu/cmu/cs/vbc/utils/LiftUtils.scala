@@ -147,4 +147,6 @@ object LiftUtils {
     mv.visitMethodInsn(INVOKESTATIC, Owner.getChar, "valueOf", MethodDesc(s"(C)${TypeDesc.getChar}"), false)
   def double2Double(mv: MethodVisitor) =
     mv.visitMethodInsn(INVOKESTATIC, Owner.getDouble, "valueOf", MethodDesc(s"(D)${TypeDesc.getDouble}"), false)
+  def float2Float(mv: MethodVisitor) =
+    mv.visitMethodInsn(INVOKESTATIC, Owner.getFloat, "valueOf", MethodDesc(s"(F)${TypeDesc.getFloat}"), false)
 }
