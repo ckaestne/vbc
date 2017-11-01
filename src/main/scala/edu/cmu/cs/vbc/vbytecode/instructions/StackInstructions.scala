@@ -8,6 +8,7 @@ import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
 
 trait StackInstructions extends Instruction {
+  @deprecated
   def isVOf64Bit(in: Instruction): Boolean = {
     val instrThatPuts64Bit = Set[Class[_]](
       // long
@@ -78,8 +79,8 @@ case class InstrDUP2() extends StackInstructions {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val (v, prev, frame) = s.pop()
-    if (v == LONG_TYPE() || v == DOUBLE_TYPE() || (v == V_TYPE() && isVOf64Bit(prev.head))) {
-      if (v == V_TYPE()) env.setLift(this)
+    if (v == LONG_TYPE() || v == DOUBLE_TYPE() || v == V_TYPE(true)) {
+      if (v == V_TYPE(true)) env.setLift(this)
       (frame.push(v, prev).push(v, prev), Set())
     }
     else {
@@ -119,7 +120,7 @@ case class InstrDUP_X2() extends StackInstructions {
     if (v2 == LONG_TYPE() || v2 == DOUBLE_TYPE()) {
       (frame2.push(v1, prev1).push(v2, prev2).push(v1, prev1), Set())
     }
-    else if (v2 == V_TYPE() && isVOf64Bit(prev2.head)) {
+    else if (v2 == V_TYPE(true)) {
       env.setLift(this)
       (frame2.push(v1, prev1).push(v2, prev2).push(v1, prev1), Set())
     }
@@ -160,7 +161,7 @@ case class InstrDUP2_X1() extends StackInstructions {
       val (v2, prev2, frame2) = frame1.pop()
       (frame2.push(v1, prev1).push(v2, prev2).push(v1, prev1), Set())
     }
-    else if (v1 == V_TYPE() && isVOf64Bit(prev1.head)) {
+    else if (v1 == V_TYPE(true)) {
       env.setLift(this)
       val (v2, prev2, frame2) = frame1.pop()
       (frame2.push(v1, prev1).push(v2, prev2).push(v1, prev1), Set())
@@ -216,7 +217,7 @@ case class InstrBIPUSH(value: Int) extends Instruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val newFrame =
       if (env.shouldLiftInstr(this))
-        s.push(V_TYPE(), Set(this))
+        s.push(V_TYPE(false), Set(this))
       else
         s.push(INT_TYPE(), Set(this))
     (newFrame, Set())
@@ -253,7 +254,7 @@ case class InstrSIPUSH(value: Int) extends Instruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val newFrame =
       if (env.shouldLiftInstr(this))
-        s.push(V_TYPE(), Set(this))
+        s.push(V_TYPE(false), Set(this))
       else
         s.push(INT_TYPE(), Set(this))
     (newFrame, Set())
@@ -299,10 +300,26 @@ case class InstrSWAP() extends Instruction {
   }
 }
 
+/**
+  * Pop the top one or two operand stack values
+  *
+  * If the top two slots represent two category 1 values, pop them.
+  * If the top two slots represent one category 2 value, pop it.
+  */
 case class InstrPOP2() extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(POP2)
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    val (value, prev, frame) = s.pop()
+    value match {
+      case v: V_TYPE => if (v.is64Bit) (frame, Set()) else (frame.pop()._3, Set())
+      case _: DOUBLE_TYPE => (frame, Set())
+      case _: LONG_TYPE => (frame, Set())
+      case _ => (frame.pop()._3, Set())
+    }
+  }
 }

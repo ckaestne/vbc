@@ -25,7 +25,7 @@ trait JumpInstruction extends Instruction {
   def updateStack1(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val (v1, prev1, newFrame) = s.pop()
     env.setLift(this)
-    if (v1 != V_TYPE()) return (newFrame, prev1)
+    if (v1 != V_TYPE(false)) return (newFrame, prev1)
     val backtrack = backtrackNonVStackElements(s)
     (newFrame, backtrack)
   }
@@ -34,19 +34,18 @@ trait JumpInstruction extends Instruction {
     val (v1, prev1, frame1) = s.pop()
     val (v2, prev2, newFrame) = frame1.pop()
     env.setLift(this)
-    if (v1 != V_TYPE()) return (newFrame, prev1)
-    if (v1 != V_TYPE()) return (newFrame, prev2)
+    if (v1 != V_TYPE(false)) return (newFrame, prev1)
+    if (v1 != V_TYPE(false)) return (newFrame, prev2)
     val backtrack = backtrackNonVStackElements(s)
     (newFrame, backtrack)
   }
 
   def backtrackNonVStackElements(f: VBCFrame): Set[Instruction] = {
-    (Tuple2[VBCType, Set[Instruction]](V_TYPE(), Set()) /: f.stack) (
+    (Tuple2[VBCType, Set[Instruction]](V_TYPE(false), Set()) /: f.stack) (  // initial V_TYPE(false) is useless
       (a: FrameEntry, b: FrameEntry) => {
-        // a is always V_TYPE()
         if (b._1.isInstanceOf[V_REF_TYPE])
           throw new RuntimeException("Could not store uninitialized objects to unbalanced stack variables")
-        if (a._1 != b._1) (a._1, a._2 ++ b._2)
+        if (!b._1.isInstanceOf[V_TYPE]) (a._1, a._2 ++ b._2)
         else a
       })._2
   }

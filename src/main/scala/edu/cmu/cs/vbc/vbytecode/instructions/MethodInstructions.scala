@@ -231,7 +231,7 @@ trait MethodInstruction extends Instruction {
     val shouldLift = LiftingPolicy.shouldLiftMethodCall(owner, name, desc)
     val nArg = Type.getArgumentTypes(desc).length
     val argList: List[(VBCType, Set[Instruction])] = s.stack.take(nArg)
-    val hasVArgs = argList.exists(_._1 == V_TYPE())
+    val hasVArgs = argList.exists(_._1.isInstanceOf[V_TYPE])
 
     // object reference
     var frame = s
@@ -239,7 +239,7 @@ trait MethodInstruction extends Instruction {
     if (!this.isInstanceOf[InstrINVOKESTATIC]) {
       val (ref, ref_prev, baseFrame) = frame.pop() // L0
       frame = baseFrame
-      if (ref == V_TYPE()) env.setLift(this)
+      if (ref == V_TYPE(false)) env.setLift(this)
       if (this.isInstanceOf[InstrINVOKESPECIAL] && name.contentEquals("<init>")) {
         if (ref.isInstanceOf[V_REF_TYPE]) {
           // We expect uninitialized references appear in pairs.
@@ -251,7 +251,7 @@ trait MethodInstruction extends Instruction {
           val moreThanOne = frame.stack.tail.contains(ref)
           assert(!moreThanOne, "More than one UNINITIALIZED value on stack")
           val (ref2, prev2, frame2) = frame.pop()
-          frame = frame2.push(V_TYPE(), prev2)
+          frame = frame2.push(V_TYPE(false), prev2)
         }
         else if (!shouldLift && hasVArgs) {
           // Passing V to constructors of classes that we don't lift (e.g. String)
@@ -264,7 +264,7 @@ trait MethodInstruction extends Instruction {
             val moreThanOne = frame.stack.tail.contains(ref)
             assert(!moreThanOne, "More than one duplicated values on stack")
             val (ref2, prev2, frame2) = frame.pop()
-            frame = frame2.push(V_TYPE(), prev2)
+            frame = frame2.push(V_TYPE(false), prev2)
           }
         }
       }
@@ -274,17 +274,18 @@ trait MethodInstruction extends Instruction {
     if (hasVArgs) env.setTag(this, env.TAG_HAS_VARG)
     if (hasVArgs || shouldLift || env.shouldLiftInstr(this)) {
       // ensure that all arguments are V
-      for (ele <- argList if ele._1 != V_TYPE()) return (s, ele._2)
+      for (ele <- argList if !ele._1.isInstanceOf[V_TYPE]) return (s, ele._2)
     }
 
     // return value
     if (Type.getReturnType(desc) != Type.VOID_TYPE) {
+      val retV: VBCType = if (MethodDesc(desc).getReturnType.get.is64Bit) V_TYPE(true) else V_TYPE(false)
       if (env.getTag(this, env.TAG_NEED_V))
-        frame = frame.push(V_TYPE(), Set(this))
+        frame = frame.push(retV, Set(this))
       else if (env.shouldLiftInstr(this))
-        frame = frame.push(V_TYPE(), Set(this))
+        frame = frame.push(retV, Set(this))
       else if (shouldLift || (hasVArgs && !shouldLift))
-        frame = frame.push(V_TYPE(), Set(this))
+        frame = frame.push(retV, Set(this))
       else
         frame = frame.push(VBCType(Type.getReturnType(desc)), Set(this))
     }
@@ -296,10 +297,9 @@ trait MethodInstruction extends Instruction {
   }
 
   def backtraceNonVStackElements(f: VBCFrame): Set[Instruction] = {
-    (Tuple2[VBCType, Set[Instruction]](V_TYPE(), Set()) /: f.stack) (
+    (Tuple2[VBCType, Set[Instruction]](V_TYPE(false), Set()) /: f.stack) (  // initial V_TYPE(false) is useless
       (a: FrameEntry, b: FrameEntry) => {
-        // a is always V_TYPE()
-        if (a._1 != b._1) (a._1, a._2 ++ b._2)
+        if (!b._1.isInstanceOf[V_TYPE]) (a._1, a._2 ++ b._2)
         else a
       })._2
   }

@@ -35,7 +35,7 @@ case class InstrICONST(v: Int) extends Instruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val newFrame =
       if (env.shouldLiftInstr(this))
-        s.push(V_TYPE(), Set(this))
+        s.push(V_TYPE(false), Set(this))
       else
         s.push(INT_TYPE(), Set(this))
     (newFrame, Set())
@@ -97,7 +97,11 @@ case class InstrLDC(o: Object) extends Instruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val newFrame =
       if (env.shouldLiftInstr(this))
-        s.push(V_TYPE(), Set(this))
+        o match {
+          case _: java.lang.Long => s.push(V_TYPE(true), Set(this))
+          case _: java.lang.Double => s.push(V_TYPE(true), Set(this))
+          case _ => s.push(V_TYPE(false), Set(this))
+        }
       else
         o match {
           case i: java.lang.Integer => s.push(INT_TYPE(), Set(this))
@@ -127,7 +131,7 @@ case class InstrACONST_NULL() extends Instruction {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     if (env.shouldLiftInstr(this))
-      (s.push(V_TYPE(), Set(this)), Set())
+      (s.push(V_TYPE(false), Set(this)), Set())
     else
       (s.push(VBCType(Type.getObjectType("null")), Set(this)), Set())
   }
@@ -150,7 +154,7 @@ case class InstrLCONST(v: Int) extends Instruction {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
     if (env.shouldLiftInstr(this))
-      (s.push(V_TYPE(), Set(this)), Set())
+      (s.push(V_TYPE(true), Set(this)), Set())
     else
       (s.push(LONG_TYPE(), Set(this)), Set())
   }
@@ -178,7 +182,7 @@ case class InstrDCONST_0() extends Instruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
     val newFrame =
       if (env.shouldLiftInstr(this))
-        s.push(V_TYPE(), Set(this))
+        s.push(V_TYPE(true), Set(this))
       else
         s.push(DOUBLE_TYPE(), Set(this))
     (newFrame, Set())
@@ -207,7 +211,7 @@ case class InstrDCONST_1() extends Instruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
     val newFrame =
       if (env.shouldLiftInstr(this))
-        s.push(V_TYPE(), Set(this))
+        s.push(V_TYPE(true), Set(this))
       else
         s.push(DOUBLE_TYPE(), Set(this))
     (newFrame, Set())

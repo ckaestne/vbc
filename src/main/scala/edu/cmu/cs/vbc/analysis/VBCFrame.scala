@@ -57,8 +57,8 @@ case class VBCFrame(localVar: Map[Variable, FrameEntry], stack: List[FrameEntry]
   private def mergeFrameEntry(v1: FrameEntry, v2: FrameEntry): FrameEntry = {
     val mergedInstrs: Set[Instruction] = v1._2 ++ v2._2
     (v1._1, v2._1) match {
-      case (a: V_TYPE, b) => (V_TYPE(), mergedInstrs)
-      case (a, b: V_TYPE) => (V_TYPE(), mergedInstrs)
+      case (a: V_TYPE, b) => (a, mergedInstrs)
+      case (a, b: V_TYPE) => (b, mergedInstrs)
       case (a: REF_TYPE, b: V_REF_TYPE) => (b, mergedInstrs)
       case (a: UNINITIALIZED_TYPE, b: V_REF_TYPE) => (b, mergedInstrs)
       case (a: UNINITIALIZED_TYPE, b: UNINITIALIZED_TYPE) => (b, mergedInstrs)

@@ -11,20 +11,20 @@ import org.objectweb.asm.Opcodes._
 trait BinOpInstruction extends Instruction {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
-    if (s.stack.take(2).exists(_._1 == V_TYPE()))
+    if (s.stack.take(2).exists(_._1 == V_TYPE(false)))
       env.setLift(this)
     val (v1, prev1, frame1) = s.pop()
     val (v2, prev2, frame2) = frame1.pop()
     val newFrame =
       if (env.shouldLiftInstr(this))
-        frame2.push(V_TYPE(), Set(this))
+        frame2.push(V_TYPE(false), Set(this))
       else {
         frame2.push(INT_TYPE(), Set(this))
       }
     val backtrack: Set[Instruction] =
       if (env.shouldLiftInstr(this)) {
-        if (v1 != V_TYPE()) prev1
-        else if (v2 != V_TYPE()) prev2
+        if (v1 != V_TYPE(false)) prev1
+        else if (v2 != V_TYPE(false)) prev2
         else Set()
       }
       else
@@ -36,20 +36,25 @@ trait BinOpInstruction extends Instruction {
 trait BinOpNonIntInstruction extends Instruction {
 
   def updateStackWithReturnType(s: VBCFrame, env: VMethodEnv, retType: VBCType): UpdatedFrame = {
-    if (s.stack.take(2).exists(_._1 == V_TYPE()))
+    val retVType: VBCType = retType match {
+      case _: LONG_TYPE => V_TYPE(true)
+      case _: DOUBLE_TYPE => V_TYPE(true)
+      case _ => V_TYPE(false)
+    }
+    if (s.stack.take(2).exists(_._1.isInstanceOf[V_TYPE]))
       env.setLift(this)
     val (v1, prev1, frame1) = s.pop()
     val (v2, prev2, frame2) = frame1.pop()
     val newFrame =
       if (env.shouldLiftInstr(this))
-        frame2.push(V_TYPE(), Set(this))
+        frame2.push(retVType, Set(this))
       else {
         frame2.push(retType, Set(this))
       }
     val backtrack: Set[Instruction] =
       if (env.shouldLiftInstr(this)) {
-        if (v1 != V_TYPE()) prev1
-        else if (v2 != V_TYPE()) prev2
+        if (!v1.isInstanceOf[V_TYPE]) prev1
+        else if (!v2.isInstanceOf[V_TYPE]) prev2
         else Set()
       }
       else
@@ -135,15 +140,15 @@ case class InstrINEG() extends Instruction {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
     val (v, prev, frame) = s.pop()
-    if (v == V_TYPE())
+    if (v == V_TYPE(false))
       env.setLift(this)
     val newFrame =
       if (env.shouldLiftInstr(this))
-        frame.push(V_TYPE(), Set(this))
+        frame.push(V_TYPE(false), Set(this))
       else {
         frame.push(INT_TYPE(), Set(this))
       }
-    if (env.shouldLiftInstr(this) && v != V_TYPE())
+    if (env.shouldLiftInstr(this) && v != V_TYPE(is64Bit = false))
         return (s, prev)
     (newFrame, Set())
   }
@@ -211,9 +216,9 @@ case class InstrISHL() extends Instruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
     val (argType, argBacktrack, frame1) = s.pop()
     val (receiverType, receiverBacktrack, frame2) = frame1.pop()
-    val hasV = argType == V_TYPE() || receiverType == V_TYPE()
+    val hasV = argType == V_TYPE(false) || receiverType == V_TYPE(false)
     if (hasV) env.setLift(this)
-    val newFrame = frame2.push(if (hasV) V_TYPE() else INT_TYPE(), Set(this))
+    val newFrame = frame2.push(if (hasV) V_TYPE(false) else INT_TYPE(), Set(this))
     val backtrack: Set[Instruction] = (argType, receiverType) match {
       case (INT_TYPE(), _) => argBacktrack
       case (_, INT_TYPE()) => receiverBacktrack
@@ -264,11 +269,11 @@ case class InstrLCMP() extends Instruction {
     val (value1Type, value1Backtrack, frame1) = frame2.pop()
     ((value1Type, value2Type): @unchecked) match {
       case (LONG_TYPE(), LONG_TYPE()) => (frame1.push(INT_TYPE(), Set(this)), Set())
-      case (LONG_TYPE(), V_TYPE()) => (frame1, value1Backtrack) // backtrack, frame1 will be discarded
-      case (V_TYPE(), LONG_TYPE()) => (frame1, value2Backtrack) // backtrack, frame2 will be discarded
-      case (V_TYPE(), V_TYPE()) =>
+      case (LONG_TYPE(), V_TYPE(true)) => (frame1, value1Backtrack) // backtrack, frame1 will be discarded
+      case (V_TYPE(true), LONG_TYPE()) => (frame1, value2Backtrack) // backtrack, frame2 will be discarded
+      case (V_TYPE(true), V_TYPE(true)) =>
         env.setLift(this)
-        (frame1.push(V_TYPE(), Set(this)), Set())
+        (frame1.push(V_TYPE(false), Set(this)), Set())
     }
   }
 }
@@ -307,9 +312,9 @@ case class InstrLNEG() extends Instruction {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
     val (vType, _, frame) = s.pop()
-    if (vType == V_TYPE()) {
+    if (vType == V_TYPE(true)) {
       env.setLift(this)
-      (frame.push(V_TYPE(), Set(this)), Set())
+      (frame.push(V_TYPE(true), Set(this)), Set())
     }
     else
       (frame.push(LONG_TYPE(), Set(this)), Set())
@@ -357,11 +362,11 @@ case class InstrISHR() extends Instruction {
     val (value1Type, value1Backtrack, frame1) = frame2.pop()
     ((value1Type, value2Type): @unchecked) match {
       case (INT_TYPE(), INT_TYPE()) => (frame1.push(INT_TYPE(), Set(this)), Set())
-      case (INT_TYPE(), V_TYPE()) => (frame1, value1Backtrack)
-      case (V_TYPE(), INT_TYPE()) => (frame1, value2Backtrack)
-      case (V_TYPE(), V_TYPE()) =>
+      case (INT_TYPE(), V_TYPE(false)) => (frame1, value1Backtrack)
+      case (V_TYPE(false), INT_TYPE()) => (frame1, value2Backtrack)
+      case (V_TYPE(false), V_TYPE(false)) =>
         env.setLift(this)
-        (frame1.push(V_TYPE(), Set(this)), Set())
+        (frame1.push(V_TYPE(false), Set(this)), Set())
     }
   }
 }
@@ -525,15 +530,15 @@ case class InstrL2I() extends Instruction {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
     val (v, prev, frame) = s.pop()
-    if (v == V_TYPE())
+    if (v == V_TYPE(true))
       env.setLift(this)
     val newFrame =
       if (env.shouldLiftInstr(this))
-        frame.push(V_TYPE(), Set(this))
+        frame.push(V_TYPE(false), Set(this))
       else {
         frame.push(INT_TYPE(), Set(this))
       }
-    if (env.shouldLiftInstr(this) && v != V_TYPE())
+    if (env.shouldLiftInstr(this) && v != V_TYPE(true))
       return (s, prev)
     (newFrame, Set())
   }
@@ -564,15 +569,15 @@ case class InstrI2S() extends Instruction {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
     val (v, prev, frame) = s.pop()
-    if (v == V_TYPE())
+    if (v == V_TYPE(false))
       env.setLift(this)
     val newFrame =
       if (env.shouldLiftInstr(this))
-        frame.push(V_TYPE(), Set(this))
+        frame.push(V_TYPE(false), Set(this))
       else {
         frame.push(INT_TYPE(), Set(this))
       }
-    if (env.shouldLiftInstr(this) && v != V_TYPE())
+    if (env.shouldLiftInstr(this) && v != V_TYPE(false))
       return (s, prev)
     (newFrame, Set())
 
@@ -802,20 +807,20 @@ case class InstrDCMPG() extends BinOpNonIntInstruction {
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
-    if (s.stack.take(2).exists(_._1 == V_TYPE()))
+    if (s.stack.take(2).exists(_._1 == V_TYPE(true)))
       env.setLift(this)
     val (v1, prev1, frame1) = s.pop()
     val (v2, prev2, frame2) = frame1.pop()
     val newFrame =
       if (env.shouldLiftInstr(this))
-        frame2.push(V_TYPE(), Set(this))
+        frame2.push(V_TYPE(false), Set(this))
       else {
         frame2.push(INT_TYPE(), Set(this))
       }
     val backtrack: Set[Instruction] =
       if (env.shouldLiftInstr(this)) {
-        if (v1 != V_TYPE()) prev1
-        else if (v2 != V_TYPE()) prev2
+        if (v1 != V_TYPE(true)) prev1
+        else if (v2 != V_TYPE(true)) prev2
         else Set()
       }
       else

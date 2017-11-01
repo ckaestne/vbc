@@ -237,7 +237,9 @@ class Loader {
         val i = inst.asInstanceOf[VarInsnNode]
         InstrLSTORE(variables(i.`var`, LSTORE))
       }
-      case FSTORE => UNKNOWN(FSTORE)
+      case FSTORE =>
+        val i = inst.asInstanceOf[VarInsnNode]
+        InstrFSTORE(variables(i.`var`, FSTORE))
       case DSTORE =>
         val i = inst.asInstanceOf[VarInsnNode]
         InstrDSTORE(variables(i.`var`, DSTORE))

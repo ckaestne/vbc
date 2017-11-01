@@ -103,13 +103,21 @@ object Rewrite {
     val newReturnBlock = Block(newReturnBlockInstr, Nil)
     val newReturnBlockIdx = method.body.blocks.size
 
-    def storeAndGoto: List[Instruction] = List(InstrASTORE(returnVariable), InstrGOTO(newReturnBlockIdx))
-    def storeNullAndGoto: List[Instruction] = InstrACONST_NULL() :: storeAndGoto
+    def getStoreInstr(retInstr: Instruction): Instruction = retInstr match {
+      case _: InstrIRETURN => InstrISTORE(returnVariable)
+      case _: InstrLRETURN => InstrLSTORE(returnVariable)
+      case _: InstrFRETURN => InstrFSTORE(returnVariable)
+      case _: InstrDRETURN => InstrDSTORE(returnVariable)
+      case _: InstrARETURN => InstrASTORE(returnVariable)
+      case _ => throw new RuntimeException("Not a return instruction: " + retInstr)
+    }
+    def storeAndGotoSeq(retInstr: Instruction): List[Instruction] = List(getStoreInstr(retInstr), InstrGOTO(newReturnBlockIdx))
+    def storeNullAndGotoSeq: List[Instruction] = List(InstrACONST_NULL(), InstrASTORE(returnVariable), InstrGOTO(newReturnBlockIdx))
 
     val rewrittenBlocks = method.body.blocks.map(block =>
       Block(block.instr.flatMap(instr =>
         if (instr.isReturnInstr) {
-          if (instr.isRETURN) storeNullAndGoto else storeAndGoto
+          if (instr.isRETURN) storeNullAndGotoSeq else storeAndGotoSeq(instr)
         }
         else
           List(instr)

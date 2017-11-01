@@ -220,6 +220,6 @@ case class InstrWrapOne() extends Instruction {
     callVCreateOne(mv, loadCurrentCtx(_, env, block))
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
     val (_, _, frame) = s.pop()
-    (frame.push(V_TYPE(), Set(this)), Set())
+    (frame.push(V_TYPE(false), Set(this)), Set())
   }
 }

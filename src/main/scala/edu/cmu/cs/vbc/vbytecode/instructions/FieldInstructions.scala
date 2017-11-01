@@ -71,11 +71,11 @@ case class InstrGETSTATIC(owner: Owner, name: FieldName, desc: TypeDesc) extends
     if (LiftingPolicy.shouldLiftField(owner, name, desc)) {
       // This field should be lifted (e.g. fields that are not from java.lang)
       env.setLift(this)
-      (s.push(V_TYPE(), Set(this)), Set())
+      (s.push(V_TYPE(TypeDesc(desc).is64Bit), Set(this)), Set())
     }
     else {
       if (env.shouldLiftInstr(this)) {
-        (s.push(V_TYPE(), Set(this)), Set())
+        (s.push(V_TYPE(TypeDesc(desc).is64Bit), Set(this)), Set())
       }
       else {
         (s.push(VBCType(Type.getType(desc)), Set(this)), Set())
@@ -117,7 +117,7 @@ case class InstrPUTSTATIC(owner: Owner, name: FieldName, desc: TypeDesc) extends
     val (v, prev, newFrame) = s.pop()
     env.setLift(this)
     val backtrack =
-      if (v != V_TYPE())
+      if (!v.isInstanceOf[V_TYPE])
         prev
       else
         Set[Instruction]()
@@ -150,8 +150,8 @@ case class InstrGETFIELD(owner: Owner, name: FieldName, desc: TypeDesc) extends 
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val (v, prev, frame) = s.pop()
-    if (v == V_TYPE()) env.setLift(this)
-    val newFrame = frame.push(V_TYPE(), Set(this))
+    if (v == V_TYPE(false)) env.setLift(this)
+    val newFrame = frame.push(V_TYPE(TypeDesc(desc).is64Bit), Set(this))
     (newFrame, Set())
   }
 
@@ -306,8 +306,8 @@ case class InstrPUTFIELD(owner: Owner, name: FieldName, desc: TypeDesc) extends 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val (value, prev1, frame) = s.pop()
     val (ref, prev2, newFrame) = frame.pop()
-    if (value != V_TYPE()) return (newFrame, prev1)
-    if (ref == V_TYPE()) env.setLift(this)
+    if (!value.isInstanceOf[V_TYPE]) return (newFrame, prev1)
+    if (ref == V_TYPE(false)) env.setLift(this)
     (newFrame, Set())
   }
 

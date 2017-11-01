@@ -20,7 +20,7 @@ case class InstrMONITORENTER() extends Instruction {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
     val (v, prev, frame) = s.pop()
-    if (v != V_TYPE())
+    if (v != V_TYPE(false))
       (frame, prev)
     else
       (frame, Set())
@@ -40,7 +40,7 @@ case class InstrMONITOREXIT() extends Instruction {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
     val (v, prev, frame) = s.pop()
-    if (v != V_TYPE())
+    if (v != V_TYPE(false))
       (frame, prev)
     else
       (frame, Set())

@@ -6,7 +6,7 @@ import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
 
-trait ReturnInstruction extends Instruction {
+sealed trait ReturnInstruction extends Instruction {
   override def isReturnInstr: Boolean = true
 }
 
@@ -51,7 +51,7 @@ case class InstrIRETURN() extends ReturnInstruction {
     env.setLift(this)
     val (v, prev, newFrame) = s.pop()
     val backtrack =
-      if (v != V_TYPE()) prev
+      if (v != V_TYPE(false)) prev
       else Set[Instruction]()
     (newFrame, backtrack)
   }
@@ -87,7 +87,7 @@ case class InstrARETURN() extends ReturnInstruction {
     env.setLift(this)
     val (v, prev, newFrame) = s.pop()
     val backtrack =
-      if (v != V_TYPE()) prev
+      if (!v.isInstanceOf[V_TYPE]) prev
       else Set[Instruction]()
     (newFrame, backtrack)
   }
@@ -124,7 +124,7 @@ case class InstrLRETURN() extends ReturnInstruction {
     env.setLift(this)
     val (v, prev, newFrame) = s.pop()
     val backtrack =
-      if (v != V_TYPE()) prev
+      if (v != V_TYPE(true)) prev
       else Set[Instruction]()
     (newFrame, backtrack)
   }
@@ -149,7 +149,7 @@ case class InstrDRETURN() extends ReturnInstruction {
     env.setLift(this)
     val (v, prev, newFrame) = s.pop()
     val backtrack =
-      if (v != V_TYPE()) prev
+      if (v != V_TYPE(true)) prev
       else Set[Instruction]()
     (newFrame, backtrack)
   }

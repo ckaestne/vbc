@@ -86,7 +86,7 @@ case class InstrLoadConfig(config: String) extends Instruction {
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     env.setLift(this)
-    (s.push(V_TYPE(), Set(this)), Set())
+    (s.push(V_TYPE(false), Set(this)), Set())
   }
 }
 
@@ -105,7 +105,7 @@ case class InstrDBGIPrint() extends Instruction {
     env.setLift(this)
     val (v, prev, newFrame) = s.pop()
     val backtrack =
-      if (v != V_TYPE()) prev
+      if (v != V_TYPE(false)) prev
       else Set[Instruction]()
     (newFrame, backtrack)
   }
@@ -125,7 +125,7 @@ case class InstrDBGStrPrint() extends Instruction {
     env.setLift(this)
     val (v, prev, newFrame) = s.pop()
     val backtrack =
-      if (v != V_TYPE()) prev
+      if (v != V_TYPE(false)) prev
       else Set[Instruction]()
     (newFrame, backtrack)
   }

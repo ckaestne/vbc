@@ -59,9 +59,9 @@ trait ArrayStoreInstructions extends Instruction {
     val (idxType, idxPrev, frame2) = frame1.pop()
     val (refType, refPrev, frame3) = frame2.pop()
     // we assume that all elements in an array are of type V
-    if (vType != V_TYPE()) return (frame3, vPrev)
-    if (idxType != V_TYPE()) return (frame3, idxPrev)
-    if (refType == V_TYPE()) {
+    if (vType != V_TYPE(false)) return (frame3, vPrev)
+    if (idxType != V_TYPE(false)) return (frame3, idxPrev)
+    if (refType == V_TYPE(false)) {
       env.setLift(this)
     }
     (frame3, Set())
@@ -151,11 +151,11 @@ trait ArrayLoadInstructions extends Instruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
     val (idxType, idxPrev, frame1) = s.pop()
     val (refType, refPrev, frame2) = frame1.pop()
-    if (idxType != V_TYPE()) return (frame2, idxPrev)
-    if (refType == V_TYPE()) {
+    if (idxType != V_TYPE(false)) return (frame2, idxPrev)
+    if (refType == V_TYPE(false)) {
       env.setLift(this)
     }
-    (frame2.push(V_TYPE(), Set(this)), Set())
+    (frame2.push(V_TYPE(false), Set(this)), Set())
   }
 
   override def doBacktrack(env: VMethodEnv): Unit = {
@@ -236,13 +236,13 @@ case class InstrNEWARRAY(atype: Int) extends ArrayCreationInstructions {
     val (v, prev, f) = s.pop()
     if (env.getTag(this, env.TAG_NEED_V)) {
       // this means the array itself needs to be wrapped into a V
-      (f.push(V_TYPE(), Set(this)), Set())
+      (f.push(V_TYPE(false), Set(this)), Set())
     }
     else {
-      if (v == V_TYPE()) {
+      if (v == V_TYPE(false)) {
         // array length is a V, needs invokedynamic to create a V array ref
         env.setLift(this)
-        (f.push(V_TYPE(), Set(this)), Set())
+        (f.push(V_TYPE(false), Set(this)), Set())
       }
       else {
         (f.push(REF_TYPE(), Set(this)), Set())
@@ -267,13 +267,13 @@ case class InstrANEWARRAY(owner: Owner) extends ArrayCreationInstructions {
     val (v, prev, f) = s.pop()
     if (env.getTag(this, env.TAG_NEED_V)) {
       // this means the array itself needs to be wrapped into a V
-      (f.push(V_TYPE(), Set(this)), Set())
+      (f.push(V_TYPE(false), Set(this)), Set())
     }
     else {
-      if (v == V_TYPE()) {
+      if (v == V_TYPE(false)) {
         // array length is a V, needs invokedynamic to create a V array ref
         env.setLift(this)
-        (f.push(V_TYPE(), Set(this)), Set())
+        (f.push(V_TYPE(false), Set(this)), Set())
       }
       else {
         (f.push(REF_TYPE(), Set(this)), Set())
@@ -462,9 +462,9 @@ case class InstrARRAYLENGTH() extends Instruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
     val (vt, _, frame) = s.pop()
     val newFrame =
-      if (vt == V_TYPE()) {
+      if (vt == V_TYPE(false)) {
         env.setLift(this)
-        frame.push(V_TYPE(), Set(this))
+        frame.push(V_TYPE(false), Set(this))
       } else {
         frame.push(INT_TYPE(), Set(this))
       }
