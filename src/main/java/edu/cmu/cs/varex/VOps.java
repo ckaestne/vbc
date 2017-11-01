@@ -294,6 +294,9 @@ public class VOps {
         return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.floatValue() / v2.floatValue()));
     }
 
+    public static V<? extends Integer> f2i(V<? extends Float> value, FeatureExpr ctx) {
+        return value.smap(ctx, f -> (int) f.floatValue());
+    }
 
     //////////////////////////////////////////////////
     // Special println that prints configuration as well
