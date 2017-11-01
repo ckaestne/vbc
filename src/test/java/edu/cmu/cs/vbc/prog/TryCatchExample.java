@@ -8,9 +8,9 @@ import edu.cmu.cs.varex.annotation.VConditional;
 public class TryCatchExample {
 
     @VConditional
-    boolean A;
+    public static boolean A;
     @VConditional
-    boolean B;
+    public static boolean B;
 
     void tryCatch1(Integer a, Integer b) {
         Integer aa = a;

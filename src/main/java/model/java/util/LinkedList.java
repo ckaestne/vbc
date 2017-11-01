@@ -189,6 +189,11 @@ public class LinkedList implements List {
     }
 
     @Override
+    public Object[] toArray() {
+        return actual.toArray();
+    }
+
+    @Override
     public void clear() {
         actual.clear();
     }
@@ -196,6 +201,11 @@ public class LinkedList implements List {
     @Override
     public boolean contains(Object o) {
         return actual.contains(o);
+    }
+
+    @Override
+    public Object set(int index, Object element) {
+        return actual.set(index, element);
     }
 }
 

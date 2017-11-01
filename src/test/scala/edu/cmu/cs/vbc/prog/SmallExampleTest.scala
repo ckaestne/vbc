@@ -91,7 +91,7 @@ class SmallExampleTest extends FunSuite with DiffLaunchTestInfrastructure {
   }
 
   test("TryCatchExample") {
-    testMain(classOf[TryCatchExample])
+    testMain(classOf[TryCatchExample], configFile = Some("default.conf"))
   }
 
   test("VBlockAnalysisTest") {

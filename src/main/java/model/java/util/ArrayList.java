@@ -71,6 +71,11 @@ public class ArrayList implements List {
     }
 
     @Override
+    public Object[] toArray() {
+        return actual.toArray();
+    }
+
+    @Override
     public void clear() {
         actual.clear();
     }
@@ -78,6 +83,11 @@ public class ArrayList implements List {
     @Override
     public boolean contains(Object o) {
         return actual.contains(o);
+    }
+
+    @Override
+    public Object set(int index, Object element) {
+        return actual.set(index, element);
     }
 
     @Override

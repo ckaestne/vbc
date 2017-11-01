@@ -36,6 +36,15 @@ public interface List extends Collection {
     Object get(int index);
     Object remove(int index);
     Object[] toArray(Object[] a);
+    Object[] toArray();
     void clear();
     boolean contains(Object o);
+    Object set(int index, Object element);
+    default void sort(Comparator c) {
+        Object[] a = this.toArray();
+        Arrays.sort(a, c);
+        for (int i = 0; i < this.size(); i++) {
+            this.set(i, a[i]);
+        }
+    }
 }
