@@ -713,7 +713,27 @@ case class InstrDCMPL() extends BinOpNonIntInstruction {
       mv.visitInsn(DCMPL)
   }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, DOUBLE_TYPE())
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    if (s.stack.take(2).exists(_._1 == V_TYPE(true)))
+      env.setLift(this)
+    val (v1, prev1, frame1) = s.pop()
+    val (v2, prev2, frame2) = frame1.pop()
+    val newFrame =
+      if (env.shouldLiftInstr(this))
+        frame2.push(V_TYPE(false), Set(this))
+      else {
+        frame2.push(INT_TYPE(), Set(this))
+      }
+    val backtrack: Set[Instruction] =
+      if (env.shouldLiftInstr(this)) {
+        if (v1 != V_TYPE(true)) prev1
+        else if (v2 != V_TYPE(true)) prev2
+        else Set()
+      }
+      else
+        Set()
+    (newFrame, backtrack)
+  }
 }
 
 
@@ -863,4 +883,28 @@ case class InstrLREM() extends BinOpNonIntInstruction {
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, LONG_TYPE())
+}
+
+case class InstrFDIV() extends BinOpNonIntInstruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(FDIV)
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+}
+
+case class InstrFCMPG() extends BinOpNonIntInstruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(FCMPG)
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+}
+
+case class InstrFMUL() extends BinOpNonIntInstruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(FMUL)
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
 }
