@@ -286,6 +286,10 @@ public class VOps {
         return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.doubleValue() / v2.doubleValue()));
     }
 
+    public static V<? extends Float> i2f(V<? extends Integer> value, FeatureExpr ctx) {
+        return value.smap(ctx, i -> (float) i.intValue());
+    }
+
 
     //////////////////////////////////////////////////
     // Special println that prints configuration as well

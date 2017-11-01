@@ -388,9 +388,29 @@ case class InstrF2D() extends Instruction {
 case class InstrI2F() extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(I2F)
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, "i2f", s"($vclasstype$fexprclasstype)$vclasstype", false)
+    }
+    else
+      mv.visitInsn(I2F)
+  }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    val (v, prev, frame) = s.pop()
+    if (v == V_TYPE(false))
+      env.setLift(this)
+    val newFrame =
+      if (env.shouldLiftInstr(this))
+        frame.push(V_TYPE(false), Set(this))
+      else {
+        frame.push(FLOAT_TYPE(), Set(this))
+      }
+    if (env.shouldLiftInstr(this) && v != V_TYPE(false))
+      return (s, prev)
+    (newFrame, Set())
+  }
 }
 
 case class InstrF2I() extends Instruction {
