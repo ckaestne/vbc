@@ -122,6 +122,8 @@ trait MethodInstruction extends Instruction {
         mv.visitMethodInsn(INVOKESTATIC, Owner.getDouble, MethodName("valueOf"), MethodDesc(s"(D)${TypeDesc.getDouble}"), false)
       case Type.CHAR =>
         mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, MethodName("valueOf"), MethodDesc(s"(I)${TypeDesc.getInt}"), false)
+      case Type.FLOAT =>
+        mv.visitMethodInsn(INVOKESTATIC, Owner.getFloat, MethodName("valueOf"), MethodDesc(s"(F)${TypeDesc.getFloat}"), false)
       case Type.OBJECT => // do nothing
       case Type.VOID => // do nothing
       case Type.ARRAY => // do nothing
@@ -417,6 +419,7 @@ case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, 
         args(i) match {
           case TypeDesc("J") => mv.visitInsn(LCONST_0)
           case TypeDesc("D") => mv.visitInsn(DCONST_0)
+          case TypeDesc("F") => mv.visitInsn(FCONST_0)
           case _ => mv.visitInsn(ICONST_0)
         }
       }
