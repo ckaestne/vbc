@@ -134,6 +134,14 @@ public class ArrayList implements List {
         return res;
     }
 
+    public V add__I_Ljava_lang_Object__V(V<Integer> vIndex, V<Object> vElement, FeatureExpr ctx) {
+        vIndex.sforeach(ctx, (fe, index) -> vElement.sforeach(fe, (fe2, element) -> {
+            split(fe2);
+            vActual.sforeach(fe2, l -> l.add(index, element));
+        }));
+        return null;    // dummy value, never used
+    }
+
     public V<?> size____I(FeatureExpr ctx) {
         String id = "ArrayList#size#";
         Profiler.startTimer(id);
