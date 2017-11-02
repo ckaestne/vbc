@@ -315,6 +315,10 @@ public class VOps {
         return value.smap(ctx, v -> (long) v.doubleValue());
     }
 
+    public static V<? extends Double> dadd(V<? extends Double> value1, V<? extends Double> value2, FeatureExpr ctx) {
+        return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.doubleValue() + v2.doubleValue()));
+    }
+
     //////////////////////////////////////////////////
     // Special println that prints configuration as well
     //////////////////////////////////////////////////
