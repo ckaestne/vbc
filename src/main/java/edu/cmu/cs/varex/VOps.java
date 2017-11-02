@@ -310,6 +310,11 @@ public class VOps {
     public static V<? extends Float> fmul(V<? extends Float> value1, V<? extends Float> value2, FeatureExpr ctx) {
         return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.floatValue() * v2.floatValue()));
     }
+
+    public static V<? extends Long> d2l(V<? extends Double> value, FeatureExpr ctx) {
+        return value.smap(ctx, v -> (long) v.doubleValue());
+    }
+
     //////////////////////////////////////////////////
     // Special println that prints configuration as well
     //////////////////////////////////////////////////
