@@ -154,6 +154,9 @@ public class LinkedList implements List {
     //////////////////////////////////////////////////
     // Non-V part
     //////////////////////////////////////////////////
+    public LinkedList() {
+        actual = new MyLinkedList();
+    }
     public boolean isEmpty() {
         return actual.isEmpty();
     }
