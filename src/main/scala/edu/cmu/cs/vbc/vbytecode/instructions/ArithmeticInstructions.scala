@@ -887,7 +887,14 @@ case class InstrDADD() extends BinOpNonIntInstruction {
 case class InstrLREM() extends BinOpNonIntInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(LREM)
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, "lrem", s"($vclasstype$vclasstype$fexprclasstype)$vclasstype", false)
+    } else {
+      mv.visitInsn(LREM)
+    }
+  }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, LONG_TYPE())
 }
@@ -930,6 +937,19 @@ case class InstrFCMPG() extends BinOpInstruction {
   }
 }
 
+case class InstrFCMPL() extends BinOpInstruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(FCMPL)
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, "fcmpl", s"($vclasstype$vclasstype$fexprclasstype)$vclasstype", false)
+    } else {
+      mv.visitInsn(FCMPL)
+    }
+  }
+}
+
 case class InstrFMUL() extends BinOpNonIntInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(FMUL)
 
@@ -939,6 +959,21 @@ case class InstrFMUL() extends BinOpNonIntInstruction {
       mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, "fmul", s"($vclasstype$vclasstype$fexprclasstype)$vclasstype", false)
     } else {
       mv.visitInsn(FMUL)
+    }
+  }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, FLOAT_TYPE())
+}
+
+case class InstrFADD() extends BinOpNonIntInstruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(FADD)
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, "fadd", s"($vclasstype$vclasstype$fexprclasstype)$vclasstype", false)
+    } else {
+      mv.visitInsn(FADD)
     }
   }
 
