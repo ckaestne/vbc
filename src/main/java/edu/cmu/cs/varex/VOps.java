@@ -307,6 +307,15 @@ public class VOps {
         }));
     }
 
+    public static V<? extends Integer> fcmpl(V<? extends Float> value1, V<? extends Float> value2, FeatureExpr ctx) {
+        return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> {
+            if (v1.isNaN() || v2.isNaN()) return -1;
+            else if (v1.floatValue() > v2.floatValue()) return 1;
+            else if (v1.floatValue() == v2.floatValue()) return 0;
+            else return -1;
+        }));
+    }
+
     public static V<? extends Float> fmul(V<? extends Float> value1, V<? extends Float> value2, FeatureExpr ctx) {
         return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.floatValue() * v2.floatValue()));
     }
@@ -317,6 +326,14 @@ public class VOps {
 
     public static V<? extends Double> dadd(V<? extends Double> value1, V<? extends Double> value2, FeatureExpr ctx) {
         return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.doubleValue() + v2.doubleValue()));
+    }
+
+    public static V<? extends Long> lrem(V<? extends Long> value1, V<? extends Long> value2, FeatureExpr ctx) {
+        return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.longValue() % v2.longValue()));
+    }
+
+    public static V<? extends Float> fadd(V<? extends Float> value1, V<? extends Float> value2, FeatureExpr ctx) {
+        return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.floatValue() + v2.floatValue()));
     }
 
     //////////////////////////////////////////////////
@@ -507,5 +524,38 @@ public class VOps {
         } else {
             throw new RuntimeException("MONITORENTER or MONITOREXIT on a choice: " + selected.toString());
         }
+    }
+
+    public static V<? extends Integer> hashCode(Object o1, FeatureExpr ctx) {
+        try {
+            Method liftedHashCode = o1.getClass().getMethod("hashCode____I", FeatureExpr.class);
+            liftedHashCode.setAccessible(true);
+            return (V<? extends Integer>) liftedHashCode.invoke(o1, ctx);
+        } catch (NoSuchMethodException e) {
+            return V.one(ctx, o1.hashCode());
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        throw new RuntimeException("Error in calling hashCode()");
+    }
+
+    public static V<? extends Integer> equals(Object o1, Object o2, FeatureExpr ctx) {
+        try {
+            Method liftedEquals = o1.getClass().getMethod("equals__Ljava_lang_Object__Z", V.class, FeatureExpr.class);
+            liftedEquals.setAccessible(true);
+            return (V<? extends Integer>) liftedEquals.invoke(o1, V.one(ctx, o2), ctx);
+        } catch (NoSuchMethodException e) {
+            if (o1.equals(o2))
+                return V.one(ctx, 1);
+            else
+                return V.one(ctx, 0);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        throw new RuntimeException("Error in calling equals()");
     }
 }
