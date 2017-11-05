@@ -169,6 +169,9 @@ case object InstrINIT_CONDITIONAL_FIELDS {
       case Type.SHORT =>
         if (f.value == null) mv.visitInsn(ICONST_0) else pushConstant(mv, f.value.asInstanceOf[Int])
         mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", s"(I)${Owner.getInt.getTypeDesc}", false)
+      case Type.BYTE =>
+        if (f.value == null) mv.visitInsn(ICONST_0) else pushConstant(mv, f.value.asInstanceOf[Int])
+        mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", s"(I)${Owner.getInt.getTypeDesc}", false)
       case Type.CHAR =>
         if (f.value == null) mv.visitInsn(ICONST_0) else pushConstant(mv, f.value.asInstanceOf[Int])
         mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", s"(I)${Owner.getInt.getTypeDesc}", false)
@@ -178,6 +181,9 @@ case object InstrINIT_CONDITIONAL_FIELDS {
       case Type.LONG =>
         if (f.value == null) mv.visitInsn(LCONST_0) else pushLongConstant(mv, f.value.asInstanceOf[Long])
         mv.visitMethodInsn(INVOKESTATIC, Owner.getLong, "valueOf", s"(J)${Owner.getLong.getTypeDesc}", false)
+      case Type.FLOAT =>
+        if (f.value == null) mv.visitInsn(FCONST_0) else pushFloatConstant(mv, f.value.asInstanceOf[Float])
+        float2Float(mv)
       case Type.ARRAY => mv.visitInsn(ACONST_NULL)
       case _ =>
         ???

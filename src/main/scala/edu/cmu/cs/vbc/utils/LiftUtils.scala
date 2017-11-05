@@ -51,6 +51,8 @@ object LiftUtils {
     }
   }
 
+  def pushFloatConstant(mv: MethodVisitor, value: Float): Unit = mv.visitLdcInsn(value)
+
   def pushConstantFALSE(mv: MethodVisitor) =
     mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "False", "()Lde/fosd/typechef/featureexpr/FeatureExpr;", false)
 
