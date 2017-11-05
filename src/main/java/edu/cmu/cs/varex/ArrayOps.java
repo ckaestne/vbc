@@ -165,21 +165,17 @@ public class ArrayOps {
     }
 
     private static V<?> expandBArrayElements(V<Integer>[] array, FeatureExpr ctx, Integer index, ArrayList<Byte> soFar) {
-        return array[index].sflatMap(ctx, new BiFunction<FeatureExpr, Integer, V<?>>() {
-            @Override
-            public V<?> apply(FeatureExpr featureExpr, Integer t) {
-                ArrayList<Byte> newArray = new ArrayList<Byte>(soFar);
-                newArray.add((byte)t.intValue());
-                if (index == array.length - 1) {
-                    byte[] result = new byte[array.length];
-                    for (int i = 0; i < array.length; i++) {
-                        result[i] = newArray.get(i);
-                    }
-                    return V.one(featureExpr, result);
-                } else {
-                    return expandBArrayElements(array, ctx, index + 1, newArray);
-                }
+        model.java.util.ArrayList list = new model.java.util.ArrayList(ctx);
+        for (int i = 0; i < array.length; i++) {
+            list.add__Ljava_lang_Object__Z(array[i], ctx);
+        }
+        V<Integer[]> vList = (V<Integer[]>) list.getVOfArrays(Integer[].class, ctx);
+        return vList.map(l -> {
+            byte[] ll = new byte[l.length];
+            for (int i = 0; i < ll.length; i++) {
+                ll[i] = l[i].byteValue();
             }
+            return ll;
         });
     }
 
