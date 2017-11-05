@@ -165,7 +165,16 @@ case class InstrFRETURN() extends ReturnInstruction {
     mv.visitInsn(FRETURN)
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    mv.visitInsn(ARETURN)
+  }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    env.setLift(this)
+    val (v, prev, newFrame) = s.pop()
+    val backtrack =
+      if (v != V_TYPE(false)) prev
+      else Set[Instruction]()
+    (newFrame, backtrack)
+  }
 }
