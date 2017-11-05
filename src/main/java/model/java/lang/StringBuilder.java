@@ -29,6 +29,10 @@ public class StringBuilder {
         vActual = V.one(ctx, new java.lang.StringBuilder());
     }
 
+    public StringBuilder(V<? extends java.lang.Integer> vCapacity, FeatureExpr ctx, int dummy) {
+        vActual = vCapacity.smap(ctx, c -> new java.lang.StringBuilder(c.intValue()));
+    }
+
     public V<?> append__Ljava_lang_String__Lmodel_java_lang_StringBuilder(V<? extends String> vS, FeatureExpr ctx) {
         vActual = vActual.sflatMap(ctx, (fe, sb) -> {
             if (vS instanceof One)
@@ -93,6 +97,14 @@ public class StringBuilder {
         return V.one(ctx, this);
     }
 
+    public V<?> setLength__I__V(V<? extends java.lang.Integer> vNewLength, FeatureExpr ctx) {
+        vNewLength.sforeach(ctx, (fe, newLength) -> {
+            split(fe);
+            vActual.sforeach(fe, sb -> sb.setLength(newLength));
+        });
+        return null;    // dummy value
+    }
+
     public V<?> toString____Ljava_lang_String(FeatureExpr ctx) {
         return vActual.smap(ctx, sb -> sb.toString());
     }
@@ -108,6 +120,14 @@ public class StringBuilder {
             }));
         })));
         return V.one(ctx, this);
+    }
+
+    /**
+     * Split vActual LinkedLists according to current ctx
+     */
+    private void split(FeatureExpr ctx) {
+        V<? extends java.lang.StringBuilder> selected = vActual.smap(ctx, sb -> new java.lang.StringBuilder(sb));
+        vActual = V.choice(ctx, selected, vActual);
     }
 
     //////////////////////////////////////////////////
