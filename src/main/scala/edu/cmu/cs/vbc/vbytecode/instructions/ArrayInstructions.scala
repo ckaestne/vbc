@@ -1,7 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode.instructions
 
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
-import edu.cmu.cs.vbc.analysis.{INT_TYPE, REF_TYPE, VBCFrame, V_TYPE}
+import edu.cmu.cs.vbc.analysis._
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, VCall}
 import edu.cmu.cs.vbc.vbytecode._
@@ -59,7 +59,7 @@ trait ArrayStoreInstructions extends Instruction {
     val (idxType, idxPrev, frame2) = frame1.pop()
     val (refType, refPrev, frame3) = frame2.pop()
     // we assume that all elements in an array are of type V
-    if (vType != V_TYPE(false)) return (frame3, vPrev)
+    if (!vType.isInstanceOf[V_TYPE]) return (frame3, vPrev)
     if (idxType != V_TYPE(false)) return (frame3, idxPrev)
     if (refType == V_TYPE(false)) {
       env.setLift(this)
@@ -148,14 +148,14 @@ trait ArrayLoadInstructions extends Instruction {
     *
     * ..., arrayref, index -> ..., value
     */
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+  def updateStackWithReturnType(s: VBCFrame, env: VMethodEnv, is64Bit: Boolean): (VBCFrame, Set[Instruction]) = {
     val (idxType, idxPrev, frame1) = s.pop()
     val (refType, refPrev, frame2) = frame1.pop()
     if (idxType != V_TYPE(false)) return (frame2, idxPrev)
     if (refType == V_TYPE(false)) {
       env.setLift(this)
     }
-    (frame2.push(V_TYPE(false), Set(this)), Set())
+    (frame2.push(V_TYPE(is64Bit), Set(this)), Set())
   }
 
   override def doBacktrack(env: VMethodEnv): Unit = {
@@ -348,6 +348,7 @@ case class InstrAALOAD() extends ArrayLoadInstructions {
     }
   }
 
+  override def updateStack(s: VBCFrame, env: VMethodEnv) = updateStackWithReturnType(s, env, false)
 }
 
 case class InstrIALOAD() extends ArrayLoadInstructions {
@@ -361,6 +362,8 @@ case class InstrIALOAD() extends ArrayLoadInstructions {
       mv.visitInsn(AALOAD)
     }
   }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv) = updateStackWithReturnType(s, env, false)
 }
 
 case class InstrIASTORE() extends ArrayStoreInstructions {
@@ -425,6 +428,8 @@ case class InstrCALOAD() extends ArrayLoadInstructions {
       mv.visitInsn(AALOAD)
     }
   }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv) = updateStackWithReturnType(s, env, false)
 }
 
 /** Get length of array
@@ -490,6 +495,8 @@ case class InstrBALOAD() extends ArrayLoadInstructions {
       mv.visitInsn(AALOAD)
     }
   }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv) = updateStackWithReturnType(s, env, false)
 }
 
 case class InstrBASTORE() extends ArrayStoreInstructions {
@@ -538,6 +545,8 @@ case class InstrSALOAD() extends ArrayLoadInstructions {
       mv.visitInsn(AALOAD)
     }
   }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv) = updateStackWithReturnType(s, env, false)
 }
 
 case class InstrDASTORE() extends ArrayStoreInstructions {
@@ -585,4 +594,6 @@ case class InstrLALOAD() extends ArrayLoadInstructions {
       mv.visitInsn(AALOAD)
     }
   }
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv) = updateStackWithReturnType(s, env, true)
 }
