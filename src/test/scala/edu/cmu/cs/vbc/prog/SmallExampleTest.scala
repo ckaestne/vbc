@@ -37,8 +37,7 @@ class SmallExampleTest extends FunSuite with DiffLaunchTestInfrastructure {
   test("static fields with clinit") {
     testMain(classOf[edu.cmu.cs.vbc.prog.StaticFieldsWithClinit])
   }
-
-  test("conditional field assignment") {
+test("conditional field assignment") {
     testMain(classOf[edu.cmu.cs.vbc.prog.FieldTest])
   }
 
@@ -96,5 +95,9 @@ class SmallExampleTest extends FunSuite with DiffLaunchTestInfrastructure {
 
   test("VBlockAnalysisTest") {
     testMain(classOf[VBlockAnalysisTest])
+  }
+
+  test("HashMapExample") {
+    testMain(classOf[HashMapExample], configFile = Some("hashmap.conf"))
   }
 }
