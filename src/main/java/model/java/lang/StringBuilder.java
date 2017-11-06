@@ -16,7 +16,7 @@ import edu.cmu.cs.varex.V;
  *
  * @author chupanw
  */
-public class StringBuilder {
+public class StringBuilder implements Appendable {
 
     V<? extends java.lang.StringBuilder> vActual;
     java.lang.StringBuilder actual;
@@ -149,5 +149,10 @@ public class StringBuilder {
 
     public String toString() {
         return actual.toString();
+    }
+
+    @Override
+    public V<?> append__C__Lmodel_java_lang_Appendable(V<? extends java.lang.Integer> vC, FeatureExpr ctx) {
+        return append__C__Lmodel_java_lang_StringBuilder(vC, ctx);
     }
 }
