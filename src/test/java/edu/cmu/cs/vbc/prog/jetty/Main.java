@@ -1,9 +1,6 @@
 package edu.cmu.cs.vbc.prog.jetty;
 
-import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.bio.SocketConnector;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.server.handler.HandlerCollection;
@@ -188,10 +185,11 @@ public class Main extends AbstractHandler {
                        HttpServletResponse response)
             throws IOException, ServletException
     {
-        response.setContentType("text/html;charset=utf-8");
-        response.setStatus(HttpServletResponse.SC_OK);
+        Response re = (Response) response;
+        re.setContentType("text/html;charset=utf-8");
+        re.setStatus(HttpServletResponse.SC_OK);
         baseRequest.setHandled(true);
-        response.getWriter().println("<h1>Surprise! I'm working!</h1>");
+        re.getWriter().println("<h1>Surprise! I'm working!</h1>");
     }
 
     public static void main(String[] args) throws Exception
