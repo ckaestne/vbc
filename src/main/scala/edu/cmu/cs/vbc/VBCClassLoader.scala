@@ -49,9 +49,9 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
       }
       else if (shouldLift(name))
         findClass(name)
-      else if (name.startsWith("edu.cmu.cs.vbc.prog") || name.startsWith("org.prevayler") || name.startsWith("org.eclipse.jetty"))
+      else if (name.startsWith("edu.cmu.cs.vbc.prog") || name.startsWith("org.prevayler") || (name.startsWith("org.eclipse.jetty") && !name.startsWith("org.eclipse.jetty.util.log")))
         loadClassAndUseModelClasses(name)
-      else if (name.startsWith("antlr")) // todo: do this more systematically
+      else if (name.startsWith("antlr") || name.startsWith("org.eclipse.jetty.util.log")) // todo: do this more systematically
         loadClassWithoutChanges(name) // avoid LinkageError
       else
         super.loadClass(name)
