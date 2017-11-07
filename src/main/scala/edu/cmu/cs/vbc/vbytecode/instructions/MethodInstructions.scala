@@ -66,15 +66,25 @@ trait MethodInstruction extends Instruction {
         interceptCalls(liftedCall, mv, nArgs) {
           mv.visitMethodInsn(invokeType, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
         }
-        // Box primitive type
-        boxReturnValue(liftedCall.desc, mv)
-        // perf: Necessary because we assume V[] everywhere.
-        toVArray(liftedCall.desc, mv, nArgs)
+        if (shouldTransformReturnType(liftedCall)) {
+          // Box primitive type
+          boxReturnValue(liftedCall.desc, mv)
+          // perf: Necessary because we assume V[] everywhere.
+          toVArray(liftedCall.desc, mv, nArgs)
+        }
         if (!LiftingPolicy.shouldLiftMethodCall(owner, name, desc) && !isReturnVoid)
           callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, nArgs))
         //cpwtodo: when calling RETURN, there might be a V<Exception> on stack, but for now just ignore it.
         if (isReturnVoid) mv.visitInsn(RETURN) else mv.visitInsn(ARETURN)
       }
+    }
+  }
+
+  def shouldTransformReturnType(liftedCall: LiftedCall): Boolean = {
+    (liftedCall.owner, liftedCall.name, liftedCall.desc) match {
+      case (Owner("java/lang/Object"), MethodName("equals"), MethodDesc("(Ljava/lang/Object;)Z")) => false
+      case (Owner("java/lang/Object"), MethodName("hashCode"), MethodDesc("()I")) => false
+      case _ => true
     }
   }
 
@@ -97,6 +107,12 @@ trait MethodInstruction extends Instruction {
     } else if (call.owner == Owner("java/lang/reflect/Constructor") && call.name.name == "newInstance") {
       mv.visitVarInsn(ALOAD, ctxIdx)  // load context
       mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.prepend(call.owner.getTypeDesc).appendFE, false)
+    } else if (call.owner == Owner("java/lang/Object") && call.name.name == "equals") {
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.toVs.prepend(call.owner.getTypeDesc).appendFE, false)
+    } else if (call.owner == Owner("java/lang/Object") && call.name.name == "hashCode") {
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.toVs.prepend(call.owner.getTypeDesc).appendFE, false)
+    } else if (call.owner == Owner("java/lang/Object") && call.name.name == "toString") {
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.toVs.prepend(call.owner.getTypeDesc).appendFE, false)
     }
     else
       otherwise
@@ -182,7 +198,7 @@ trait MethodInstruction extends Instruction {
       case TypeDesc("B") => mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getInt, MethodName("intValue"), MethodDesc("()I"), false)
       case TypeDesc("S") => mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getInt, MethodName("intValue"), MethodDesc("()I"), false)
       case TypeDesc("I") => mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getInt, MethodName("intValue"), MethodDesc("()I"), false)
-      case TypeDesc("F") => mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getFloat, MethodName("intValue"), MethodDesc("()F"), false)
+      case TypeDesc("F") => mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getFloat, MethodName("floatValue"), MethodDesc("()F"), false)
       case TypeDesc("J") => mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getLong, MethodName("longValue"), MethodDesc("()J"), false)
       case TypeDesc("D") => mv.visitMethodInsn(INVOKEVIRTUAL, Owner.getDouble, MethodName("doubleValue"), MethodDesc("()D"), false)
       case _ => // nothing
@@ -230,7 +246,8 @@ trait MethodInstruction extends Instruction {
                    name: MethodName,
                    desc: MethodDesc
                  ): UpdatedFrame = {
-    val shouldLift = LiftingPolicy.shouldLiftMethodCall(owner, name, desc)
+//    val shouldLift = LiftingPolicy.shouldLiftMethodCall(owner, name, desc)
+    val shouldLift = LiftingPolicy.liftCall(owner, name, desc).isLifting
     val nArg = Type.getArgumentTypes(desc).length
     val argList: List[(VBCType, Set[Instruction])] = s.stack.take(nArg)
     val hasVArgs = argList.exists(_._1.isInstanceOf[V_TYPE])
@@ -356,8 +373,13 @@ case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, 
         invokeOnNonV(owner, name, desc, itf, mv, env, block)
       }
       else {
-        mv.visitMethodInsn(INVOKESPECIAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
-        boxReturnValue(liftedCall.desc, mv)
+        interceptCalls(liftedCall, mv, env.getVarIdx(env.getVBlockVar(block))) {
+          mv.visitMethodInsn(INVOKESPECIAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+        }
+//        mv.visitMethodInsn(INVOKESPECIAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+        if (shouldTransformReturnType(liftedCall)) {
+          boxReturnValue(liftedCall.desc, mv)
+        }
         //cpwtodo: for now, ignore the exceptions on stack
         if (!name.contentEquals("<init>") && liftedCall.isLifting && desc.isReturnVoid) mv.visitInsn(POP)
       }
@@ -489,8 +511,10 @@ case class InstrINVOKEVIRTUAL(owner: Owner, name: MethodName, desc: MethodDesc, 
           mv.visitMethodInsn(INVOKEVIRTUAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
         }
         if (env.getTag(this, env.TAG_NEED_V)) {
-          toVArray(liftedCall.desc, mv, env.getBlockVarVIdx(block))
-          boxReturnValue(liftedCall.desc, mv)
+          if (shouldTransformReturnType(liftedCall)) {
+            toVArray(liftedCall.desc, mv, env.getBlockVarVIdx(block))
+            boxReturnValue(liftedCall.desc, mv)
+          }
           callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
         }
         // cpwtodo: for now, just pop the returned exceptions.
@@ -527,6 +551,7 @@ case class InstrINVOKESTATIC(owner: Owner, name: MethodName, desc: MethodDesc, i
     } else {
       if (liftedCall.isLifting) loadCurrentCtx(mv, env, block)
       mv.visitMethodInsn(INVOKESTATIC, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
+      toVArray(liftedCall.desc, mv, env.getVarIdx(env.getVBlockVar(block)))
       if (env.getTag(this, env.TAG_NEED_V)) {
         boxReturnValue(liftedCall.desc, mv)
         callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
