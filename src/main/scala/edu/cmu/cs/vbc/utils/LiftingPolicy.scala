@@ -32,7 +32,7 @@ object LiftingPolicy {
     *               If this is a JDK class, it will be prefixed with "model".
     */
   def shouldLiftClass(owner: Owner): Boolean = {
-    if (currentConfig.jdkLiftingClasses.exists(n => owner.name.matches(".*" + n))) return true
+    if (currentConfig.jdkLiftingClasses.exists(n => owner.name.matches("model.*" + n))) return true
     if (currentConfig.libraryLiftingClasses.exists(n => owner.name.matches(".*" + n))) true
     else if (owner.name.startsWith("edu/cmu/cs/vbc/prog/") && !currentConfig.programNotLiftingClasses.exists(n => owner.name.matches(".*" + n))) true
     else false
@@ -57,7 +57,7 @@ object LiftingPolicy {
     (owner, name, desc) match {
       case (Owner("java/lang/System"), FieldName("out"), _) => false
       case (Owner("java/lang/System"), FieldName("err"), _) => false
-      case (Owner("java/util/Locale"), FieldName("GERMAN"), _) => false
+      case (Owner("java/util/Locale"), _, _) => false
       case (Owner("java/lang/Boolean"), FieldName("TYPE"), _) => false
       case (Owner("java/lang/Byte"), FieldName("TYPE"), _) => false
       case (Owner("java/lang/Integer"), FieldName("TYPE"), _) => false
@@ -85,6 +85,9 @@ object LiftingPolicy {
       case (Owner("antlr/TokenStreamRecognitionException"), _, _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/TreeWalker$AstState"), _, _) => false
       case (Owner("java/io/File"), _, _) => false
+      case (Owner("org/eclipse/jetty/io/Buffers$Type"), _, _) => false
+      case (Owner("java/util/concurrent/TimeUnit"), _, _) => false
+      case (Owner("org/eclipse/jetty/server/DispatcherType"), _, _) => false
       case _ => true
     }
   }
@@ -126,6 +129,12 @@ object LiftingPolicy {
         LiftedCall(Owner(VBCModel.prefix + "/java/lang/Long"), name, desc, isLifting = false)
       case (o, _, _) if o.startsWith("[") && isVE =>
         LiftedCall(Owner(s"[Ledu/cmu/cs/varex/V;"), name, desc, isLifting = false)
+      case ("java/lang/Object", "hashCode", "()I") =>
+        LiftedCall(owner, name, desc, isLifting = true)
+      case ("java/lang/Object", "equals", "(Ljava/lang/Object;)Z") =>
+        LiftedCall(owner, name, desc, isLifting = true)
+      case ("java/lang/Object", "toString", "()Ljava/lang/String;") =>
+        LiftedCall(owner, name, desc, isLifting = true)
       case _ => LiftedCall(owner.toModel, name, desc.toModels, isLifting = false)
     }
   }
