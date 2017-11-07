@@ -541,21 +541,33 @@ public class VOps {
         throw new RuntimeException("Error in calling hashCode()");
     }
 
-    public static V<? extends Integer> equals(Object o1, Object o2, FeatureExpr ctx) {
+    public static V<? extends Integer> equals(Object o1, V o2, FeatureExpr ctx) {
         try {
             Method liftedEquals = o1.getClass().getMethod("equals__Ljava_lang_Object__Z", V.class, FeatureExpr.class);
             liftedEquals.setAccessible(true);
-            return (V<? extends Integer>) liftedEquals.invoke(o1, V.one(ctx, o2), ctx);
+            return (V<? extends Integer>) liftedEquals.invoke(o1, o2, ctx);
         } catch (NoSuchMethodException e) {
-            if (o1.equals(o2))
-                return V.one(ctx, 1);
-            else
-                return V.one(ctx, 0);
+            return o2.smap(ctx, o -> o1.equals(o));
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         } catch (InvocationTargetException e) {
             e.printStackTrace();
         }
         throw new RuntimeException("Error in calling equals()");
+    }
+
+    public static V<? extends String> toString(Object o, FeatureExpr ctx) {
+        try {
+            Method liftedToString = o.getClass().getMethod("toString____Ljava_lang_String", FeatureExpr.class);
+            liftedToString.setAccessible(true);
+            return (V<? extends String>) liftedToString.invoke(o, ctx);
+        } catch (NoSuchMethodException e) {
+            return V.one(ctx, o.toString());
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        throw new RuntimeException("Error in calling toString()");
     }
 }
