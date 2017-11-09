@@ -291,7 +291,7 @@ class Loader {
       case ISHL => InstrISHL()
       case LSHL => InstrLSHL()
       case ISHR => InstrISHR()
-      case LSHR => UNKNOWN(LSHR)
+      case LSHR => InstrLSHR()
       case IUSHR => InstrIUSHR()
       case LUSHR => InstrLUSHR()
       case IAND => InstrIAND()
