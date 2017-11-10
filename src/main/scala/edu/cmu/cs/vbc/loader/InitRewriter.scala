@@ -1,7 +1,13 @@
 package edu.cmu.cs.vbc.loader
 
-import org.objectweb.asm.Opcodes._
+import java.util
+
+import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree._
+import org.objectweb.asm.tree.analysis.{Analyzer, SourceInterpreter, SourceValue}
+
+import scala.collection.JavaConversions._
+import scala.collection.mutable
 
 /**
   * Rewrite init methods so that init sequence is ahead of anything else.
@@ -36,26 +42,49 @@ object InitRewriter {
     */
   def extractInitSeq(m: MethodNode, c: ClassNode): MethodNode = {
     if (m.name != "<init>") return m
+
+    val initAnalyzer = new InitAnalyzer(c, m)
+    val analyzer = new Analyzer[SourceValue](initAnalyzer)
+    analyzer.analyze(c.name, m)
+
     val instructions = m.instructions.toArray
     m.instructions.clear()
-    val nInit = instructions.count(isINVOKESPECIALInit(_, c))
-    val lastInitIdx = instructions.lastIndexWhere(isINVOKESPECIALInit(_, c))
-    val aloadIdx = instructions.take(lastInitIdx).zipWithIndex.filter(p => isALOAD0(p._1)).reverse.take(nInit).last._2
-    val (prefix, rest) = instructions.splitAt(aloadIdx) // prefix not including ALOAD0
-    val (initSeq, postfix) = rest.splitAt(lastInitIdx + 1 - aloadIdx) // postfix not including invokespecial
+
+    assert(initAnalyzer.InvokeSpecialOfSuperClss.size <= 1, "calling more than one <init> of sueprclass")
+
+    val (aload0Idx, invokeSpecialIdx): (Int, Int) =
+      if (initAnalyzer.InvokeSpecialOfSuperClss.size == 1) {
+        initAnalyzer.InvokeSpecialOfSuperClss.head
+      } else {
+        assert(initAnalyzer.InvokeSpecialOfSameClass.size == 1, "calling more than one <init> of the same class")
+        initAnalyzer.InvokeSpecialOfSameClass.head
+      }
+    val (prefix, rest) = instructions.splitAt(aload0Idx) // prefix not including ALOAD0
+    val (initSeq, postfix) = rest.splitAt(invokeSpecialIdx + 1 - aload0Idx) // postfix not including invokespecial
     (initSeq ++ prefix ++ postfix) foreach {i => m.instructions.add(i)}
     m
   }
+}
 
-  private def isINVOKESPECIALInit(i: AbstractInsnNode, c: ClassNode): Boolean = i match {
-    case method: MethodInsnNode => method.getOpcode == INVOKESPECIAL &&
-      method.name.contentEquals("<init>") &&
-      (method.owner.contentEquals(c.superName) || method.owner.contentEquals(c.name))
-    case _ => false
-  }
+class InitAnalyzer(cn: ClassNode, mn: MethodNode) extends SourceInterpreter {
+  /**
+    * Pairs of ALOAD 0 index and INVOKESPECIAL index
+    */
+  val InvokeSpecialOfSuperClss: mutable.Set[(Int, Int)] = mutable.Set()
+  val InvokeSpecialOfSameClass: mutable.Set[(Int, Int)] = mutable.Set()
 
-  private def isALOAD0(i: AbstractInsnNode): Boolean = i match {
-    case varInsn: VarInsnNode => varInsn.getOpcode == ALOAD && varInsn.`var` == 0
-    case _ => false
+  override def naryOperation(insn: AbstractInsnNode, values: util.List[_ <: SourceValue]) = {
+    val methodInsn = insn.asInstanceOf[MethodInsnNode]
+    val methodInsnIndex = mn.instructions.indexOf(insn)
+    if (methodInsn.getOpcode == Opcodes.INVOKESPECIAL && methodInsn.name == "<init>") {
+      val ref = values.get(0)
+      val refSources = ref.insns.toSet.filter(i => i.isInstanceOf[VarInsnNode] && i.getOpcode == Opcodes.ALOAD && i.asInstanceOf[VarInsnNode].`var` == 0)
+      val sourceIndexes = refSources.map(mn.instructions.indexOf(_))
+      if (methodInsn.owner == cn.superName)
+        sourceIndexes.foreach(aloadIdx => InvokeSpecialOfSuperClss.add((aloadIdx, methodInsnIndex)))
+      else if (methodInsn.owner == cn.name)
+        sourceIndexes.foreach(aloadIdx => InvokeSpecialOfSameClass.add((aloadIdx, methodInsnIndex)))
+    }
+    super.naryOperation(insn, values)
   }
 }
