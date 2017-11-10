@@ -308,7 +308,7 @@ class Loader {
       case I2F => InstrI2F()
       case I2D => InstrI2D()
       case L2I => InstrL2I()
-      case L2F => UNKNOWN(L2F)
+      case L2F => InstrL2F()
       case L2D => InstrL2D()
       case F2I => InstrF2I()
       case F2L => UNKNOWN(F2L)
@@ -425,7 +425,10 @@ class Loader {
         val i = inst.asInstanceOf[MethodInsnNode]
         InstrINVOKEINTERFACE(Owner(i.owner), MethodName(i.name), MethodDesc(i.desc), i.itf)
       }
-      case INVOKEDYNAMIC => UNKNOWN(INVOKEDYNAMIC)
+      case INVOKEDYNAMIC => {
+        val i = inst.asInstanceOf[InvokeDynamicInsnNode]
+        InstrINVOKEDYNAMIC(MethodName(i.name), MethodDesc(i.desc), i.bsm, i.bsmArgs)
+      }
       case NEW => {
         val i = inst.asInstanceOf[TypeInsnNode]
         InstrNEW(i.desc)

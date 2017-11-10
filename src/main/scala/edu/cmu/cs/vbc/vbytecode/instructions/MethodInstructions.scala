@@ -8,7 +8,7 @@ import edu.cmu.cs.vbc.utils.LiftingPolicy.{LiftedCall, liftCall, replaceCall}
 import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftingPolicy, VCall}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
-import org.objectweb.asm.{ClassVisitor, MethodVisitor, Type}
+import org.objectweb.asm.{ClassVisitor, Handle, MethodVisitor, Type}
 
 /**
   * @author chupanw
@@ -626,4 +626,14 @@ case class InstrINVOKEINTERFACE(owner: Owner, name: MethodName, desc: MethodDesc
       }
     }
   }
+}
+
+case class InstrINVOKEDYNAMIC(name: MethodName, desc: MethodDesc, bsm: Handle, bsmArgs: Array[Object]) extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitInvokeDynamicInsn(name, desc, bsm, bsmArgs:_*)
+  }
+
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
 }
