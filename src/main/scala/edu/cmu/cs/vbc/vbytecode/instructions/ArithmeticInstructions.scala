@@ -774,12 +774,33 @@ case class InstrLSHL() extends BinOpNonIntInstruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, LONG_TYPE())
 }
 
+/**
+  * value1 (long), value2 (int) -> result (long)
+  */
 case class InstrLSHR() extends BinOpNonIntInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(LSHR)
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = ???
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, "lshr", s"($vclasstype$vclasstype$fexprclasstype)$vclasstype", false)
+    }
+    else
+      mv.visitInsn(LSHR)
+  }
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = ???
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
+    val (value2Type, value2Backtrack, frame2) = s.pop()
+    val (value1Type, value1Backtrack, frame1) = frame2.pop()
+    ((value1Type, value2Type): @unchecked) match {
+      case (LONG_TYPE(), INT_TYPE()) => (frame1.push(LONG_TYPE(), Set(this)), Set())
+      case (LONG_TYPE(), V_TYPE(false)) => (frame1, value1Backtrack)
+      case (V_TYPE(true), INT_TYPE()) => (frame1, value2Backtrack)
+      case (V_TYPE(true), V_TYPE(false)) =>
+        env.setLift(this)
+        (frame1.push(V_TYPE(true), Set(this)), Set())
+    }
+  }
 }
 
 case class InstrLXOR() extends BinOpNonIntInstruction {
