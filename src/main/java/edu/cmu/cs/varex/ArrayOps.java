@@ -2,6 +2,7 @@ package edu.cmu.cs.varex;
 
 import de.fosd.typechef.featureexpr.FeatureExpr;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.function.BiFunction;
@@ -363,7 +364,7 @@ public class ArrayOps {
         }
         V result;
         if (array.length == 0) {
-            result = V.one(ctx, new Object[]{});
+            result = V.one(ctx, Array.newInstance(c, 0));
         }
         else {
             result = expandArrayElements(array, c, ctx);
