@@ -59,7 +59,7 @@ public class Arrays {
     public static <T> V<?> sort__Array_Ljava_lang_Object_Lmodel_java_util_Comparator__V(V<V<T>[]> vArray, V<Comparator> vComparator, FeatureExpr ctx) {
         vArray.sforeach(ctx, (FeatureExpr fe, V<T>[] array) -> {
             vComparator.sforeach(fe, (FeatureExpr fe2, Comparator comparator) -> {
-                V<T[]> expanded = ArrayOps.expandArray(array, Object.class, fe2);
+                V<T[]> expanded = ArrayOps.expandArray(array, Object[].class, fe2);
                 Contexts.model_java_util_Comparator_compare = fe2;
                 expanded.sforeach(fe2, (T[] expandedArray) -> java.util.Arrays.sort(expandedArray, comparator::compare));
                 V[] compressed = ArrayOps.compressArray(expanded);
