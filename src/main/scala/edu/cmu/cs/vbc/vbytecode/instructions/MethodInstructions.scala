@@ -31,7 +31,7 @@ trait MethodInstruction extends Instruction {
     val liftedCall = liftCall(owner, name, desc)
     val objType = Type.getObjectType(liftedCall.owner).toString
     val argTypeDesc: String = desc.getArgs.map {
-      t => if (liftedCall.isLifting) t.toV.desc else t.castInt.toObject.desc
+      t => if (liftedCall.isLifting) t.toV.desc else t.castInt.toObject.toModel.desc
     }.mkString("(", "", ")")
 
     val isReturnVoid = desc.isReturnVoid
@@ -70,7 +70,7 @@ trait MethodInstruction extends Instruction {
           // Box primitive type
           boxReturnValue(liftedCall.desc, mv)
           // perf: Necessary because we assume V[] everywhere.
-          toVArray(liftedCall.desc, mv, nArgs)
+          toVArray(liftedCall, mv, nArgs)
         }
         if (!LiftingPolicy.shouldLiftMethodCall(owner, name, desc) && !isReturnVoid)
           callVCreateOne(mv, (m) => m.visitVarInsn(ALOAD, nArgs))
@@ -113,6 +113,11 @@ trait MethodInstruction extends Instruction {
       mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.toVs.prepend(call.owner.getTypeDesc).appendFE, false)
     } else if (call.owner == Owner("java/lang/Object") && call.name.name == "toString") {
       mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.toVs.prepend(call.owner.getTypeDesc).appendFE, false)
+    } else if (call.owner == Owner("java/lang/Class") && call.name.name == "getDeclaredMethod") {
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.prepend(call.owner.getTypeDesc), false)
+    } else if (call.owner == Owner("java/lang/reflect/Method") && call.name.name == "invoke") {
+      mv.visitVarInsn(ALOAD, ctxIdx)
+      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.prepend(call.owner.getTypeDesc).appendFE, false)
     }
     else
       otherwise
@@ -150,8 +155,8 @@ trait MethodInstruction extends Instruction {
   /**
     * Turn primitive array to V array
     */
-  def toVArray(desc: MethodDesc, mv: MethodVisitor, ctxIdx: Int): Unit = {
-    desc.getReturnType match {
+  def toVArray(lifted: LiftedCall, mv: MethodVisitor, ctxIdx: Int): Unit = {
+    lifted.desc.getReturnType match {
       case Some(TypeDesc("[I")) => ???
       case Some(TypeDesc("[C")) =>
         mv.visitVarInsn(ALOAD, ctxIdx)
@@ -185,7 +190,18 @@ trait MethodInstruction extends Instruction {
           MethodDesc(s"([Ljava/lang/Object;$fexprclasstype)[$vclasstype"),
           false
         )
-      case _ => // do nothing
+      case _ =>
+        if (lifted.owner == Owner("java/lang/reflect/Array") && lifted.name == MethodName("newInstance")) {
+          mv.visitTypeInsn(CHECKCAST, "[Ljava/lang/Object;")
+          mv.visitVarInsn(ALOAD, ctxIdx)
+          mv.visitMethodInsn(
+            INVOKESTATIC,
+            Owner.getArrayOps,
+            "ObjectArray2VArray",
+            MethodDesc(s"([Ljava/lang/Object;$fexprclasstype)[$vclasstype"),
+            false
+          )
+        }
     }
   }
 
@@ -251,6 +267,7 @@ trait MethodInstruction extends Instruction {
     val nArg = Type.getArgumentTypes(desc).length
     val argList: List[(VBCType, Set[Instruction])] = s.stack.take(nArg)
     val hasVArgs = argList.exists(_._1.isInstanceOf[V_TYPE])
+    val hasArrayArgs = LiftingPolicy.liftCall(owner, name, desc).desc.getArgs.exists(_.isArray)
 
     // object reference
     var frame = s
@@ -290,8 +307,8 @@ trait MethodInstruction extends Instruction {
     }
 
     // arguments
-    if (hasVArgs) env.setTag(this, env.TAG_HAS_VARG)
-    if (hasVArgs || shouldLift || env.shouldLiftInstr(this)) {
+    if (hasVArgs || hasArrayArgs) env.setTag(this, env.TAG_HAS_VARG)
+    if (hasVArgs || hasArrayArgs || shouldLift || env.shouldLiftInstr(this)) {
       // ensure that all arguments are V
       for (ele <- argList if !ele._1.isInstanceOf[V_TYPE]) return (s, ele._2)
     }
@@ -512,7 +529,7 @@ case class InstrINVOKEVIRTUAL(owner: Owner, name: MethodName, desc: MethodDesc, 
         }
         if (env.getTag(this, env.TAG_NEED_V)) {
           if (shouldTransformReturnType(liftedCall)) {
-            toVArray(liftedCall.desc, mv, env.getBlockVarVIdx(block))
+            toVArray(liftedCall, mv, env.getBlockVarVIdx(block))
             boxReturnValue(liftedCall.desc, mv)
           }
           callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
@@ -551,7 +568,7 @@ case class InstrINVOKESTATIC(owner: Owner, name: MethodName, desc: MethodDesc, i
     } else {
       if (liftedCall.isLifting) loadCurrentCtx(mv, env, block)
       mv.visitMethodInsn(INVOKESTATIC, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
-      toVArray(liftedCall.desc, mv, env.getVarIdx(env.getVBlockVar(block)))
+      toVArray(liftedCall, mv, env.getVarIdx(env.getVBlockVar(block)))
       if (env.getTag(this, env.TAG_NEED_V)) {
         boxReturnValue(liftedCall.desc, mv)
         callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
@@ -584,6 +601,7 @@ case class InstrINVOKESTATIC(owner: Owner, name: MethodName, desc: MethodDesc, i
         loadVar(args.size, liftedCall.desc, args.size - 1, m) // last argument
         m.visitMethodInsn(INVOKESTATIC, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
         boxReturnValue(liftedCall.desc, m)
+        toVArray(liftedCall, m, args.size - 1)
         if (liftedCall.desc.isReturnVoid) {
           m.visitInsn(RETURN)
         }
