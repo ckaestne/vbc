@@ -122,6 +122,18 @@ public class StringBuilder implements Appendable {
         return V.one(ctx, this);
     }
 
+    public V<? extends java.lang.Integer> length____I(FeatureExpr ctx) {
+        return vActual.smap(ctx, sb -> sb.length());
+    }
+
+    public V<? extends java.lang.Integer> charAt__I__C(V<? extends java.lang.Integer> vI, FeatureExpr ctx) {
+        return vI.sflatMap(ctx, (fe, i) -> vActual.smap(fe, sb -> (int) sb.charAt(i)));
+    }
+
+    public V<? extends String> substring__I__Ljava_lang_String(V<? extends java.lang.Integer> vI, FeatureExpr ctx) {
+        return vI.sflatMap(ctx, (fe, i) -> vActual.smap(fe, sb -> sb.substring(i)));
+    }
+
     /**
      * Split vActual LinkedLists according to current ctx
      */
@@ -137,6 +149,14 @@ public class StringBuilder implements Appendable {
         actual = new java.lang.StringBuilder();
     }
 
+    public StringBuilder(int size) {
+        actual = new java.lang.StringBuilder(size);
+    }
+
+    public StringBuilder(String s) {
+        actual = new java.lang.StringBuilder(s);
+    }
+
     public StringBuilder append(String s) {
         actual.append(s);
         return this;    // not creating new instances, following JDK style
@@ -145,6 +165,28 @@ public class StringBuilder implements Appendable {
     public StringBuilder append(int i) {
         actual.append(i);
         return this;    // not creating new instances, following JDK style
+    }
+
+    public StringBuilder append(Object o) {
+        actual.append(o);
+        return this;
+    }
+
+    public StringBuilder append(char c) {
+        actual.append(c);
+        return this;
+    }
+
+    public char charAt(int index) {
+        return actual.charAt(index);
+    }
+
+    public String substring(int start) {
+        return actual.substring(start);
+    }
+
+    public void setLength(int newLength) {
+        actual.setLength(newLength);
     }
 
     public String toString() {
