@@ -336,6 +336,10 @@ public class VOps {
         return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.floatValue() + v2.floatValue()));
     }
 
+    public static V<? extends Long> lshr(V<? extends Long> value1, V<? extends Integer> value2, FeatureExpr ctx) {
+        return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.longValue() >> v2.intValue()));
+    }
+
     //////////////////////////////////////////////////
     // Special println that prints configuration as well
     //////////////////////////////////////////////////
@@ -401,7 +405,8 @@ public class VOps {
             return c.newInstance(new Object[]{ctx});
         } catch (NoSuchMethodException e) {
             System.out.println("Could not find constructor with ctx");
-            throw e;
+            Constructor cc = clazz.getConstructor();
+            return cc.newInstance(new Object[]{});
         } catch (IllegalAccessException e) {
             System.out.println("Error initializing " + clazz.getName());
             throw e;
@@ -414,6 +419,45 @@ public class VOps {
         }
     }
 
+    public static Method getDeclaredMethod(Class clazz, String name, Class[] parameters) {
+        StringBuilder sb = new StringBuilder(name);
+        sb.append("__");
+        for (int i = 0; i < parameters.length; i++) {
+            sb.append("L" + parameters[i].getCanonicalName().replace('.', '_') + "_");
+        }
+        String prefix = sb.toString();
+        Method[] allMethods = clazz.getMethods();
+        Method res = null;
+        for (int i = 0; i < allMethods.length; i++) {
+            if (allMethods[i].getName().startsWith(prefix)) {
+                if (res == null)
+                    res = allMethods[i];
+                else
+                    throw new RuntimeException("Error in getDeclaredMethod, more than one match");
+            }
+        }
+        if (res == null) {
+            throw new RuntimeException("Error in getDeclaredMethod, method not found");
+        } else {
+            return res;
+        }
+    }
+
+    public static Object invoke(Method m, Object obj, Object[] parameters, FeatureExpr ctx) {
+        Object[] newParameters = new Object[parameters.length + 1];
+        for (int i = 0; i < parameters.length; i++) {
+            newParameters[i] = V.one(ctx, parameters[i]);
+        }
+        newParameters[parameters.length] = ctx;
+        try {
+            return m.invoke(obj, newParameters);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        throw new RuntimeException("Error in invoke");
+    }
 
     /**
      * Replacement for BeanUtilsBean.copyProperty()
