@@ -45,6 +45,11 @@ object LiftingPolicy {
     */
   def shouldLiftMethodCall(owner: Owner, name: MethodName, desc: MethodDesc): Boolean = {
     if (currentConfig.notLiftingClasses.exists(n => owner.name.matches(n))) false
+    else if (currentConfig.notLiftingClasses.exists(n => (VBCModel.prefix + "/" + owner.name).matches(n))){
+      // Sometimes we create model classes, but use them like other JDK classes that we don't lift
+      // e.g., model.java.util.URLClassLoader, we need it because we want to lift classes loaded from urls.
+      false
+    }
     else true
   }
 
@@ -58,7 +63,7 @@ object LiftingPolicy {
       case (Owner("java/lang/System"), FieldName("out"), _) => false
       case (Owner("java/lang/System"), FieldName("err"), _) => false
       case (Owner("java/util/Locale"), _, _) => false
-      case (Owner("java/lang/Boolean"), FieldName("TYPE"), _) => false
+      case (Owner("java/lang/Boolean"), _, _) => false
       case (Owner("java/lang/Byte"), FieldName("TYPE"), _) => false
       case (Owner("java/lang/Integer"), FieldName("TYPE"), _) => false
       case (Owner("java/lang/Character"), FieldName("TYPE"), _) => false
@@ -66,6 +71,7 @@ object LiftingPolicy {
       case (Owner("java/lang/Double"), FieldName("TYPE"), _) => false
       case (Owner("java/lang/Long"), FieldName("TYPE"), _) => false
       case (Owner("java/lang/Short"), FieldName("TYPE"), _) => false
+      case (Owner("java/lang/Void"), FieldName("TYPE"), _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/api/SeverityLevel"), FieldName("ERROR"), _) => false
       case (Owner("edu/cmu/cs/vbc/prog/checkstyle/api/SeverityLevel"), FieldName("INFO"), _) => false
       case (Owner("java/nio/charset/CodingErrorAction"), FieldName("REPLACE"), _) => false
@@ -88,6 +94,9 @@ object LiftingPolicy {
       case (Owner("org/eclipse/jetty/io/Buffers$Type"), _, _) => false
       case (Owner("java/util/concurrent/TimeUnit"), _, _) => false
       case (Owner("org/eclipse/jetty/server/DispatcherType"), _, _) => false
+      case (Owner("org/eclipse/jetty/webapp/MetaDataComplete"), _, _) => false
+      case (Owner("org/eclipse/jetty/webapp/Origin"), _, _) => false
+      case (Owner("org/eclipse/jetty/util/URIUtil"), _, _) => false
       case _ => true
     }
   }
