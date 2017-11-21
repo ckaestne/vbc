@@ -66,13 +66,20 @@ case class InstrLDC(o: Object) extends Instruction {
             mv.visitLdcInsn(t)
           }
           else
-            mv.visitLdcInsn(o)
+            mv.visitLdcInsn(Type.getType(Owner(t.getInternalName).toModel.getTypeDesc))
         case _ => throw new UnsupportedOperationException("Unsupported LDC type: " + o.getClass)
       }
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, blockA))
     }
     else {
-      mv.visitLdcInsn(o)
+      o match {
+        case t: Type =>
+          if (t.getSort == Type.ARRAY)
+            mv.visitLdcInsn(t)
+          else
+            mv.visitLdcInsn(Type.getType(Owner(t.getInternalName).toModel.getTypeDesc))
+        case _ => mv.visitLdcInsn(o)
+      }
       o match {
         case s: String => wrapString(mv)
         case i: Integer =>  // do nothing
