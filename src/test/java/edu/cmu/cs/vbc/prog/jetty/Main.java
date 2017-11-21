@@ -214,8 +214,8 @@ public class Main extends AbstractHandler {
 
         HandlerCollection handlers = new HandlerCollection();
         Handler[] handlerArray = {
-//                webapp,
-                new Main()
+                webapp,
+//                new Main()
         };
         handlers.setHandlers(handlerArray);
         server.setHandler(handlers);
