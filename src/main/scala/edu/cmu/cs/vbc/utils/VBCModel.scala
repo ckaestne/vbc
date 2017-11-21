@@ -31,10 +31,8 @@ class VBCModel(fqName: String) extends LazyLogging {
     "model/java/lang/Long",  // stringSize()
     "model/java/lang/System", // arrayCopy()
     "model/java/util/Arrays",  // native sorting methods
-    "model/java/util/List",  // Some classes of Jetty require not lifting List, but apparently the Arrays
+    "model/java/util/List"  // Some classes of Jetty require not lifting List, but apparently the Arrays
                             //  class is using the List model class, so we have to add it here as well.
-    "model/java/util/Map",
-    "model/java/util/Map$Entry"
   )
 
   def getModelClassBytes(isLift: Boolean) : Array[Byte] = {
