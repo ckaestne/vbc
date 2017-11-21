@@ -63,7 +63,7 @@ trait MethodInstruction extends Instruction {
         if (liftedCall.isLifting) mv.visitVarInsn(ALOAD, nArgs) // ctx
         // would need to push nulls if invoking <init>, but this is strange
         assert(name != MethodName("<init>"), "calling <init> on a V object")
-        interceptCalls(liftedCall, mv, nArgs) {
+        interceptCalls(liftedCall, mv, nArgs, env) {
           mv.visitMethodInsn(invokeType, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
         }
         if (shouldTransformReturnType(liftedCall)) {
@@ -88,7 +88,7 @@ trait MethodInstruction extends Instruction {
     }
   }
 
-  def interceptCalls(call: LiftedCall, mv: MethodVisitor, ctxIdx: Int)(otherwise: => Unit): Unit = {
+  def interceptCalls(call: LiftedCall, mv: MethodVisitor, ctxIdx: Int, env: VMethodEnv)(otherwise: => Unit): Unit = {
     if (call.owner == Owner("java/io/PrintStream") && call.name.name == "println") {
       mv.visitVarInsn(ALOAD, ctxIdx)  // load context
       mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.prependPrintStream.appendFE, false)
@@ -112,7 +112,19 @@ trait MethodInstruction extends Instruction {
     } else if (call.owner == Owner("java/lang/Object") && call.name.name == "hashCode") {
       mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.toVs.prepend(call.owner.getTypeDesc).appendFE, false)
     } else if (call.owner == Owner("java/lang/Object") && call.name.name == "toString") {
-      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.toVs.prepend(call.owner.getTypeDesc).appendFE, false)
+      // This could create infinite loop: if a class overrides toString() and calls super.toString() inside it
+      // To avoid the above scenario, we need to detect if the invoking object comes from ALOAD 0, if yes, we do not
+      // intercept this call.
+      // For now, we naively assume that the previous instruction is ALOAD 0
+      val thisIdx: Int = env.instructions.indexWhere(_ eq this)
+      assert(thisIdx != -1, "Could not find this instruction")
+      val previous: Instruction = env.instructions(thisIdx - 1)
+      if (previous.isALOAD0) {
+        mv.visitInsn(POP) // pop the useless ctx
+        otherwise
+      }
+      else
+        mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.toVs.prepend(call.owner.getTypeDesc).appendFE, false)
     } else if (call.owner == Owner("java/lang/Class") && call.name.name == "getDeclaredMethod") {
       mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, call.name, call.desc.prepend(call.owner.getTypeDesc), false)
     } else if (call.owner == Owner("java/lang/reflect/Method") && call.name.name == "invoke") {
@@ -390,7 +402,7 @@ case class InstrINVOKESPECIAL(owner: Owner, name: MethodName, desc: MethodDesc, 
         invokeOnNonV(owner, name, desc, itf, mv, env, block)
       }
       else {
-        interceptCalls(liftedCall, mv, env.getVarIdx(env.getVBlockVar(block))) {
+        interceptCalls(liftedCall, mv, env.getVarIdx(env.getVBlockVar(block)), env) {
           mv.visitMethodInsn(INVOKESPECIAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
         }
 //        mv.visitMethodInsn(INVOKESPECIAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
@@ -524,7 +536,7 @@ case class InstrINVOKEVIRTUAL(owner: Owner, name: MethodName, desc: MethodDesc, 
       }
       else {
         if (liftedCall.isLifting) loadCurrentCtx(mv, env, block)
-        interceptCalls(liftedCall, mv, env.getVarIdx(env.getVBlockVar(block))) {
+        interceptCalls(liftedCall, mv, env.getVarIdx(env.getVBlockVar(block)), env) {
           mv.visitMethodInsn(INVOKEVIRTUAL, liftedCall.owner, liftedCall.name, liftedCall.desc, itf)
         }
         if (env.getTag(this, env.TAG_NEED_V)) {
