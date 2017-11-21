@@ -262,6 +262,8 @@ case class VBCClassNode(
       createUnliftedWriteOfWriter(cv)
     if (superName == "javax/servlet/ServletOutputStream")
       createUnliftedWriteOfOutputStream(cv)
+    if (superName == "java/util/TimerTask")
+      createUnliftedRunOfTimerTask(cv)
     // create <clinit> method
     if (hasStaticConditionalFields) createCLINIT(cv, rewriter)
     // Write lambda methods
@@ -361,6 +363,19 @@ case class VBCClassNode(
     * todo: refactor and organize methods like this
     */
   def createUnliftedRun(cv: ClassVisitor) = {
+    val mv = cv.visitMethod(ACC_PUBLIC, "run", "()V", "()V", Array.empty)
+    mv.visitCode()
+    // For now, we assume the thread is executed under context True
+    // todo: avoid this dangerous assumption after figuring out a way to track contexts in Threads
+    mv.visitVarInsn(ALOAD, 0)
+    pushConstantTRUE(mv)
+    mv.visitMethodInsn(INVOKEVIRTUAL, name, MethodName("run").rename(MethodDesc("()V")), MethodDesc("()V").appendFE.toVReturnType, false)
+    mv.visitInsn(RETURN)
+    mv.visitMaxs(10, 10)
+    mv.visitEnd()
+  }
+
+  def createUnliftedRunOfTimerTask(cv: ClassVisitor) = {
     val mv = cv.visitMethod(ACC_PUBLIC, "run", "()V", "()V", Array.empty)
     mv.visitCode()
     // For now, we assume the thread is executed under context True
