@@ -21,7 +21,7 @@ object Rewrite {
     if (m.body.blocks.nonEmpty) {
 //      profiling(
         initializeConditionalFields(
-          addFakeHanlderBlocks(
+          addFakeHandlerBlocks(
             appendGOTO(
               ensureUniqueReturnInstr(
                 replaceAthrowWithAreturn(m)
@@ -158,7 +158,7 @@ object Rewrite {
     * Note that we add all fake blocks to the end of method, so that we do not need to change indexes of existing
     * jump instructions
     */
-  private def addFakeHanlderBlocks(m: VBCMethodNode): VBCMethodNode = {
+  private def addFakeHandlerBlocks(m: VBCMethodNode) = {
     var currentIdx: Int = m.body.blocks.size
     val pairs: List[(Block, List[Block])] = m.body.blocks.map(b => {
       if (b.exceptionHandlers.isEmpty) (b, Nil)
