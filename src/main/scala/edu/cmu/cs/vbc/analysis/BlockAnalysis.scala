@@ -181,6 +181,24 @@ trait VBlockAnalysis extends CFGAnalysis {
       yield VBlock(vblockHead(vblockId), blocks.keys.toSet)
   }
 
+  lazy val vsucc: Map[VBlock, Set[VBlock]] = vblocks.map(v => (v -> getVBlockSuccessors(v))).toMap
+  lazy val vpred: Map[VBlock, Set[VBlock]] = invertSucc(vsucc)
+
+  private def getVBlockSuccessors(vblock: VBlock): Set[VBlock] = {
+    def toSet(x: (Option[VBlock], Option[VBlock])) = x._1.toSet ++ x._2.toSet
+
+    vblock.allBlocks.filter(isVBlockEnd).flatMap(b => toSet(getVJumpTargets(b)))
+  }
+
+  private def invertSucc[Node](succ: Map[Node, Set[Node]]): Map[Node, Set[Node]] = {
+    var result = Map[Node, Set[Node]]()
+    for ((a, ss)<- succ; s<-ss) {
+      result += (s->(result.getOrElse(s, Set())+a))
+    }
+    result
+  }
+
+
   /**
     * Check if b1 is the exception handler block of b2
     */

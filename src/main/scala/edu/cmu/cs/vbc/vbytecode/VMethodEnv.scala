@@ -1,6 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode
 
-import edu.cmu.cs.vbc.analysis.{VBCAnalyzer, VBCFrame}
+import edu.cmu.cs.vbc.analysis.{GraphAnalysis, VBCAnalyzer, VBCFrame}
 import edu.cmu.cs.vbc.utils.{LiftUtils, Statistics}
 import edu.cmu.cs.vbc.vbytecode.instructions.{InstrGOTO, Instruction, JumpInstruction}
 import org.objectweb.asm.{Label, Type}
@@ -85,7 +85,7 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
     var visited = Set[Block]()
     val succ: Set[Block] = getSuccessors(b)
     var queue = List[Block]()
-    queue  = queue ++ succ
+    queue = queue ++ succ
     while (queue.nonEmpty) {
       val h = queue.head
       visited += h
@@ -287,4 +287,28 @@ class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(c
 
     result + "}"
   }
+
+  /**
+    * checks that blocks are sorted following a post-dominator partial order, such
+    * that jumping back on control-flow decisions leads to efficient joins
+    */
+  {
+    import GraphAnalysis._
+    val pdom = strictDominators(computePostDominators(vblocks.toSet, getLastVBlock(), vsucc.apply))
+    val dom = strictDominators(computeDominators(vblocks.toSet, vblocks.head, vsucc.apply))
+
+    var problem = false
+    for ((vblock, postDomVblocks) <- pdom; postDomVblock <- postDomVblocks; if !(dom(postDomVblock) contains vblock))
+      if (!(vblocks.indexOf(vblock) < vblocks.indexOf(postDomVblock))) {
+        problem = true
+        System.err.println("block order does not follow post-dominator relation in " + method.name + ": " + vblocks.indexOf(vblock) + ">=" + vblocks.indexOf(postDomVblock))
+      }
+
+    //    if (problem) {
+    //      println(toDot)
+    //    }
+
+  }
+
+
 }
