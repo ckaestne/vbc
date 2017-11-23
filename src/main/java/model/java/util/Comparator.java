@@ -15,8 +15,11 @@ public interface Comparator {
         FeatureExpr ctx = Contexts.model_java_util_Comparator_compare;
         V<?> compareResult = compare__Ljava_lang_Object_Ljava_lang_Object__I(V.one(ctx, a), V.one(ctx, b), ctx);
         V<?> selected = compareResult.select(ctx);
-        assert selected.getOne() instanceof Integer : "compare returns non-Integer";
+        Object val = selected.getOne();
+        assert val != null : "compare uses null";
+        assert val instanceof java.lang.Integer : "compare returns non-Integer: " + val + " (" + val.getClass().getCanonicalName() + ")";
         return ((java.lang.Integer) selected.getOne());
     }
+
     V<?> compare__Ljava_lang_Object_Ljava_lang_Object__I(V a, V b, FeatureExpr fe);
 }
