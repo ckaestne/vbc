@@ -6,7 +6,7 @@ import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, V_TYPE}
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.vbytecode._
-import edu.cmu.cs.vbc.vbytecode.instructions.{InstrINIT_CONDITIONAL_FIELDS, Instruction}
+import edu.cmu.cs.vbc.vbytecode.instructions.{FieldInitHelper, Instruction}
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
 
@@ -95,7 +95,7 @@ object TraceConfig {
 
 
 case class TraceInstr_ConfigInit() extends Instruction {
-  import InstrINIT_CONDITIONAL_FIELDS._
+  import FieldInitHelper._
 
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     for (conditionalField <- env.clazz.fields

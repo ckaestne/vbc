@@ -25,6 +25,7 @@ import scala.sys.process.Process
 class VBCClassLoader(parentClassLoader: ClassLoader,
                      isLift: Boolean = true,
                      rewriter: (VBCMethodNode, VBCClassNode) => VBCMethodNode = (a, b) => a,
+                     config: (String) => Option[Boolean] = (c) => None,
                      toFileDebugging: Boolean = true,
                      configFile: Option[String] = None) extends ClassLoader(parentClassLoader) with LazyLogging {
 
@@ -83,7 +84,7 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
     val is: InputStream = getResourceAsStream(resource)
     val clazz: VBCClassNode = loader.loadClass(is)
     val cw = new MyClassWriter(ClassWriter.COMPUTE_FRAMES) // COMPUTE_FRAMES implies COMPUTE_MAX
-    clazz.toByteCode(cw, rewriter)
+    clazz.toByteCode(cw, rewriter, (a)=>None)
     if (toFileDebugging)
       toFile(name, cw)
     defineClass(name, cw.toByteArray, 0, cw.toByteArray.length)
@@ -98,11 +99,11 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
     try {
       if (isLift) {
         logger.info(s"lifting $name")
-        clazz.toVByteCode(cv, rewriter)
+        clazz.toVByteCode(cv, rewriter, (a)=>None)
       }
       else {
         logger.info(s"lifting $name")
-        clazz.toByteCode(cv, rewriter)
+        clazz.toByteCode(cv, rewriter, (a)=>None)
       }
     } catch {
       case e: Throwable =>

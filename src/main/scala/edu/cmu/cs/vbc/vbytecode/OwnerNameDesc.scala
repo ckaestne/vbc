@@ -99,7 +99,7 @@ case class MethodName(name: String) {
   def rename(desc: MethodDesc): MethodName = {
     def replace(s: String): String = s.replace(";", "").replace("/", "_").replace("[", "Array_")
     name match {
-      case "<init>" | "<clinit>" | "___clinit___" | "______clinit______" => this
+      case "<init>" | "<clinit>" | "___clinit___"  => this
       case _ =>
         val args = desc.getArgs.map(_.toModel)
         val argsString = replace(args.mkString("__", "_", "__"))
@@ -109,7 +109,7 @@ case class MethodName(name: String) {
   }
 
   def liftCLINIT: MethodName = name match {
-    case "<clinit>" => MethodName("______clinit______")
+    case "<clinit>" => MethodName("___clinit___")
     case _ => this
   }
 }

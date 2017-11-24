@@ -14,23 +14,18 @@ import edu.cmu.cs.vbc.vbytecode.instructions._
 object Rewrite {
 
 
-  def rewrite(m: VBCMethodNode, cls: VBCClassNode): VBCMethodNode =
-    initializeConditionalFields(m, cls)
+  def rewrite(m: VBCMethodNode, cls: VBCClassNode, config: String => Option[Boolean]): VBCMethodNode = m
 
-  def rewriteV(m: VBCMethodNode, cls: VBCClassNode): VBCMethodNode = {
+  def rewriteV(m: VBCMethodNode, cls: VBCClassNode, config: String => Option[Boolean]): VBCMethodNode = {
     if (m.body.blocks.nonEmpty) {
-//      profiling(
-        initializeConditionalFields(
-          addFakeHandlerBlocks(
-            appendGOTO(
-              ensureUniqueReturnInstr(
-                replaceAthrowWithAreturn(m)
-              )
+      initializeFields(
+        addFakeHandlerBlocks(
+          appendGOTO(
+            ensureUniqueReturnInstr(
+              replaceAthrowWithAreturn(m)
             )
-          ),
-          cls
-      )
-//        , cls)
+          )
+        ), config)
     }
     else {
       m
@@ -38,6 +33,7 @@ object Rewrite {
   }
 
   var idCount = 0
+
   private def profiling(m: VBCMethodNode, cls: VBCClassNode): VBCMethodNode = {
     val id = cls.name + "#" + m.name + "#" + idCount
     idCount += 1
@@ -84,7 +80,7 @@ object Rewrite {
     // RETURN and ARETURN should not happen together, otherwise code could not compile in the first place.
     // For all other kinds of return instructions that take argument, there is no need to worry about exact return type
     // because they are all Vs anyway.
-//    assert(returnInstr.map(_.getClass).distinct.size == 1, "inconsistency: different kinds of return instructions found in method")
+    //    assert(returnInstr.map(_.getClass).distinct.size == 1, "inconsistency: different kinds of return instructions found in method")
     if (returnInstr.size == 1 && returnInstr.head == m.body.blocks.last.instr.last)
       m
     else {
@@ -111,7 +107,9 @@ object Rewrite {
       case _: InstrARETURN => InstrASTORE(returnVariable)
       case _ => throw new RuntimeException("Not a return instruction: " + retInstr)
     }
+
     def storeAndGotoSeq(retInstr: Instruction): List[Instruction] = List(getStoreInstr(retInstr), InstrGOTO(newReturnBlockIdx))
+
     def storeNullAndGotoSeq: List[Instruction] = List(InstrACONST_NULL(), InstrASTORE(returnVariable), InstrGOTO(newReturnBlockIdx))
 
     val rewrittenBlocks = method.body.blocks.map(block =>
@@ -132,7 +130,8 @@ object Rewrite {
   }
 
 
-  /** Insert INIT_CONDITIONAL_FIELDS in init
+  /**
+    * Insert INIT_FIELDS instructions in "<init>" and "<clinit>" methods
     *
     * Current rewriting assumes following sequence is in the first block of init:
     *
@@ -141,12 +140,18 @@ object Rewrite {
     * INVOKESPECIAL superclass's init
     *
     */
-  private def initializeConditionalFields(m: VBCMethodNode, cls: VBCClassNode): VBCMethodNode =
+  private def initializeFields(m: VBCMethodNode, config: String => Option[Boolean]) =
     if (m.isInit) {
-      val firstBlockInstructions = m.body.blocks.head.instr
-      val newBlocks = Block(InstrINIT_CONDITIONAL_FIELDS() +: firstBlockInstructions, Nil) +: m.body.blocks.drop(1)
-      m.copy(body = CFG(newBlocks))
+      prependInstruction(InstrINIT_FIELDS(false, config), m)
+    } else if (m.isClinit) {
+      prependInstruction(InstrINIT_FIELDS(true, config), m)
     } else m
+
+  private def prependInstruction(instruction: Instruction, m: VBCMethodNode): VBCMethodNode = {
+    val firstBlockInstructions = m.body.blocks.head.instr
+    val newBlocks = Block(instruction +: firstBlockInstructions, Nil) +: m.body.blocks.drop(1)
+    m.copy(body = CFG(newBlocks))
+  }
 
   /**
     * Attach one or more fake handler blocks to each Block.

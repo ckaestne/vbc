@@ -34,11 +34,11 @@ trait DiffMethodTestInfrastructure {
     }
 
     def toByteCode(cw: ClassWriter) = {
-      createClass(m).toByteCode(cw)
+      createClass(m).toByteCode(cw, config=(a)=>None)
     }
 
     def toVByteCode(cw: ClassWriter) = {
-      createClass(m).toVByteCode(cw)
+      createClass(m).toVByteCode(cw, config=(a)=>None)
     }
 
   }

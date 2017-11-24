@@ -2,7 +2,7 @@ package edu.cmu.cs.vbc.vbytecode
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.cmu.cs.vbc.utils.LiftUtils
-import edu.cmu.cs.vbc.vbytecode.instructions.{InstrINIT_CONDITIONAL_FIELDS, InstrINVOKESTATIC, InstrRETURN, Instruction}
+import edu.cmu.cs.vbc.vbytecode.instructions.{FieldInitHelper, InstrINVOKESTATIC, InstrRETURN, Instruction}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm._
 import org.objectweb.asm.tree._
@@ -115,12 +115,12 @@ case class VBCMethodNode(access: Int,
       val callType = if ((access & Opcodes.ACC_STATIC) != 0) INVOKESTATIC else if (name == "<init>") INVOKESPECIAL else INVOKEVIRTUAL
       val nArgs = Type.getArgumentTypes(desc).length
       if (callType != INVOKESTATIC) mv.visitVarInsn(ALOAD, 0)
-      (1 to nArgs) foreach {i =>
+      (1 to nArgs) foreach { i =>
         // todo: could be primitive type
         mv.visitVarInsn(ALOAD, i)
         callVCreateOne(mv, pushConstantTRUE)
       }
-      pushConstantTRUE(mv)  //ctx
+      pushConstantTRUE(mv) //ctx
       mv.visitMethodInsn(callType, clazz.name, name, MethodDesc(desc).appendFE, false)
       // unwrap return type
       Type.getReturnType(desc).getSort match {
@@ -186,20 +186,25 @@ class LocalVar(val name: String,
 }
 
 object LocalVar {
+
   import LiftUtils._
+
   def initNull(mv: MethodVisitor, env: VMethodEnv, v: LocalVar) = {
     mv.visitInsn(ACONST_NULL)
     mv.visitVarInsn(ASTORE, env.getVarIdx(v))
   }
+
   def initOneNull(mv: MethodVisitor, env: VMethodEnv, v: LocalVar) = {
     mv.visitInsn(ACONST_NULL)
     callVCreateOne(mv, loadFExpr(_, env, env.ctxParameter))
     storeV(mv, env, v)
   }
+
   def initFalse(mv: MethodVisitor, env: VMethodEnv, v: LocalVar) = {
     pushConstantFALSE(mv)
     storeFExpr(mv, env, v)
   }
+
   def noInit(mv: MethodVisitor, env: VMethodEnv, v: LocalVar) = {}
 }
 
@@ -225,32 +230,32 @@ case class VBCClassNode(
 
   import LiftUtils._
 
-  def toByteCode(cv: ClassVisitor, rewriter: (VBCMethodNode, VBCClassNode) => VBCMethodNode = (a, b) => a) = {
+  def toByteCode(cv: ClassVisitor, rewriter: (VBCMethodNode, VBCClassNode) => VBCMethodNode = (a, b) => a, config: String => Option[Boolean]) = {
     val liftedSuperName = liftSuperName(Owner(superName))
     cv.visit(version, access, name, signature.getOrElse(null), liftedSuperName, interfaces.map(i => Owner(i).toModel.toString).toArray)
     commonToByteCode(cv)
     //        innerClasses.foreach(_.toByteCode(cv))
     fields.foreach(_.toByteCode(cv))
-    methods.foreach(m => rewriter(Rewrite.rewrite(m, this), this).toByteCode(cv, this))
+    val m =
+      if (hasStaticConditionalFields && !hasCLINIT)
+        createCLINIT() :: methods
+      else methods
+    m.foreach(m => rewriter(Rewrite.rewrite(m, this, config), this).toByteCode(cv, this))
     cv.visitEnd()
   }
 
 
-  def liftSuperName(superName: Owner): Owner = {
-    // Super class of interface must be java/lang/Object, could not be VObject
-    if ((access & ACC_INTERFACE) == 0)
-      superName.toModel
-    else
-      superName
-  }
-
-  def toVByteCode(cv: ClassVisitor, rewriter: (VBCMethodNode, VBCClassNode) => VBCMethodNode = (a, b) => a) = {
+  def toVByteCode(cv: ClassVisitor, rewriter: (VBCMethodNode, VBCClassNode) => VBCMethodNode = (a, b) => a, config: String => Option[Boolean]) = {
     val liftedSuperName = liftSuperName(Owner(superName))
     cv.visit(version, access, name, signature.getOrElse(null), liftedSuperName, interfaces.map(i => Owner(i).toModel.toString).toArray)
     commonToByteCode(cv)
     //        innerClasses.foreach(_.toVByteCode(cv))
     fields.foreach(_.toVByteCode(cv))
-    methods.foreach(m => rewriter(Rewrite.rewriteV(m, this), this).toVByteCode(cv, this))
+    val ms =
+      if (hasStaticFields && !hasCLINIT)
+        createCLINIT() :: methods
+      else methods
+    ms.foreach(m => rewriter(Rewrite.rewriteV(m, this, config), this).toVByteCode(cv, this))
     //if the class has a main method, create also an unlifted main method
     if (methods.exists(_.isMain))
       createUnliftedMain(cv)
@@ -264,11 +269,13 @@ case class VBCClassNode(
       createUnliftedWriteOfOutputStream(cv)
     if (superName == "java/util/TimerTask")
       createUnliftedRunOfTimerTask(cv)
-    // create <clinit> method
-    if (hasStaticConditionalFields) createCLINIT(cv, rewriter)
     // Write lambda methods
     // Lambda methods might be generated while generating other lambda methods (e.g. nested invokedynamic see InvokeDynamicUtils),
     // so we need this while to ensure that all lambda methods are generated
+
+    if (hasCLINIT || hasStaticFields)
+      createUnliftedCLINIT(cv)
+
     var toWrite: Set[String] = lambdaMethods.keySet -- writtenLambdaMethods
     while (toWrite.nonEmpty) {
       toWrite.foreach((name: String) => {
@@ -280,40 +287,28 @@ case class VBCClassNode(
     cv.visitEnd()
   }
 
-  lazy val hasStaticConditionalFields = fields.exists(_.isStatic)
+  lazy val hasStaticFields = fields.exists(_.isStatic)
+  lazy val hasStaticConditionalFields = fields.exists(f => f.isStatic && f.hasConditionalAnnotation())
 
-  lazy val hasCLINIT = methods.exists(_.name == "<clinit>")
+  lazy val hasCLINIT = methods.exists(_.isClinit)
 
-  /**
-    * Creates our own clinit methods.
-    *
-    * Original clinit method is renamed to ______clinit______. Our own clinit simply calls
-    * ___clinit___, which does initialization of conditional fields and then call ______clinit______.
-    *
-    * @todo remove ___clinit___
-    * @param cv
-    * @param rewriter
-    */
-  def createCLINIT(cv: ClassVisitor, rewriter: (VBCMethodNode, VBCClassNode) => VBCMethodNode = (a, b) => a) = {
-    val instrs: Array[Instruction] =
-      if (hasCLINIT)
-        Array(
-          InstrINIT_CONDITIONAL_FIELDS(),
-          InstrINVOKESTATIC(Owner(name), MethodName("______clinit______"), MethodDesc("()V"), false),
-          InstrRETURN()
-        )
-      else
-        Array(InstrINIT_CONDITIONAL_FIELDS(), InstrRETURN())
-    val vbcMtd = VBCMethodNode(
-      ACC_STATIC | ACC_PUBLIC,
-      "___clinit___",
+
+  // creates an empty clinit method that can be filled later with field initializers for static fields
+  def createCLINIT() =
+    new VBCMethodNode(ACC_STATIC | ACC_PUBLIC,
+      "<clinit>",
       MethodDesc("()V"),
       None,
       List.empty,
-      CFG(List(Block(instrs, Nil)))
+      CFG(List(Block(InstrRETURN())))
     )
-    rewriter(Rewrite.rewriteV(vbcMtd, this), this).toVByteCode(cv, this)
 
+
+  /**
+    * the normal clinit method will be lifted, we need to add an extra unlifted
+    * method to call it
+    */
+  def createUnliftedCLINIT(cv: ClassVisitor) = {
     val mv = cv.visitMethod(ACC_STATIC, "<clinit>", "()V", null, Array.empty)
     mv.visitCode()
     pushConstantTRUE(mv)
@@ -321,6 +316,15 @@ case class VBCClassNode(
     mv.visitInsn(RETURN)
     mv.visitMaxs(10, 10)
     mv.visitEnd()
+  }
+
+
+  def liftSuperName(superName: Owner): Owner = {
+    // Super class of interface must be java/lang/Object, could not be VObject
+    if ((access & ACC_INTERFACE) == 0)
+      superName.toModel
+    else
+      superName
   }
 
   /**
@@ -348,9 +352,9 @@ case class VBCClassNode(
     )
 
     // cpwtodo: improve the way we report exception, for now just print them out
-//    mv.visitFieldInsn(GETSTATIC, Owner("java/lang/System"), FieldName("out"), TypeDesc("Ljava/io/PrintStream;"))
-//    mv.visitInsn(SWAP)
-//    mv.visitMethodInsn(INVOKEVIRTUAL, Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(Ljava/lang/Object;)V"), false)
+    //    mv.visitFieldInsn(GETSTATIC, Owner("java/lang/System"), FieldName("out"), TypeDesc("Ljava/io/PrintStream;"))
+    //    mv.visitInsn(SWAP)
+    //    mv.visitMethodInsn(INVOKEVIRTUAL, Owner("java/io/PrintStream"), MethodName("println"), MethodDesc("(Ljava/lang/Object;)V"), false)
 
     mv.visitInsn(RETURN)
     mv.visitMaxs(2, 0)
@@ -539,8 +543,8 @@ case class VBCFieldNode(
 }
 
 case class VBCInnerClassNode(
-                            name: String,
-                            outerName: String,
-                            innerName: String,
-                            access: Int
+                              name: String,
+                              outerName: String,
+                              innerName: String,
+                              access: Int
                             )

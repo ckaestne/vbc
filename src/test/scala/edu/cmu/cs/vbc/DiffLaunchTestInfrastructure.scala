@@ -76,63 +76,86 @@ trait DiffLaunchTestInfrastructure {
     Block(
       (for (instr <- block.instr) yield instr match {
         //replace initialization of conditional fields
-        case InstrINIT_CONDITIONAL_FIELDS() => vbc.TraceInstr_ConfigInit()
+        case InstrINIT_FIELDS(_, _) => vbc.TraceInstr_ConfigInit()
         case instr => instr
       }), block.exceptionHandlers
     )
 
 
-//  def checkCrash(clazz: Class[_]): Unit = testMain(clazz, false)
+  //  def checkCrash(clazz: Class[_]): Unit = testMain(clazz, false)
 
-  def testMain(clazz: Class[_], compareTraceAgainstBruteForce: Boolean = true, runBenchmark: Boolean = true, fm: (Map[String, Boolean]) => Boolean = _ => true, configFile: Option[String] = None): Unit = {
-    //test uninstrumented variational execution to see whether it crashes
+  /**
+    * tests automatic lifting of a class file:
+    *
+    * @param clazz                         class to execute, with main method
+    * @param executeLifted                 execute the lifted code, test for crashing bugs
+    * @param executeLiftedSilent           execute the lifted code, but try to surpress all output to the console in the original program
+    * @param compareTraceAgainstBruteForce execute lifted code once and compare against every single plain execution.
+    *                                      compares method call sequence and a few select instructions, but not values
+    * @param runBenchmark                  compare performance of lifted vs unlifted programs; repeated executions and executes all unlifted configurations
+    * @param fm
+    * @param configFile
+    */
+  def testMain(clazz: Class[_],
+               executeLifted: Boolean = true,
+               executeLiftedSilent: Boolean = true,
+               compareTraceAgainstBruteForce: Boolean = true,
+               runBenchmark: Boolean = true,
+               fm: (Map[String, Boolean]) => Boolean = _ => true, configFile: Option[String] = None): Unit = {
+
     val classname = clazz.getName
     val origClassLoader = this.getClass.getClassLoader
-    //VBCLauncher.launch(classname)
-    val testCrashLoader: VBCClassLoader = new VBCClassLoader(origClassLoader, true, avoidOutput, configFile = configFile)
-    VBCClassLoader.clearCache()
-    Thread.currentThread().setContextClassLoader(testCrashLoader)
-    val testCrash = testCrashLoader.loadClass(classname)
-    VBCLauncher.invokeMain(testCrash, new Array[String](0))
 
-    //test instrumented version, executed variationally
-    TestTraceOutput.trace = Nil
-    TraceConfig.options = Set()
-    val vloader: VBCClassLoader = new VBCClassLoader(origClassLoader, true, rewriter = instrumentMethod, configFile = configFile)
-    VBCClassLoader.clearCache()
-    Thread.currentThread().setContextClassLoader(vloader)
-    val vcls: Class[_] = vloader.loadClass(classname)
-    VBCLauncher.invokeMain(vcls, new Array[String](0))
-
-    val vtrace = TestTraceOutput.trace
-    val usedOptions = TraceConfig.options.map(_.feature)
-
-    println("Used Options: " + TraceConfig.options.mkString(", "))
-
-    if (compareTraceAgainstBruteForce) {
-      val loader: VBCClassLoader = new VBCClassLoader(origClassLoader, false, instrumentMethod, toFileDebugging = false, configFile = configFile)
-      VBCClassLoader.clearCache()
-      Thread.currentThread().setContextClassLoader(loader)
-      val cls: Class[_] = loader.loadClass(classname)
-      //run against brute force instrumented execution and compare traces
-      for ((sel, desel) <- explode(usedOptions.toList) if fm(configToMap((sel, desel)))) {
-        println("executing config [" + sel.mkString(", ") + "]")
-        TestTraceOutput.trace = Nil
-        TraceConfig.config = configToMap((sel, desel))
-        VBCLauncher.invokeMain(cls, new Array[String](0))
-        val atrace = TestTraceOutput.trace
-
-        //get the trace from the v execution relevant for this config and compare
-        val filteredvtrace = vtrace.filter(_._1.evaluate(sel.toSet))
-        compareTraces(sel, atrace.map(_._2).reverse, filteredvtrace.map(_._2).reverse)
-      }
+    if (executeLifted || executeLiftedSilent) {
+      //test uninstrumented variational execution to see whether it crashes
+      //VBCLauncher.launch(classname)
+      val rewrite: (VBCMethodNode, VBCClassNode) => VBCMethodNode = if (executeLiftedSilent) avoidOutput else (a, b) => a
+      val testCrashLoader: VBCClassLoader = new VBCClassLoader(origClassLoader, true, rewrite, configFile = configFile)
+      Thread.currentThread().setContextClassLoader(testCrashLoader)
+      val testCrash = testCrashLoader.loadClass(classname)
+      VBCLauncher.invokeMain(testCrash, new Array[String](0))
     }
 
-    if (runBenchmark) {
-      //run benchmark (without instrumentation)
-      val vbenchmarkloader: VBCClassLoader = new VBCClassLoader(origClassLoader, true, prepareBenchmark, configFile = configFile)
-      val benchmarkloader: VBCClassLoader = new VBCClassLoader(origClassLoader, false, prepareBenchmark, configFile = configFile)
-      benchmark(classname, vbenchmarkloader, benchmarkloader, usedOptions, fm)
+    //test instrumented version, executed variationally
+    if (compareTraceAgainstBruteForce || runBenchmark) {
+      TestTraceOutput.trace = Nil
+      TraceConfig.options = Set()
+      //variational execution
+      val vloader: VBCClassLoader = new VBCClassLoader(origClassLoader, true, rewriter = instrumentMethod, configFile = configFile)
+      Thread.currentThread().setContextClassLoader(vloader)
+      val vcls: Class[_] = vloader.loadClass(classname)
+      VBCLauncher.invokeMain(vcls, new Array[String](0))
+
+      val vtrace = TestTraceOutput.trace
+      val usedOptions = TraceConfig.options.map(_.feature)
+
+      println("Used Options: " + TraceConfig.options.mkString(", "))
+
+      //instrumented brute-force execution
+      if (compareTraceAgainstBruteForce) {
+        val loader: VBCClassLoader = new VBCClassLoader(origClassLoader, false, instrumentMethod, toFileDebugging = false, configFile = configFile)
+        Thread.currentThread().setContextClassLoader(loader)
+        val cls: Class[_] = loader.loadClass(classname)
+        //run against brute force instrumented execution and compare traces
+        for ((sel, desel) <- explode(usedOptions.toList) if fm(configToMap((sel, desel)))) {
+          println("executing config [" + sel.mkString(", ") + "]")
+          TestTraceOutput.trace = Nil
+          TraceConfig.config = configToMap((sel, desel))
+          VBCLauncher.invokeMain(cls, new Array[String](0))
+          val atrace = TestTraceOutput.trace
+
+          //get the trace from the v execution relevant for this config and compare
+          val filteredvtrace = vtrace.filter(_._1.evaluate(sel.toSet))
+          compareTraces(sel, atrace.map(_._2).reverse, filteredvtrace.map(_._2).reverse)
+        }
+      }
+
+      if (runBenchmark) {
+        //run benchmark (without instrumentation)
+        val vbenchmarkloader: VBCClassLoader = new VBCClassLoader(origClassLoader, true, prepareBenchmark, configFile = configFile)
+        val benchmarkloader: VBCClassLoader = new VBCClassLoader(origClassLoader, false, prepareBenchmark, configFile = configFile)
+        benchmark(classname, vbenchmarkloader, benchmarkloader, usedOptions, fm)
+      }
     }
   }
 
@@ -194,7 +217,6 @@ trait DiffLaunchTestInfrastructure {
     import org.scalameter._
 
     //measure V execution
-    VBCClassLoader.clearCache()
     Thread.currentThread().setContextClassLoader(vloader)
     val testVClass: Class[_] = vloader.loadClass(classname)
     val vtime = config(
@@ -212,7 +234,6 @@ trait DiffLaunchTestInfrastructure {
     //        println(s"Total time V: $time")
 
 
-    VBCClassLoader.clearCache()
     Thread.currentThread().setContextClassLoader(loader)
     lazy val testClass: Class[_] = loader.loadClass(classname)
     //measure brute-force execution
@@ -220,7 +241,7 @@ trait DiffLaunchTestInfrastructure {
       if (configOptions.size < 20)
         explode(configOptions.toList)
       else
-        selectOptRandomly(configOptions.toList, 1000000)  // close to 2^20
+        selectOptRandomly(configOptions.toList, 1000000) // close to 2^20
     val bftimes = for ((sel, desel) <- configs if fm(configToMap((sel, desel))))
       yield config(
         Key.exec.benchRuns -> 20

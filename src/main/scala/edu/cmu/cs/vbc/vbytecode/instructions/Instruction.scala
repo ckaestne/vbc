@@ -37,7 +37,9 @@ trait Instruction {
   def getJumpInstr: Option[JumpInstruction] = None
 
   def isReturnInstr: Boolean = false
+
   def isATHROW: Boolean = false
+
   def isRETURN: Boolean = false
 
 
@@ -106,38 +108,56 @@ case class InstrLINENUMBER(line: Int) extends EmptyInstruction {
 
 
 /**
-  * Helper instruction for initializing conditional fields
+  * Helper instruction for initializing fields after lifting
+  * Also sets config values in both lifted and unlifted code
+  *
+  * Fields are no longer initialized directly (because they are objects now), but with
+  * this instruction in the constructor/<clinit> (the latter for static fields).
+  *
+  * config parameter describes the initial value (true or false, or None for variational)
+  *
+  * should only occur in the method ___clinit___
   */
-case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
-  import InstrINIT_CONDITIONAL_FIELDS._
+case class InstrINIT_FIELDS(isStatic: Boolean, config: String => Option[Boolean]) extends Instruction {
+
+  val PUTINSTR = if (isStatic) PUTSTATIC else PUTFIELD
+
+  import FieldInitHelper._
 
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    // do nothing
+    if (isStatic) assert(env.method.name == "<clinit>")
+    else assert(env.method.name == "<init>")
+    val fields = env.clazz.fields.filter(f => f.isStatic == isStatic)
+
+    // no nothing for normal fields (they are initialized the usual way)
+
+    // assign the config value for @Conditional fields if they are configured
+    for (f <- fields; if f.hasConditionalAnnotation(); init <- config(f.name); if init != None) {
+      if (!isStatic) mv.visitVarInsn(ALOAD, 0)
+      mv.visitInsn(if (init == Some(true)) ICONST_1 else ICONST_0)
+      mv.visitFieldInsn(PUTINSTR, env.clazz.name, f.name, f.desc)
+    }
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    //must be called from within constructor/clinit
+    if (isStatic) assert(env.method.name == "<clinit>")
+    else assert(env.method.name == "<init>")
 
-    if (env.method.name == "___clinit___") {
-      env.clazz.fields.filter(f => f.isStatic && f.hasConditionalAnnotation()).foreach(f => {
-        createChoice(f.name, mv, env, block)
-        mv.visitFieldInsn(PUTSTATIC, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
-      })
-      env.clazz.fields.filter(f => f.isStatic && !f.hasConditionalAnnotation()).foreach(f => {
-        createOne(f, mv, env, block)
-        mv.visitFieldInsn(PUTSTATIC, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
-      })
+    val fields = env.clazz.fields.filter(f => f.isStatic == isStatic)
+
+    // init all fields with @Conditional annotations according to config parameter
+    for (f <- fields; if f.hasConditionalAnnotation()) {
+      if (!isStatic) mv.visitVarInsn(ALOAD, 0)
+      createInitialConfigValue(f.name, config(f.name), mv, env, block)
+      mv.visitFieldInsn(PUTINSTR, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
     }
-    else {
-      env.clazz.fields.filter(f => !f.isStatic && f.hasConditionalAnnotation()).foreach(f => {
-        mv.visitVarInsn(ALOAD, 0)
-        createChoice(f.name, mv, env, block)
-        mv.visitFieldInsn(PUTFIELD, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
-      })
-      env.clazz.fields.filter(f => !f.isStatic && !f.hasConditionalAnnotation()).foreach(f => {
-        mv.visitVarInsn(ALOAD, 0)
-        createOne(f, mv, env, block)
-        mv.visitFieldInsn(PUTFIELD, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
-      })
+
+    // initialize all other fields by creating One's for their original values
+    for (f <- fields; if !f.hasConditionalAnnotation()) {
+      if (!isStatic) mv.visitVarInsn(ALOAD, 0)
+      createOne(f, mv, env, block)
+      mv.visitFieldInsn(PUTINSTR, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
     }
   }
 
@@ -145,18 +165,30 @@ case class InstrINIT_CONDITIONAL_FIELDS() extends Instruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set())
 }
 
-case object InstrINIT_CONDITIONAL_FIELDS {
+object FieldInitHelper {
+
   import LiftUtils._
+
+  def createInitialConfigValue(configName: String, config: Option[Boolean], mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (config == Some(true))
+      createConstOne(ICONST_1, mv, env, block)
+    else if (config == Some(false))
+      createConstOne(ICONST_0, mv, env, block)
+    else
+      createChoice(configName, mv, env, block)
+  }
+
+  private def createConstOne(const: Int, mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    mv.visitInsn(const)
+    mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", s"(I)${Owner.getInt.getTypeDesc}", false)
+    callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+  }
 
   def createChoice(fName: String, mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     mv.visitLdcInsn(fName)
     mv.visitMethodInsn(INVOKESTATIC, fexprfactoryClassName, "createDefinedExternal", "(Ljava/lang/String;)Lde/fosd/typechef/featureexpr/SingleFeatureExpr;", false)
-    mv.visitInsn(ICONST_1)
-    mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", s"(I)${Owner.getInt.getTypeDesc}", false)
-    callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
-    mv.visitInsn(ICONST_0)
-    mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", s"(I)${Owner.getInt.getTypeDesc}", false)
-    callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
+    createConstOne(ICONST_1, mv, env, block)
+    createConstOne(ICONST_0, mv, env, block)
     callVCreateChoice(mv)
   }
 
@@ -220,10 +252,13 @@ case class InstrStopTimer(id: String) extends Instruction {
   * This is used, for example, in our fake TryCatchBlocks to wrap the exceptions.
   */
 case class InstrWrapOne() extends Instruction {
+
   import LiftUtils._
+
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {} // do nothing
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit =
     callVCreateOne(mv, loadCurrentCtx(_, env, block))
+
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
     val (_, _, frame) = s.pop()
     (frame.push(V_TYPE(false), Set(this)), Set())
