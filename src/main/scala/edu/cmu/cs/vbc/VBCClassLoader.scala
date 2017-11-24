@@ -34,29 +34,30 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
     LiftingPolicy.setConfig(config)
   }
 
-  override def loadClass(name: String): Class[_] = {
-    VBCClassLoader.loadedClasses.getOrElseUpdate(name, {
-      if (name.startsWith(VBCModel.prefix)) {
-        val model = new VBCModel(name)
-        val bytes = model.getModelClassBytes(isLift)
-        if (shouldLift(name)) {
-          val clazz = loader.loadClass(bytes)
-          liftClass(name, clazz)
-        }
-        else {
-          defineClass(name, bytes, 0, bytes.length)
-        }
+  val loadedClasses = mutable.Map[String, Class[_]]()
+
+  override def loadClass(name: String): Class[_] = loadedClasses.getOrElseUpdate(name, {
+    if (name.startsWith(VBCModel.prefix)) {
+      val model = new VBCModel(name)
+      val bytes = model.getModelClassBytes(isLift)
+      if (shouldLift(name)) {
+        val clazz = loader.loadClass(bytes)
+        liftClass(name, clazz)
       }
-      else if (shouldLift(name))
-        findClass(name)
-      else if (name.startsWith("edu.cmu.cs.vbc.prog") || name.startsWith("org.prevayler") || (name.startsWith("org.eclipse.jetty") && !name.startsWith("org.eclipse.jetty.util.log")) || name.startsWith("javax.servlet"))
-        loadClassAndUseModelClasses(name)
-      else if (name.startsWith("antlr") || name.startsWith("org.eclipse.jetty.util.log")) // todo: do this more systematically
-        loadClassWithoutChanges(name) // avoid LinkageError
-      else
-        super.loadClass(name)
-    })
-  }
+      else {
+        defineClass(name, bytes, 0, bytes.length)
+      }
+    }
+    else if (shouldLift(name))
+      findClass(name)
+    else if (name.startsWith("edu.cmu.cs.vbc.prog") || name.startsWith("org.prevayler") || (name.startsWith("org.eclipse.jetty") && !name.startsWith("org.eclipse.jetty.util.log")) || name.startsWith("javax.servlet"))
+      loadClassAndUseModelClasses(name)
+    else if (name.startsWith("antlr") || name.startsWith("org.eclipse.jetty.util.log")) // todo: do this more systematically
+      loadClassWithoutChanges(name) // avoid LinkageError
+    else
+      super.loadClass(name)
+  })
+
 
   override def findClass(name: String): Class[_] = {
     val resource: String = name.replace('.', '/') + ".class"
@@ -171,7 +172,3 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
   }
 }
 
-object VBCClassLoader {
-  val loadedClasses = mutable.Map[String, Class[_]]()
-  def clearCache(): Unit = loadedClasses.clear
-}
