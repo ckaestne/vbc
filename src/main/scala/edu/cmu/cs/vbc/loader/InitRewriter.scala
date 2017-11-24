@@ -50,7 +50,7 @@ object InitRewriter {
     val instructions = m.instructions.toArray
     m.instructions.clear()
 
-    assert(initAnalyzer.InvokeSpecialOfSuperClss.size <= 1, "calling more than one <init> of sueprclass")
+    assert(initAnalyzer.InvokeSpecialOfSuperClss.size <= 1, "calling more than one <init> of superclass")
 
     val (aload0Idx, invokeSpecialIdx): (Int, Int) =
       if (initAnalyzer.InvokeSpecialOfSuperClss.size == 1) {
