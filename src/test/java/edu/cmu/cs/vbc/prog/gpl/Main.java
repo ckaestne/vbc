@@ -21,6 +21,7 @@ public class Main {
 
     public static void main( String[] args ) throws IOException {
         new Main();
+        if (!valid()) return;
         splStart___();
         mainBody___(args);
         splEnd___();
@@ -106,6 +107,7 @@ public class Main {
             Graph.endProfile();
     }
 
+    public Graph g = new Graph();
 
     public static boolean GPL = true;
     public static boolean MainGpl = true;
@@ -122,8 +124,8 @@ public class Main {
     public static boolean BASE =true;
     @VConditional
     public static boolean DIRECTED =true;
-    @VConditional
-    public static boolean UNDIRECTED= !DIRECTED;
+//    @VConditional
+//    public static boolean UNDIRECTED= !DIRECTED;
     @VConditional
     public static boolean WEIGHTED=true;
     @VConditional
@@ -150,6 +152,6 @@ public class Main {
     public static boolean SHORTEST=true;
 
     public static boolean valid() {
-        return GPL  &&  (!GPL  ||  MainGpl)  &&  (!MainGpl  ||  GPL)  &&  (!MainGpl  ||  Alg)  &&  (!MainGpl  ||  Gtp)  &&  (!MainGpl  ||  BASE)  &&  (!Alg  ||  MainGpl)  &&  (!Src  ||  MainGpl)  &&  (!WEIGHTED  ||  MainGpl)  &&  (!Gtp  ||  MainGpl)  &&  (!BASE  ||  MainGpl)  &&  (!Alg  ||  NUMBER  ||  CONNECTED  ||  TRANSPOSE  ||  STRONGLYCONNECTED  ||  CYCLE  ||  MSTPRIM  ||  MSTKRUSKAL  ||  SHORTEST)  &&  (!NUMBER  ||  Alg)  &&  (!CONNECTED  ||  Alg)  &&  (!TRANSPOSE  ||  Alg)  &&  (!STRONGLYCONNECTED  ||  Alg)  &&  (!CYCLE  ||  Alg)  &&  (!MSTPRIM  ||  Alg)  &&  (!MSTKRUSKAL  ||  Alg)  &&  (!SHORTEST  ||  Alg)  &&  (!Src  ||  SrcProg)  &&  (!SrcProg  ||  Src)  &&  (!SrcProg  ||  Src2)  &&  (!SrcProg  ||  SEARCH)  &&  (!Src2  ||  SrcProg)  &&  (!SEARCH  ||  SrcProg)  &&  (!Src2  ||  BFS  ||  DFS)  &&  (!BFS  ||  Src2)  &&  (!DFS  ||  Src2)  &&  (!BFS  ||  !DFS)  &&  (!Gtp  ||  DIRECTED  ||  UNDIRECTED)  &&  (!DIRECTED  ||  Gtp)  &&  (!UNDIRECTED  ||  Gtp)  &&  (!DIRECTED  ||  !UNDIRECTED)  &&  (!NUMBER  ||  Src)  &&  (!CONNECTED  ||  UNDIRECTED)  &&  (!CONNECTED  ||  Src)  &&  (!STRONGLYCONNECTED  ||  DIRECTED)  &&  (!STRONGLYCONNECTED  ||  DFS)  &&  (!CYCLE  ||  DFS)  &&  (!MSTKRUSKAL  ||  UNDIRECTED)  &&  (!MSTKRUSKAL  ||  WEIGHTED)  &&  (!MSTPRIM  ||  UNDIRECTED)  &&  (!MSTPRIM  ||  WEIGHTED)  &&  (!MSTKRUSKAL  ||  !MSTKRUSKAL  ||  !MSTPRIM)  &&  (!SHORTEST  ||  DIRECTED)  &&  (!SHORTEST  ||  WEIGHTED)  &&  (!STRONGLYCONNECTED  ||  TRANSPOSE);
+        return GPL  &&  (!GPL  ||  MainGpl)  &&  (!MainGpl  ||  GPL)  &&  (!MainGpl  ||  Alg)  &&  (!MainGpl  ||  Gtp)  &&  (!MainGpl  ||  BASE)  &&  (!Alg  ||  MainGpl)  &&  (!Src  ||  MainGpl)  &&  (!WEIGHTED  ||  MainGpl)  &&  (!Gtp  ||  MainGpl)  &&  (!BASE  ||  MainGpl)  &&  (!Alg  ||  NUMBER  ||  CONNECTED  ||  TRANSPOSE  ||  STRONGLYCONNECTED  ||  CYCLE  ||  MSTPRIM  ||  MSTKRUSKAL  ||  SHORTEST)  &&  (!NUMBER  ||  Alg)  &&  (!CONNECTED  ||  Alg)  &&  (!TRANSPOSE  ||  Alg)  &&  (!STRONGLYCONNECTED  ||  Alg)  &&  (!CYCLE  ||  Alg)  &&  (!MSTPRIM  ||  Alg)  &&  (!MSTKRUSKAL  ||  Alg)  &&  (!SHORTEST  ||  Alg)  &&  (!Src  ||  SrcProg)  &&  (!SrcProg  ||  Src)  &&  (!SrcProg  ||  Src2)  &&  (!SrcProg  ||  SEARCH)  &&  (!Src2  ||  SrcProg)  &&  (!SEARCH  ||  SrcProg)  &&  (!Src2  ||  BFS  ||  DFS)  &&  (!BFS  ||  Src2)  &&  (!DFS  ||  Src2)  &&  (!BFS  ||  !DFS)   &&  (!DIRECTED  ||  Gtp)  &&  (DIRECTED  ||  Gtp)   &&  (!NUMBER  ||  Src)  &&  (!CONNECTED  ||  !DIRECTED)  &&  (!CONNECTED  ||  Src)  &&  (!STRONGLYCONNECTED  ||  DIRECTED)  &&  (!STRONGLYCONNECTED  ||  DFS)  &&  (!CYCLE  ||  DFS)  &&  (!MSTKRUSKAL  ||  !DIRECTED)  &&  (!MSTKRUSKAL  ||  WEIGHTED)  &&  (!MSTPRIM  ||  !DIRECTED)  &&  (!MSTPRIM  ||  WEIGHTED)  &&  (!MSTKRUSKAL  ||  !MSTKRUSKAL  ||  !MSTPRIM)  &&  (!SHORTEST  ||  DIRECTED)  &&  (!SHORTEST  ||  WEIGHTED)  &&  (!STRONGLYCONNECTED  ||  TRANSPOSE);
     }
 }

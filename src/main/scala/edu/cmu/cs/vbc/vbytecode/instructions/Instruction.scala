@@ -107,22 +107,14 @@ case class InstrLINENUMBER(line: Int) extends EmptyInstruction {
 }
 
 
-/**
-  * Helper instruction for initializing fields after lifting
-  * Also sets config values in both lifted and unlifted code
-  *
-  * Fields are no longer initialized directly (because they are objects now), but with
-  * this instruction in the constructor/<clinit> (the latter for static fields).
-  *
-  * config parameter describes the initial value (true or false, or None for variational)
-  *
-  * should only occur in the method ___clinit___
-  */
-case class InstrINIT_FIELDS(isStatic: Boolean, config: String => Option[Boolean]) extends Instruction {
-
-  val PUTINSTR = if (isStatic) PUTSTATIC else PUTFIELD
+abstract class AbstractInstrINIT_FIELDS(isStatic: Boolean) extends Instruction {
+  def PUTINSTR = if (isStatic) PUTSTATIC else PUTFIELD
 
   import FieldInitHelper._
+
+  def initConditionalFieldValuePlain(mv: MethodVisitor, f: VBCFieldNode): Boolean
+
+  def initConditionalFieldValueV(mv: MethodVisitor, env: VMethodEnv, block: Block, f: VBCFieldNode)
 
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     if (isStatic) assert(env.method.name == "<clinit>")
@@ -132,16 +124,22 @@ case class InstrINIT_FIELDS(isStatic: Boolean, config: String => Option[Boolean]
     // no nothing for normal fields (they are initialized the usual way)
 
     // assign the config value for @Conditional fields if they are configured
-    for (f <- fields; if f.hasConditionalAnnotation(); init <- config(f.name); if init != None) {
-      if (!isStatic) mv.visitVarInsn(ALOAD, 0)
-      mv.visitInsn(if (init == Some(true)) ICONST_1 else ICONST_0)
-      mv.visitFieldInsn(PUTINSTR, env.clazz.name, f.name, f.desc)
+    for (f <- fields; if f.hasConditionalAnnotation()) {
+      if (initConditionalFieldValuePlain(mv, f)) {
+        if (!isStatic) {
+          mv.visitVarInsn(ALOAD, 0)
+          mv.visitInsn(SWAP)
+        }
+        mv.visitFieldInsn(PUTINSTR, env.clazz.name, f.name, f.desc)
+      }
     }
   }
 
+
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     //must be called from within constructor/clinit
-    if (isStatic) assert(env.method.name == "<clinit>")
+    if (isStatic)
+      assert(env.method.name == "<clinit>")
     else assert(env.method.name == "<init>")
 
     val fields = env.clazz.fields.filter(f => f.isStatic == isStatic)
@@ -149,7 +147,7 @@ case class InstrINIT_FIELDS(isStatic: Boolean, config: String => Option[Boolean]
     // init all fields with @Conditional annotations according to config parameter
     for (f <- fields; if f.hasConditionalAnnotation()) {
       if (!isStatic) mv.visitVarInsn(ALOAD, 0)
-      createInitialConfigValue(f.name, config(f.name), mv, env, block)
+      initConditionalFieldValueV(mv, env, block, f)
       mv.visitFieldInsn(PUTINSTR, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
     }
 
@@ -163,22 +161,51 @@ case class InstrINIT_FIELDS(isStatic: Boolean, config: String => Option[Boolean]
 
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set())
+
+}
+
+/**
+  * Helper instruction for initializing fields after lifting
+  * Also sets config values in both lifted and unlifted code
+  *
+  * Fields are no longer initialized directly (because they are objects now), but with
+  * this instruction in the constructor/<clinit> (the latter for static fields).
+  *
+  * config parameter describes the initial value (true or false, or None for variational)
+  *
+  * should only occur in the method ___clinit___
+  *
+  * TODO: initialization of nonstatic @Conditional might be surpressed if not initialized
+  * to conditional value? check.
+  */
+case class InstrINIT_FIELDS(isStatic: Boolean, config: String => Option[Boolean]) extends AbstractInstrINIT_FIELDS(isStatic) {
+  override def initConditionalFieldValuePlain(mv: MethodVisitor, f: VBCFieldNode): Boolean = {
+    val init = config(f.name)
+    if (init != None) {
+      mv.visitInsn(if (init == Some(true)) ICONST_1 else ICONST_0)
+      true
+    } else false
+  }
+
+  import FieldInitHelper._
+
+  override def initConditionalFieldValueV(mv: MethodVisitor, env: VMethodEnv, block: Block, f: VBCFieldNode): Unit = {
+    val c = config(f.name)
+    if (c == Some(true))
+      createConstOne(ICONST_1, mv, env, block)
+    else if (c == Some(false))
+      createConstOne(ICONST_0, mv, env, block)
+    else
+      createChoice(f.name, mv, env, block)
+  }
 }
 
 object FieldInitHelper {
 
   import LiftUtils._
 
-  def createInitialConfigValue(configName: String, config: Option[Boolean], mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (config == Some(true))
-      createConstOne(ICONST_1, mv, env, block)
-    else if (config == Some(false))
-      createConstOne(ICONST_0, mv, env, block)
-    else
-      createChoice(configName, mv, env, block)
-  }
 
-  private def createConstOne(const: Int, mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+  def createConstOne(const: Int, mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     mv.visitInsn(const)
     mv.visitMethodInsn(INVOKESTATIC, Owner.getInt, "valueOf", s"(I)${Owner.getInt.getTypeDesc}", false)
     callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))

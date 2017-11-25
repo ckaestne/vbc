@@ -47,7 +47,7 @@ public class Graph {
     public void addEdge( Vertex start,  Vertex end )
     {
         start.addAdjacent( end );
-        if (Main.UNDIRECTED) {
+        if (!Main.DIRECTED) {
             end.addAdjacent( start );
         }
     }
@@ -65,7 +65,7 @@ public class Graph {
 
         // if the graph is undirected you have to include
         // the weight of the edge coming back
-        if (Main.UNDIRECTED)
+        if (!Main.DIRECTED)
             end.addWeight( weight );
     }
 

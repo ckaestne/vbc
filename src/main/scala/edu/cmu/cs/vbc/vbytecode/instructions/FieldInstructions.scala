@@ -93,7 +93,10 @@ case class InstrGETSTATIC(owner: Owner, name: FieldName, desc: TypeDesc) extends
   */
 case class InstrPUTSTATIC(owner: Owner, name: FieldName, desc: TypeDesc) extends FieldInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitFieldInsn(PUTSTATIC, owner.toModel, name, desc.toModel)
+    if (env.isConditionalField(owner, name, desc)) {
+      mv.visitInsn(POP)
+    }
+    else mv.visitFieldInsn(PUTSTATIC, owner.toModel, name, desc.toModel)
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
@@ -144,8 +147,8 @@ case class InstrGETFIELD(owner: Owner, name: FieldName, desc: TypeDesc) extends 
       mv.visitFieldInsn(GETFIELD, owner, name, "Ledu/cmu/cs/varex/V;")
 
     //select V to current context
-//    loadCurrentCtx(mv, env, block)
-//    mv.visitMethodInsn(INVOKEINTERFACE, vclassname, "select", s"($fexprclasstype)$vclasstype", true)
+    //    loadCurrentCtx(mv, env, block)
+    //    mv.visitMethodInsn(INVOKEINTERFACE, vclassname, "select", s"($fexprclasstype)$vclasstype", true)
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
@@ -188,7 +191,11 @@ case class InstrGETFIELD(owner: Owner, name: FieldName, desc: TypeDesc) extends 
   */
 case class InstrPUTFIELD(owner: Owner, name: FieldName, desc: TypeDesc) extends FieldInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitFieldInsn(PUTFIELD, owner.toModel, name, desc.toModel)
+    if (env.isConditionalField(owner, name, desc)) {
+      /* Avoid reassigning to conditional fields */
+      mv.visitInsn(POP2)
+    }
+    else mv.visitFieldInsn(PUTFIELD, owner.toModel, name, desc.toModel)
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
@@ -257,8 +264,11 @@ case class InstrPUTFIELD(owner: Owner, name: FieldName, desc: TypeDesc) extends 
     val flatMapName = "sforeach"
 
     val n = env.clazz.lambdaMethods.size
+
     def getLambdaFunName = "lambda$PUT" + owner.replace("/", "$") + "$" + name
+
     def getLambdaFunDesc = s"($vclasstype$fexprclasstype${Type.getObjectType(owner)})V"
+
     def getInvokeType = s"($vclasstype)Ljava/util/function/BiConsumer;"
 
 

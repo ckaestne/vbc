@@ -84,7 +84,7 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
     val is: InputStream = getResourceAsStream(resource)
     val clazz: VBCClassNode = loader.loadClass(is)
     val cw = new MyClassWriter(ClassWriter.COMPUTE_FRAMES) // COMPUTE_FRAMES implies COMPUTE_MAX
-    clazz.toByteCode(cw, rewriter, (a)=>None)
+    clazz.toByteCode(cw, rewriter, config)
     if (toFileDebugging)
       toFile(name, cw)
     defineClass(name, cw.toByteArray, 0, cw.toByteArray.length)
@@ -99,11 +99,11 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
     try {
       if (isLift) {
         logger.info(s"lifting $name")
-        clazz.toVByteCode(cv, rewriter, (a)=>None)
+        clazz.toVByteCode(cv, rewriter, config)
       }
       else {
         logger.info(s"lifting $name")
-        clazz.toByteCode(cv, rewriter, (a)=>None)
+        clazz.toByteCode(cv, rewriter, config)
       }
     } catch {
       case e: Throwable =>

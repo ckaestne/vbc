@@ -76,7 +76,7 @@ trait DiffLaunchTestInfrastructure {
     Block(
       (for (instr <- block.instr) yield instr match {
         //replace initialization of conditional fields
-        case InstrINIT_FIELDS(_, _) => vbc.TraceInstr_ConfigInit()
+        case InstrINIT_FIELDS(isStatic, _) => vbc.TraceInstr_ConfigInit(isStatic)
         case instr => instr
       }), block.exceptionHandlers
     )
@@ -133,7 +133,7 @@ trait DiffLaunchTestInfrastructure {
 
       //instrumented brute-force execution
       if (compareTraceAgainstBruteForce) {
-        val loader: VBCClassLoader = new VBCClassLoader(origClassLoader, false, instrumentMethod, toFileDebugging = false, configFile = configFile)
+        val loader: VBCClassLoader = new VBCClassLoader(origClassLoader, false, instrumentMethod, toFileDebugging = true, configFile = configFile)
         Thread.currentThread().setContextClassLoader(loader)
         val cls: Class[_] = loader.loadClass(classname)
         //run against brute force instrumented execution and compare traces
@@ -202,7 +202,7 @@ trait DiffLaunchTestInfrastructure {
     if (expected != actual) {
       val expectedOut = new FileWriter(new File("expected"))
       val foundOut = new FileWriter(new File("found"))
-      expectedOut.write("EXPECTED (plain execution): \n")
+      expectedOut.write("EXPECTED (plain execution in [" + ctx.mkString(", ") + "]): \n")
       expectedOut.write(expected.mkString("\n"))
       foundOut.write("FOUND (variational execution in [" + ctx.mkString(", ") + "]):\n")
       foundOut.write(actual.mkString("\n"))

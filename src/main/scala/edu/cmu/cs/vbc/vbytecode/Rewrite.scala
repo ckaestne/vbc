@@ -14,7 +14,8 @@ import edu.cmu.cs.vbc.vbytecode.instructions._
 object Rewrite {
 
 
-  def rewrite(m: VBCMethodNode, cls: VBCClassNode, config: String => Option[Boolean]): VBCMethodNode = m
+  def rewrite(m: VBCMethodNode, cls: VBCClassNode, config: String => Option[Boolean]): VBCMethodNode =
+    initializeFields(m, config)
 
   def rewriteV(m: VBCMethodNode, cls: VBCClassNode, config: String => Option[Boolean]): VBCMethodNode = {
     if (m.body.blocks.nonEmpty) {

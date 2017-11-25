@@ -102,5 +102,12 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) extends CFGA
     sum
   }
 
+  def isConditionalField(owner: String, name: String, desc: String): Boolean = {
+    val filter = (f: VBCFieldNode) => {
+      owner == clazz.name && name == f.name && f.desc == desc && f.hasConditionalAnnotation()
+    }
+    clazz.fields.exists(filter)
+  }
+
 }
 

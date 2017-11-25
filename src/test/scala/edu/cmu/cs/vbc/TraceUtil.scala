@@ -6,7 +6,7 @@ import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, V_TYPE}
 import edu.cmu.cs.vbc.utils.LiftUtils._
 import edu.cmu.cs.vbc.vbytecode._
-import edu.cmu.cs.vbc.vbytecode.instructions.{FieldInitHelper, Instruction}
+import edu.cmu.cs.vbc.vbytecode.instructions.{AbstractInstrINIT_FIELDS, FieldInitHelper, Instruction}
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
 
@@ -31,20 +31,20 @@ object TestTraceOutput {
   val t = FeatureExprFactory.True
 
   def trace_s(s: String): Unit = {
-    trace ::=(t, s)
+    trace ::= (t, s)
   }
 
   def vtrace_s(ctx: FeatureExpr, s: String): Unit = {
     assert(ctx.isInstanceOf[FeatureExpr], s"ctx ($ctx) not FeatureExpr but " + ctx.getClass)
-    trace ::=(ctx, s)
+    trace ::= (ctx, s)
   }
 
   def trace_int(v: Int, s: String): Unit = {
-    trace ::=(t, s + ";" + v)
+    trace ::= (t, s + ";" + v)
   }
 
   def trace_printlnI(v: Int): Unit = {
-    trace ::=(t, v.toString)
+    trace ::= (t, v.toString)
   }
 
   def vtrace_int(v: V[Any], ctx: FeatureExpr, s: String): Unit = {
@@ -52,12 +52,12 @@ object TestTraceOutput {
     assert(v.isInstanceOf[V[_]], "v not V[Int] but " + v.getClass)
     for ((ctx, i) <- VHelper.explode(ctx, v)) {
       if (i != null)
-        trace ::=(ctx, s + ";" + i.toString)
+        trace ::= (ctx, s + ";" + i.toString)
     }
   }
 
   def trace_string(s: java.lang.Object): Unit = {
-    trace ::=(t, if (s == null) "null" else s.toString)
+    trace ::= (t, if (s == null) "null" else s.toString)
   }
 
   def vtrace_string(v: V[java.lang.Object], ctx: FeatureExpr): Unit = {
@@ -67,7 +67,7 @@ object TestTraceOutput {
     //            trace ::=(ctx, v.asInstanceOf[String])
     //        else
     for ((ictx, s) <- VHelper.explode(ctx, v))
-      trace ::=(ctx.and(ictx), if (s == null) "null" else s.toString)
+      trace ::= (ctx.and(ictx), if (s == null) "null" else s.toString)
   }
 
 }
@@ -88,57 +88,32 @@ object TraceConfig {
 
   def getConfig(n: String) = {
     var c = config.get(n)
+//    println(s"getConfig($n) = $c")
     assert(c.isDefined, s"option $n not configured")
     c.get
   }
 }
 
 
-case class TraceInstr_ConfigInit() extends Instruction {
-  import FieldInitHelper._
+/**
+  * alternative initalization from global config object, such that multiple executions can be done
+  * with different configs without recompilation
+  *
+  * (btw a better design would be to provide config options as parameters to some start method)
+  */
+case class TraceInstr_ConfigInit(isStatic: Boolean) extends AbstractInstrINIT_FIELDS(isStatic) {
 
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    for (conditionalField <- env.clazz.fields
-         if conditionalField.hasConditionalAnnotation) {
-      mv.visitVarInsn(ALOAD, 0)
-      mv.visitLdcInsn(conditionalField.name)
-      mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/TraceConfig", "getConfig", "(Ljava/lang/String;)Z", false)
-      if (conditionalField.isStatic)
-        mv.visitFieldInsn(PUTSTATIC, env.clazz.name, conditionalField.name, "Z")
-      else
-        mv.visitFieldInsn(PUTFIELD, env.clazz.name, conditionalField.name, "Z")
-    }
+
+  override def initConditionalFieldValuePlain(mv: MethodVisitor, f: VBCFieldNode): Boolean = {
+    mv.visitLdcInsn(f.name)
+    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/TraceConfig", "getConfig", "(Ljava/lang/String;)Z", false)
+    true
   }
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-
-    if (env.method.name == "___clinit___") {
-      env.clazz.fields.filter(f => f.isStatic && f.hasConditionalAnnotation()).foreach(f => {
-        mv.visitLdcInsn(f.name)
-        mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/TraceConfig", "getVConfig", "(Ljava/lang/String;)Ledu/cmu/cs/varex/V;", false)
-        mv.visitFieldInsn(PUTSTATIC, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
-      })
-      env.clazz.fields.filter(f => f.isStatic && !f.hasConditionalAnnotation()).foreach(f => {
-        createOne(f, mv, env, block)
-        mv.visitFieldInsn(PUTSTATIC, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
-      })
-    }
-    else {
-      env.clazz.fields.filter(f => !f.isStatic && f.hasConditionalAnnotation()).foreach(f => {
-        mv.visitVarInsn(ALOAD, 0)
-        mv.visitLdcInsn(f.name)
-        mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/TraceConfig", "getVConfig", "(Ljava/lang/String;)Ledu/cmu/cs/varex/V;", false)
-        mv.visitFieldInsn(PUTFIELD, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
-      })
-      env.clazz.fields.filter(f => !f.isStatic && !f.hasConditionalAnnotation()).foreach(f => {
-        mv.visitVarInsn(ALOAD, 0)
-        createOne(f, mv, env, block)
-        mv.visitFieldInsn(PUTFIELD, env.clazz.name, f.name, "Ledu/cmu/cs/varex/V;")
-      })
-    }
+  override def initConditionalFieldValueV(mv: MethodVisitor, env: VMethodEnv, block: Block, f: VBCFieldNode): Unit = {
+    mv.visitLdcInsn(f.name)
+    mv.visitMethodInsn(INVOKESTATIC, "edu/cmu/cs/vbc/TraceConfig", "getVConfig", "(Ljava/lang/String;)Ledu/cmu/cs/varex/V;", false)
   }
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = (s, Set())
 }
 
 
