@@ -8,34 +8,28 @@ import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes._
 
-trait BinOpInstruction extends Instruction {
 
-  override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
-    if (s.stack.take(2).exists(_._1 == V_TYPE(false)))
-      env.setLift(this)
-    val (v1, prev1, frame1) = s.pop()
-    val (v2, prev2, frame2) = frame1.pop()
-    val newFrame =
-      if (env.shouldLiftInstr(this))
-        frame2.push(V_TYPE(false), Set(this))
-      else {
-        frame2.push(INT_TYPE(), Set(this))
-      }
-    val backtrack: Set[Instruction] =
-      if (env.shouldLiftInstr(this)) {
-        if (v1 != V_TYPE(false)) prev1
-        else if (v2 != V_TYPE(false)) prev2
-        else Set()
-      }
-      else
-        Set()
-    (newFrame, backtrack)
+abstract class BinOpInstruction(op: Int, vopsMethod: String, retType: VBCType) extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
+    mv.visitInsn(op)
   }
-}
 
-trait BinOpNonIntInstruction extends Instruction {
+  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
+    if (env.shouldLiftInstr(this)) {
+      loadCurrentCtx(mv, env, block)
+      mv.visitMethodInsn(
+        INVOKESTATIC,
+        Owner.getVOps,
+        vopsMethod,
+        s"($vclasstype$vclasstype$fexprclasstype)$vclasstype",
+        false
+      )
+    }
+    else
+      mv.visitInsn(op)
+  }
 
-  def updateStackWithReturnType(s: VBCFrame, env: VMethodEnv, retType: VBCType): UpdatedFrame = {
+  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
     val retVType: VBCType = retType match {
       case _: LONG_TYPE => V_TYPE(true)
       case _: DOUBLE_TYPE => V_TYPE(true)
@@ -61,81 +55,31 @@ trait BinOpNonIntInstruction extends Instruction {
         Set()
     (newFrame, backtrack)
   }
+
 }
 
-/**
-  * IADD instruction
-  */
-case class InstrIADD() extends BinOpInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitInsn(IADD)
-  }
+abstract class BinIntOpInstruction(op: Int, vopsMethod: String) extends BinOpInstruction(op, vopsMethod, INT_TYPE())
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)) {
-      loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "IADD", s"(Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;$fexprclasstype)Ledu/cmu/cs/varex/V;", false)
-    }
-    else
-      mv.visitInsn(IADD)
-  }
-}
+case class InstrIADD() extends BinIntOpInstruction(IADD, "IADD")
 
+case class InstrISUB() extends BinIntOpInstruction(ISUB, "ISUB")
 
-case class InstrISUB() extends BinOpInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitInsn(ISUB)
-  }
+case class InstrIMUL() extends BinIntOpInstruction(IMUL, "IMUL")
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)) {
-      loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "ISUB", s"(Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;$fexprclasstype)Ledu/cmu/cs/varex/V;", false)
-    }
-    else
-      mv.visitInsn(ISUB)
-  }
-}
-
-
-case class InstrIMUL() extends BinOpInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitInsn(IMUL)
-  }
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)) {
-      loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "IMUL", s"(Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;$fexprclasstype)Ledu/cmu/cs/varex/V;", false)
-    }
-    else
-      mv.visitInsn(IMUL)
-  }
-}
-
-
-case class InstrIDIV() extends BinOpInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitInsn(IDIV)
-  }
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)) {
-      loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(INVOKESTATIC, vopsclassname, "IDIV", s"(Ledu/cmu/cs/varex/V;Ledu/cmu/cs/varex/V;$fexprclasstype)Ledu/cmu/cs/varex/V;", false)
-    } else
-      mv.visitInsn(IDIV)
-  }
-}
+case class InstrIDIV() extends BinIntOpInstruction(IDIV, "IDIV")
 
 /**
   * Negate int.
   *
   * Operand stack: ..., value -> ..., result
   */
-case class InstrINEG() extends Instruction {
+case class InstrINEG() extends UnaryOpInstruction(INEG, "ineg", INT_TYPE())
+case class InstrFNEG() extends UnaryOpInstruction(FNEG, "fneg", FLOAT_TYPE())
+case class InstrDNEG() extends UnaryOpInstruction(DNEG, "dneg", DOUBLE_TYPE())
+
+abstract class UnaryOpInstruction(op: Int, vopsMethod: String, retType: VBCType) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitInsn(INEG)
+    mv.visitInsn(op)
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
@@ -146,10 +90,10 @@ case class InstrINEG() extends Instruction {
       if (env.shouldLiftInstr(this))
         frame.push(V_TYPE(false), Set(this))
       else {
-        frame.push(INT_TYPE(), Set(this))
+        frame.push(retType, Set(this))
       }
     if (env.shouldLiftInstr(this) && v != V_TYPE(is64Bit = false))
-        return (s, prev)
+      return (s, prev)
     (newFrame, Set())
   }
 
@@ -162,13 +106,13 @@ case class InstrINEG() extends Instruction {
       mv.visitMethodInsn(
         INVOKESTATIC,
         Owner.getVOps,
-        "ineg",
+        vopsMethod,
         s"($vclasstype$fexprclasstype)$vclasstype",
         false
       )
     }
     else {
-      mv.visitInsn(INEG)
+      mv.visitInsn(op)
     }
   }
 }
@@ -199,7 +143,7 @@ case class InstrISHL() extends Instruction {
       ) {
         (mv: MethodVisitor) => {
           mv.visitVarInsn(ALOAD, 0) // Integer
-          Integer2int(mv)  // int
+          Integer2int(mv) // int
           mv.visitVarInsn(ALOAD, 2) // Integer
           Integer2int(mv) // int
           mv.visitInsn(ISHL)
@@ -331,7 +275,7 @@ case class InstrISHR() extends Instruction {
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)){
+    if (env.shouldLiftInstr(this)) {
       InvokeDynamicUtils.invoke(
         VCall.sflatMap,
         mv,
@@ -374,135 +318,39 @@ case class InstrISHR() extends Instruction {
 /**
   * Boolean AND int
   */
-case class InstrIAND() extends BinOpInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitInsn(IAND)
-  }
+case class InstrIAND() extends BinIntOpInstruction(IAND, "iand")
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    loadCurrentCtx(mv, env, block)
-    mv.visitMethodInsn(
-      INVOKESTATIC,
-      Owner.getVOps,
-      "iand",
-      MethodDesc(s"($vclasstype$vclasstype$fexprclasstype)$vclasstype"),
-      false
-    )
-  }
-}
-
-case class InstrLAND() extends BinOpNonIntInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
-    mv.visitInsn(LAND)
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)) {
-      loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(
-        INVOKESTATIC,
-        Owner.getVOps,
-        "land",
-        s"($vclasstype$vclasstype$fexprclasstype)$vclasstype",
-        false
-      )
-    }
-    else
-      mv.visitInsn(LAND)
-  }
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, LONG_TYPE())
-}
+case class InstrLAND() extends BinOpInstruction(LAND, "land", LONG_TYPE())
 
 /** Boolean OR int
   *
   * ..., value1(int), value2(int) -> result(int)
   */
-case class InstrIOR() extends BinOpInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitInsn(IOR)
-  }
+case class InstrIOR() extends BinOpInstruction(IOR, "ior", INT_TYPE())
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)) {
-      loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, MethodName("ior"), MethodDesc(s"($vclasstype$vclasstype$fexprclasstype)$vclasstype"), false)
-    }
-    else
-      mv.visitInsn(IOR)
-}
-}
-
-case class InstrLSUB() extends BinOpNonIntInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitInsn(LSUB)
-  }
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)) {
-      loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(
-        INVOKESTATIC,
-        Owner.getVOps,
-        "lsub",
-        s"($vclasstype$vclasstype$fexprclasstype)$vclasstype",
-        false
-      )
-    }
-    else
-      mv.visitInsn(LSUB)
-  }
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, LONG_TYPE())
-}
+case class InstrLSUB() extends BinOpInstruction(LSUB, "lsub", LONG_TYPE())
+case class InstrFSUB() extends BinOpInstruction(FSUB, "fsub", FLOAT_TYPE())
+case class InstrDSUB() extends BinOpInstruction(DSUB, "dsub", DOUBLE_TYPE())
 
 /** Logical shift right int
   *
   * ..., value1(int), value2(int) -> ..., result(int)
   */
-case class InstrIUSHR() extends BinOpInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(IUSHR)
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit =
-    if (env.shouldLiftInstr(this)) {
-      loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, MethodName("iushr"), MethodDesc(s"($vclasstype$vclasstype$fexprclasstype)$vclasstype"), false)
-    }
-    else
-      mv.visitInsn(IUSHR)
-}
+case class InstrIUSHR() extends BinOpInstruction(IUSHR, "iushr", INT_TYPE())
 
 /** Remainder int
   *
   * ..., value1(int), value2(int) -> ..., result(int)
   */
-case class InstrIREM() extends BinOpInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(IREM)
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit =
-    if (env.shouldLiftInstr(this))
-      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, MethodName("irem"), MethodDesc(s"($vclasstype$vclasstype)$vclasstype"), false)
-    else
-      mv.visitInsn(IREM)
-}
+case class InstrIREM() extends BinOpInstruction(IREM, "irem", INT_TYPE())
+case class InstrDREM() extends BinOpInstruction(DREM, "drem", DOUBLE_TYPE())
+case class InstrFREM() extends BinOpInstruction(FREM, "frem", FLOAT_TYPE())
 
 /** Boolean XOR int
   *
   * ..., value1, value2 -> ..., result
   */
-case class InstrIXOR() extends BinOpInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(IXOR)
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    loadCurrentCtx(mv, env, block)
-    mv.visitMethodInsn(
-      INVOKESTATIC,
-      Owner.getVOps,
-      "ixor",
-      MethodDesc(s"($vclasstype$vclasstype$fexprclasstype)$vclasstype"),
-      false
-    )
-  }
-}
+case class InstrIXOR() extends BinOpInstruction(IXOR, "ixor", INT_TYPE())
 
 
 /** Convert long to int
@@ -588,54 +436,13 @@ case class InstrI2S() extends Instruction {
   *
   * ..., value1(long), value2(int) -> ..., result(long)
   */
-case class InstrLUSHR() extends BinOpNonIntInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
-    mv.visitInsn(LUSHR)
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)) {
-      loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(
-        INVOKESTATIC,
-        Owner.getVOps,
-        "lushr",
-        s"($vclasstype$vclasstype$fexprclasstype)$vclasstype",
-        false
-      )
-    }
-    else
-      mv.visitInsn(LUSHR)
-  }
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, LONG_TYPE())
-}
+case class InstrLUSHR() extends BinOpInstruction(LUSHR, "lushr", LONG_TYPE())
 
 /** Divide long
   *
   * ..., value1(long), value2(long) -> ..., result(long)
   */
-case class InstrLDIV() extends BinOpNonIntInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
-    mv.visitInsn(LDIV)
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)) {
-      loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(
-        INVOKESTATIC,
-        Owner.getVOps,
-        "ldiv",
-        MethodDesc(s"($vclasstype$vclasstype$fexprclasstype)$vclasstype"),
-        false
-      )
-    }
-    else {
-      mv.visitInsn(LDIV)
-    }
-  }
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, LONG_TYPE())
-}
+case class InstrLDIV() extends BinOpInstruction(LDIV, "ldiv", LONG_TYPE())
 
 
 /** Add long
@@ -643,51 +450,10 @@ case class InstrLDIV() extends BinOpNonIntInstruction {
   * ..., value1(long), value2(long) -> ..., result(long)
   * todo: should extend BinOps
   */
-case class InstrLADD() extends BinOpNonIntInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit =
-    mv.visitInsn(LADD)
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)) {
-      loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(
-        INVOKESTATIC,
-        Owner.getVOps,
-        "ladd",
-        s"($vclasstype$vclasstype$fexprclasstype)$vclasstype",
-        false
-      )
-    }
-    else
-      mv.visitInsn(LADD)
-  }
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, LONG_TYPE())
-}
+case class InstrLADD() extends BinOpInstruction(LADD, "ladd", LONG_TYPE())
 
 
-case class InstrDMUL() extends BinOpNonIntInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitInsn(DMUL)
-  }
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)) {
-      loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(
-        INVOKESTATIC,
-        Owner.getVOps,
-        "dmul",
-        s"($vclasstype$vclasstype$fexprclasstype)$vclasstype",
-        false
-      )
-    }
-    else
-      mv.visitInsn(DMUL)
-  }
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, DOUBLE_TYPE())
-}
+case class InstrDMUL() extends BinOpInstruction(DMUL, "dmul", DOUBLE_TYPE())
 
 /**
   * Compare double
@@ -699,35 +465,37 @@ case class InstrDMUL() extends BinOpNonIntInstruction {
   * If value1 is less than value2, -1 is pushed.
   * If at least one of value1 and value2 is NaN, -1 is pushed.
   */
-case class InstrDCMPL() extends BinOpNonIntInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitInsn(DCMPL)
-  }
+case class InstrDCMPL() extends BinOpInstruction(DCMPL, "dcmpl", INT_TYPE())
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)) {
-      loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, "dcmpl", s"($vclasstype$vclasstype$fexprclasstype)$vclasstype", false)
+
+case class InstrLOR() extends BinOpInstruction(LOR, "lor", LONG_TYPE())
+
+/**
+  * ..., value1(long), value2(int) -> ..., result(long)
+  */
+case class InstrLSHL() extends BinOpInstruction(LSHL, "lshl", LONG_TYPE())
+
+trait __replace_BinOpNonIntInstruction extends Instruction {
+  def updateStackWithReturnType(s: VBCFrame, env: VMethodEnv, retType: VBCType): (VBCFrame, Set[Instruction]) = {
+    val retVType: VBCType = retType match {
+      case _: LONG_TYPE => V_TYPE(true)
+      case _: DOUBLE_TYPE => V_TYPE(true)
+      case _ => V_TYPE(false)
     }
-    else
-      mv.visitInsn(DCMPL)
-  }
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
-    if (s.stack.take(2).exists(_._1 == V_TYPE(true)))
+    if (s.stack.take(2).exists(_._1.isInstanceOf[V_TYPE]))
       env.setLift(this)
     val (v1, prev1, frame1) = s.pop()
     val (v2, prev2, frame2) = frame1.pop()
     val newFrame =
       if (env.shouldLiftInstr(this))
-        frame2.push(V_TYPE(false), Set(this))
+        frame2.push(retVType, Set(this))
       else {
-        frame2.push(INT_TYPE(), Set(this))
+        frame2.push(retType, Set(this))
       }
     val backtrack: Set[Instruction] =
       if (env.shouldLiftInstr(this)) {
-        if (v1 != V_TYPE(true)) prev1
-        else if (v2 != V_TYPE(true)) prev2
+        if (!v1.isInstanceOf[V_TYPE]) prev1
+        else if (!v2.isInstanceOf[V_TYPE]) prev2
         else Set()
       }
       else
@@ -736,48 +504,10 @@ case class InstrDCMPL() extends BinOpNonIntInstruction {
   }
 }
 
-
-case class InstrLOR() extends BinOpNonIntInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitInsn(LOR)
-  }
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)) {
-      loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, "lor", s"($vclasstype$vclasstype$fexprclasstype)$vclasstype", false)
-    }
-    else
-      mv.visitInsn(LOR)
-  }
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, LONG_TYPE())
-}
-
-/**
-  * ..., value1(long), value2(int) -> ..., result(long)
-  */
-case class InstrLSHL() extends BinOpNonIntInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitInsn(LSHL)
-  }
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)) {
-      loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, "lshl", s"($vclasstype$vclasstype$fexprclasstype)$vclasstype", false)
-    }
-    else
-      mv.visitInsn(LSHL)
-  }
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, LONG_TYPE())
-}
-
 /**
   * value1 (long), value2 (int) -> result (long)
   */
-case class InstrLSHR() extends BinOpNonIntInstruction {
+case class InstrLSHR() extends __replace_BinOpNonIntInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(LSHR)
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
@@ -803,7 +533,7 @@ case class InstrLSHR() extends BinOpNonIntInstruction {
   }
 }
 
-case class InstrLXOR() extends BinOpNonIntInstruction {
+case class InstrLXOR() extends __replace_BinOpNonIntInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(LXOR)
   }
@@ -821,7 +551,7 @@ case class InstrLXOR() extends BinOpNonIntInstruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, LONG_TYPE())
 }
 
-case class InstrLMUL() extends BinOpNonIntInstruction {
+case class InstrLMUL() extends __replace_BinOpNonIntInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(LMUL)
   }
@@ -841,7 +571,7 @@ case class InstrLMUL() extends BinOpNonIntInstruction {
 /**
   * ..., value1 (double), value2 (double) -> ..., result (int)
   */
-case class InstrDCMPG() extends BinOpNonIntInstruction {
+case class InstrDCMPG() extends __replace_BinOpNonIntInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(DCMPG)
   }
@@ -881,7 +611,7 @@ case class InstrDCMPG() extends BinOpNonIntInstruction {
 /**
   * ..., value1 (double), value2 (double) -> ..., result (double)
   */
-case class InstrDDIV() extends BinOpNonIntInstruction {
+case class InstrDDIV() extends __replace_BinOpNonIntInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitInsn(DDIV)
   }
@@ -898,7 +628,7 @@ case class InstrDDIV() extends BinOpNonIntInstruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, DOUBLE_TYPE())
 }
 
-case class InstrDADD() extends BinOpNonIntInstruction {
+case class InstrDADD() extends __replace_BinOpNonIntInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(DADD)
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
@@ -913,7 +643,7 @@ case class InstrDADD() extends BinOpNonIntInstruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, DOUBLE_TYPE())
 }
 
-case class InstrLREM() extends BinOpNonIntInstruction {
+case class InstrLREM() extends __replace_BinOpNonIntInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(LREM)
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
@@ -933,7 +663,7 @@ case class InstrLREM() extends BinOpNonIntInstruction {
   *
   * ..., value1 (float), value2 (float) -> ..., result (float)
   */
-case class InstrFDIV() extends BinOpNonIntInstruction {
+case class InstrFDIV() extends __replace_BinOpNonIntInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(FDIV)
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
@@ -953,33 +683,11 @@ case class InstrFDIV() extends BinOpNonIntInstruction {
   *
   * ..., value1 (float), value2 (float) -> ..., result (int)
   */
-case class InstrFCMPG() extends BinOpInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(FCMPG)
+case class InstrFCMPG() extends BinOpInstruction(FCMPG, "fcmpg", INT_TYPE())
 
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)) {
-      loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, "fcmpg", s"($vclasstype$vclasstype$fexprclasstype)$vclasstype", false)
-    } else {
-      mv.visitInsn(FCMPG)
-    }
-  }
-}
+case class InstrFCMPL() extends BinOpInstruction(FCMPL, "fcmpl", INT_TYPE())
 
-case class InstrFCMPL() extends BinOpInstruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(FCMPL)
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)) {
-      loadCurrentCtx(mv, env, block)
-      mv.visitMethodInsn(INVOKESTATIC, Owner.getVOps, "fcmpl", s"($vclasstype$vclasstype$fexprclasstype)$vclasstype", false)
-    } else {
-      mv.visitInsn(FCMPL)
-    }
-  }
-}
-
-case class InstrFMUL() extends BinOpNonIntInstruction {
+case class InstrFMUL() extends __replace_BinOpNonIntInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(FMUL)
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
@@ -994,7 +702,7 @@ case class InstrFMUL() extends BinOpNonIntInstruction {
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = updateStackWithReturnType(s, env, FLOAT_TYPE())
 }
 
-case class InstrFADD() extends BinOpNonIntInstruction {
+case class InstrFADD() extends __replace_BinOpNonIntInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(FADD)
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {

@@ -176,6 +176,14 @@ public class VOps {
         return value1.flatMap(v1 -> value2.map(v2 -> v1 % v2));
     }
 
+    public static V<? extends Double> drem(V<? extends Double> value1, V<? extends Double> value2) {
+        return value1.flatMap(v1 -> value2.map(v2 -> v1.doubleValue() % v2.doubleValue()));
+    }
+
+    public static V<? extends Float> frem(V<? extends Float> value1, V<? extends Float> value2) {
+        return value1.flatMap(v1 -> value2.map(v2 -> v1.floatValue() % v2.floatValue()));
+    }
+
     public static V<? extends Integer> ior(V<? extends Integer> value1, V<? extends Integer> value2, FeatureExpr ctx) {
         return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.intValue() | v2.intValue()));
     }
@@ -223,9 +231,21 @@ public class VOps {
     public static V<? extends Long> lsub(V<? extends Long> value1, V<? extends Long> value2, FeatureExpr ctx) {
         return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.longValue() - v2.longValue()));
     }
+    public static V<? extends Double> dsub(V<? extends Double> value1, V<? extends Double> value2, FeatureExpr ctx) {
+        return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.doubleValue() - v2.doubleValue()));
+    }
+    public static V<? extends Float> fsub(V<? extends Float> value1, V<? extends Float> value2, FeatureExpr ctx) {
+        return value1.sflatMap(ctx, (fe, v1) -> value2.smap(fe, v2 -> v1.floatValue() - v2.floatValue()));
+    }
 
     public static V<? extends Integer> ineg(V<? extends Integer> value1, FeatureExpr ctx) {
         return value1.smap(ctx, v -> -v.intValue());
+    }
+    public static V<? extends Float> fneg(V<? extends Float> value1, FeatureExpr ctx) {
+        return value1.smap(ctx, v -> -v.floatValue());
+    }
+    public static V<? extends Double> dneg(V<? extends Double> value1, FeatureExpr ctx) {
+        return value1.smap(ctx, v -> -v.doubleValue());
     }
 
     public static V<? extends Double> dmul(V<? extends Double> value1, V<? extends Double> value2, FeatureExpr ctx) {

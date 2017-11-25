@@ -170,51 +170,23 @@ case class InstrLCONST(v: Int) extends Instruction {
   }
 }
 
-/**
-  * Push double 0
-  */
-case class InstrDCONST_0() extends Instruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitInsn(DCONST_0)
-  }
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)) {
-      mv.visitInsn(DCONST_0)
-      mv.visitMethodInsn(INVOKESTATIC, Owner.getDouble, "valueOf", s"(D)${TypeDesc.getDouble}", false)
-      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
-    }
-    else {
-      mv.visitInsn(DCONST_0)
-    }
-  }
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
-    val newFrame =
-      if (env.shouldLiftInstr(this))
-        s.push(V_TYPE(true), Set(this))
-      else
-        s.push(DOUBLE_TYPE(), Set(this))
-    (newFrame, Set())
-  }
-}
 
 /**
   * Push double 1
   */
-case class InstrDCONST_1() extends Instruction {
+case class InstrDCONST(op: Int) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitInsn(DCONST_1)
+    mv.visitInsn(op)
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
-      mv.visitInsn(DCONST_1)
+      mv.visitInsn(op)
       mv.visitMethodInsn(INVOKESTATIC, Owner.getDouble, "valueOf", s"(D)${TypeDesc.getDouble}", false)
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
     else {
-      mv.visitInsn(DCONST_1)
+      mv.visitInsn(op)
     }
   }
 
@@ -231,17 +203,17 @@ case class InstrDCONST_1() extends Instruction {
 /**
   * Push the float constant 0.0 onto the operand stack
   */
-case class InstrFCONST_0() extends Instruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(FCONST_0)
+case class InstrFCONST(op: Int) extends Instruction {
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(op)
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
-      mv.visitInsn(FCONST_0)
+      mv.visitInsn(op)
       float2Float(mv)
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
     }
     else {
-      mv.visitInsn(FCONST_0)
+      mv.visitInsn(op)
     }
   }
 
@@ -255,29 +227,3 @@ case class InstrFCONST_0() extends Instruction {
   }
 }
 
-/**
-  * Push the float constant 1.0 onto the operand stack
-  */
-case class InstrFCONST_1() extends Instruction {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitInsn(FCONST_1)
-
-  override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    if (env.shouldLiftInstr(this)) {
-      mv.visitInsn(FCONST_1)
-      float2Float(mv)
-      callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
-    }
-    else {
-      mv.visitInsn(FCONST_1)
-    }
-  }
-
-  override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
-    val newFrame =
-      if (env.shouldLiftInstr(this))
-        s.push(V_TYPE(false), Set(this))
-      else
-        s.push(FLOAT_TYPE(), Set(this))
-    (newFrame, Set())
-  }
-}
