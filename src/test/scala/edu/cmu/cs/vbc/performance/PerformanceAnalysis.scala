@@ -16,8 +16,10 @@ import org.scalatest.FunSuite
 object PerformanceAnalysisMain extends PerformanceAnalysis with App {
   FeatureExprFactory.setDefault(FeatureExprFactory.bdd)
 
+  def config(c: String) = Set("SEARCH", "BASE", "WEIGHTED", "CYCLE", "DFS", "STRONGLYCONNECTED", "DIRECTED", "TRANSPOSE", "SHORTEST", "NUMBER", "Src", "SrcProg", "Src2") contains c
+
   debugPerformanceOverhead(classOf[edu.cmu.cs.vbc.prog.gpl.Main],
-    (c) => true, // allyesconfig
+    config, // allyesconfig
     configFile = Some("gpl.conf"))
 
 
@@ -31,8 +33,6 @@ trait PerformanceAnalysis {
   def combine(second: Rewriter, first: Rewriter): Rewriter = (method, cls) => second(first(method, cls), cls)
 
 
-
-
   def mergeTraces(plainTraces: List[PerformanceTrace]): List[(Int, String, List[Long])] = {
     val tc = plainTraces.head.tc
     val length = plainTraces.head.trace.length
@@ -43,15 +43,44 @@ trait PerformanceAnalysis {
 
     var result: List[(Int, String, List[Long])] = Nil
     while (traces.head.nonEmpty) {
-      if (traces.head.head._1 < 3)
-        result ::= (traces.head.head._1, tc.methods(traces.head.head._2), traces.map(_.head._3))
+      //      if (traces.head.head._1 < 3)
+      result ::= (traces.head.head._1, tc.methods(traces.head.head._2), traces.map(_.head._3))
       traces = traces.map(_.tail)
     }
 
     result
   }
 
-  def avg(l: List[Long]): Long = l.foldRight(0l)(_ + _) / l.length / 1000000
+  //  def avg(l: List[Long]): Long = l.foldRight(0l)(_ + _) / l.length / 1000000
+
+  class Statistics(data: List[Double]) {
+    var size = data.length
+
+    def getMean: Double = {
+      var sum = 0.0
+      for (a <- data) {
+        sum += a
+      }
+      sum / size
+    }
+
+    def getVariance: Double = {
+      val mean = getMean
+      var temp = 0d
+      for (a <- data) {
+        temp += (a - mean) * (a - mean)
+      }
+      temp / (size - 1)
+    }
+
+    def getStdDev: Double = Math.sqrt(getVariance)
+
+    //    def median: Double = {
+    //      Arrays.sort(data)
+    //      if (data.length % 2 == 0) return (data((data.length / 2) - 1) + data(data.length / 2)) / 2.0
+    //      data(data.length / 2)
+    //    }
+  }
 
   def produceReport(plainTraces: List[PerformanceTrace], liftedTraces: List[PerformanceTrace]): Unit = {
 
@@ -60,29 +89,61 @@ trait PerformanceAnalysis {
 
 
     val writer = new BufferedWriter(new FileWriter("perfreport.html"))
-    writer.write("<table><tr><th>Plain</th><th>Time</th><th>Lifted</th><th>Time</th></tr>")
+    writer.write(
+      """
+        <style TYPE="text/css">
+        <!--
+        table {width: 100%;}
+        tr:nth-child(even) {background-color: #f2f2f2;}
+        td {
+     max-width: 100px;
+     overflow: hidden;
+     text-overflow: ellipsis;
+     white-space: nowrap;
+ }
+        --></style>
+      """)
+    writer.write("<div style=\"overflow-x:auto;\"><table><tr><th>Plain</th><th>Time</th><th>Lifted</th><th>Time</th><th>Slowdown</th></tr>")
     while (plainTrace.nonEmpty || liftedTrace.nonEmpty) {
-      writer.write("<tr><td>")
+      val plainStats = plainTrace.headOption.map(h => new Statistics(h._3.map(_.toDouble)))
+      val liftedStats = liftedTrace.headOption.map(h => new Statistics(h._3.map(_.toDouble)))
+
+      val max = Math.max(plainStats.map(_.getMean).getOrElse(0d), liftedStats.map(_.getMean).getOrElse(0d))
+
+      var row = ("<tr><td>")
+
 
       if (plainTrace.nonEmpty) {
-        writer.write("&nbsp;" * 4 * plainTrace.head._1 +
+        row += ("&nbsp;" * 4 * plainTrace.head._1 +
           plainTrace.head._2 +
-          "</td><td>" + avg(plainTrace.head._3))
+          "</td><td>%1.0f&#177;%1.0f".format(plainStats.get.getMean / 1000000, plainStats.get.getStdDev / 1000000))
         plainTrace = plainTrace.tail
-      } else writer.write("</td><td>")
+      } else row += ("</td><td>")
 
-      writer.write("</td><td>")
+      row += ("</td><td>")
 
       if (liftedTrace.nonEmpty) {
-        writer.write("&nbsp;&nbsp;" * liftedTrace.head._1 +
+        val stats = new Statistics(liftedTrace.head._3.map(_.toDouble))
+        row += ("&nbsp;&nbsp;" * liftedTrace.head._1 +
           liftedTrace.head._2 +
-          "</td><td>" + avg(liftedTrace.head._3))
+          "</td><td>%1.0f&#177;%1.0f".format(liftedStats.get.getMean / 1000000, liftedStats.get.getStdDev / 1000000))
         liftedTrace = liftedTrace.tail
-      } else writer.write("</td><td>")
+      } else row += ("</td><td>")
 
-      writer.write("</td></tr>")
+      val slowDown = plainStats.flatMap(p => liftedStats.map(l => l.getMean / p.getMean))
+
+      row += ("</td><td>%1.1f" format slowDown.getOrElse(0))
+
+      row += ("</td></tr>")
+
+      if (max >= 1000000d)
+        writer.write(row)
+
+
     }
-    writer.write("</table>")
+
+
+    writer.write("</table></div>")
 
     writer.close()
 
@@ -111,24 +172,24 @@ trait PerformanceAnalysis {
     val liftedClass = liftingClassLoader.loadClass(classname)
     VBCLauncher.invokeMain(liftedClass, new Array[String](0))
 
-//    Thread.currentThread().setContextClassLoader(plainClassLoader)
-//    val plainClass = plainClassLoader.loadClass(classname)
-//    VBCLauncher.invokeMain(plainClass, new Array[String](0))
+    Thread.currentThread().setContextClassLoader(plainClassLoader)
+    val plainClass = plainClassLoader.loadClass(classname)
+    VBCLauncher.invokeMain(plainClass, new Array[String](0))
 
 
     //measure time 5 times both lifted and unlifted:
     var liftedTraces: List[PerformanceTrace] = Nil
     var plainTraces: List[PerformanceTrace] = Nil
-    for (i <- 1 to 2) {
+    for (i <- 1 to 5) {
       val liftedTrace = new PerformanceTrace(performanceCollector)
       TimeUtil.setPerformanceTrace(liftedTrace)
       VBCLauncher.invokeMain(liftedClass, new Array[String](0))
       liftedTraces ::= liftedTrace
 
-//      val plainTrace = new PerformanceTrace(performanceCollector)
-//      TimeUtil.setPerformanceTrace(plainTrace)
-//      VBCLauncher.invokeMain(plainClass, new Array[String](0))
-//      plainTraces ::= plainTrace
+      val plainTrace = new PerformanceTrace(performanceCollector)
+      TimeUtil.setPerformanceTrace(plainTrace)
+      VBCLauncher.invokeMain(plainClass, new Array[String](0))
+      plainTraces ::= plainTrace
 
       //      println("summary: ")
       //      plainTrace.trace.take(5).foreach(t=>println("  "*t._1+plainTrace.tc.methods(t._2)+": "+(t._3/1000000)))
