@@ -50,7 +50,7 @@ class Loader {
     *
     * In case of errors, we modify instruction list instead of creating a new MethodNode
     *
-    * @param m  origin MethodNode
+    * @param m origin MethodNode
     * @return new MethodNode that could not have any switch
     */
   def transformSwitches(m: MethodNode): MethodNode = {
@@ -85,8 +85,8 @@ class Loader {
       case _ => List(i)
     })
     m.instructions.clear()
-    newInstructions foreach {i => m.instructions.add(i)}
-    if (m.maxStack < 2) m.maxStack = 2  // rare but possible
+    newInstructions foreach { i => m.instructions.add(i) }
+    if (m.maxStack < 2) m.maxStack = 2 // rare but possible
     m
   }
 
@@ -100,8 +100,8 @@ class Loader {
     var varCache: Map[Int, Variable] = Map()
     val isStatic = (m.access & Opcodes.ACC_STATIC) > 0
     val parameterRange = Type.getArgumentTypes(m.desc).size + // numbers of arguments
-        (if (isStatic) 0 else 1) +  // 'this' for nonstatic methods
-        Type.getArgumentTypes(m.desc).count(t => t.getDescriptor == "J" || t.getDescriptor == "D") // long and double
+      (if (isStatic) 0 else 1) + // 'this' for nonstatic methods
+      Type.getArgumentTypes(m.desc).count(t => t.getDescriptor == "J" || t.getDescriptor == "D") // long and double
 
     // adding "this" explicitly, because it may not be included if it's the only parameter
     if (!isStatic)
@@ -166,7 +166,6 @@ class Loader {
         yield adaptBytecodeInstruction(m.instructions.get(instrIdx), methodAnalyzer.label2BlockIdx.apply, lookupVariable)
       Block(instrList, methodAnalyzer.getBlockException(start))
     }
-
 
 
     val blocks = for (i <- 0 to ordered.length - 2) yield createBlock(ordered(i), ordered(i + 1))
@@ -320,9 +319,9 @@ class Loader {
       case L2F => InstrL2F()
       case L2D => InstrL2D()
       case F2I => InstrF2I()
-      case F2L => UNKNOWN(F2L)
+      case F2L => InstrF2L()
       case F2D => InstrF2D()
-      case D2I => UNKNOWN(D2I)
+      case D2I => InstrD2I()
       case D2L => InstrD2L()
       case D2F => InstrD2F()
       case I2B => InstrI2B()
