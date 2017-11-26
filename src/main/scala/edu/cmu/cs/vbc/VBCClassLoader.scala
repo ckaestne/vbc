@@ -126,12 +126,14 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
         System.exit(1)
     }
 
-    val cr2 = new ClassReader(cw.toByteArray)
-    cr2.accept(getCheckClassAdapter(getTraceClassVisitor(null)), 0)
     // for debugging
     if (toFileDebugging)
       toFile(name, cw)
     //        debugWriteClass(getResourceAsStream(resource))
+
+    val cr2 = new ClassReader(cw.toByteArray)
+    cr2.accept(getCheckClassAdapter(getTraceClassVisitor(null)), 0)
+
     defineClass(name, cw.toByteArray, 0, cw.toByteArray.length)
   }
 
