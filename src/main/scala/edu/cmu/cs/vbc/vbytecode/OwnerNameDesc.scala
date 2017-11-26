@@ -3,7 +3,7 @@ package edu.cmu.cs.vbc.vbytecode
 import javax.lang.model.SourceVersion
 
 import edu.cmu.cs.vbc.utils.LiftUtils._
-import edu.cmu.cs.vbc.utils.{LiftingPolicy, VBCModel}
+import edu.cmu.cs.vbc.{Lifting, LiftingPolicy2}
 import org.objectweb.asm.Type
 
 /**
@@ -42,21 +42,22 @@ case class Owner(name: String) extends TypeVerifier {
 
   def getTypeDesc: TypeDesc = TypeDesc(Type.getObjectType(name).getDescriptor)
 
-  /** Get the corresponding model class
-    *
-    * @return
-    * Object -> prepend "model/"
-    * Array -> [baseType.toModel
-    */
-  def toModel: Owner = name match {
-    case s: String if s.startsWith("[") => Owner("[" + TypeDesc(s.tail).toModel)
-    case s: String if s.startsWith("java") =>
-      if (LiftingPolicy.getConfig.jdkNotLiftingClasses.exists(name.matches))
-        this
-      else
-        Owner(VBCModel.prefix + "/" + name)
-    case _ => this
-  }
+  //  /** Get the corresponding model class
+  //    *
+  //    * @return
+  //    * Object -> prepend "model/"
+  //    * Array -> [baseType.toModel
+  //    */
+  //  def toModel: Owner = name match {
+  //    case s: String if s.startsWith("[") => Owner(policy, "[" + TypeDesc(policy, s.tail).toModel)
+  //    case s: String if s.startsWith("java") =>
+  //      if (LiftingPolicy.getConfig.jdkNotLiftingClasses.exists(name.matches))
+  //        this
+  //      else
+  //        Owner(policy, VBCModel.prefix + "/" + name)
+  //    case _ => this
+  //  }
+
 
   override def toString: String = name
 }
@@ -64,6 +65,15 @@ case class Owner(name: String) extends TypeVerifier {
 /** Store implicit conversion to String, avoid changing too much existing code. */
 object Owner {
   implicit def ownerToString(owner: Owner): String = owner.name
+
+  def lift(policy: LiftingPolicy2, s: String): Owner = lift(policy, Owner(s))
+  def lift(policy: LiftingPolicy2, s: Owner): Owner = s.name match {
+    case s: String if s.startsWith("[") => Owner("[" + TypeDesc.lift(policy, TypeDesc(s.tail)))
+    case n =>
+      if (policy.liftClass(n))
+        Owner(Lifting.liftNameSlash(n))
+      else s
+  }
 
   def getInt = Owner("java/lang/Integer")
   def getShort = Owner("java/lang/Short")
@@ -96,22 +106,23 @@ case class MethodName(name: String) {
 
   override def toString: String = name
 
-  def rename(desc: MethodDesc): MethodName = {
-    def replace(s: String): String = s.replace(";", "").replace("/", "_").replace("[", "Array_")
-    name match {
-      case "<init>" | "<clinit>" | "___clinit___"  => this
-      case _ =>
-        val args = desc.getArgs.map(_.toModel)
-        val argsString = replace(args.mkString("__", "_", "__"))
-        val retString = replace(desc.getReturnType.map(_.toModel).map(_.toString).getOrElse("V"))
-        MethodName(name + argsString + retString)
-    }
-  }
-
-  def liftCLINIT: MethodName = name match {
-    case "<clinit>" => MethodName("___clinit___")
-    case _ => this
-  }
+  //  def rename(desc: MethodDesc): MethodName = {
+  //    def replace(s: String): String = s.replace(";", "").replace("/", "_").replace("[", "Array_")
+  //
+  //    name match {
+  //      case "<init>" | "<clinit>" | "___clinit___" => this
+  //      case _ =>
+  //        val args = desc.getArgs.map(_.toModel)
+  //        val argsString = replace(args.mkString("__", "_", "__"))
+  //        val retString = replace(desc.getReturnType.map(_.toModel).map(_.toString).getOrElse("V"))
+  //        MethodName(name + argsString + retString)
+  //    }
+  //  }
+  //
+  //  def liftCLINIT: MethodName = name match {
+  //    case "<clinit>" => MethodName("___clinit___")
+  //    case _ => this
+  //  }
 }
 
 object MethodName {
@@ -196,20 +207,20 @@ case class MethodDesc(descString: String) extends TypeVerifier {
     MethodDesc(argsString + retString)
   }
 
-  /** Turn all arguments into Vs, append FeatureExpr and finally append original argument types
-    *
-    * Only <init> method requires this transformation
-    *
-    * @return
-    *         transformed method descriptor
-    */
-  def toVs_AppendFE_AppendArgs: MethodDesc = {
-    val args = getArgs.map(_.toModel)
-    assert(!args.exists(_.contentEquals(vclasstype)), "could not append V argument types")
-    val argsString = (toVs.appendFE.getArgs ++ args).mkString("(", "", ")")
-    val retString = "V" // because this is <init>
-    MethodDesc(argsString + retString)
-  }
+  //  /** Turn all arguments into Vs, append FeatureExpr and finally append original argument types
+  //    *
+  //    * Only <init> method requires this transformation
+  //    *
+  //    * @return
+  //    * transformed method descriptor
+  //    */
+  //  def toVs_AppendFE_AppendArgs: MethodDesc = {
+  //    val args = getArgs.map(_.toModel)
+  //    assert(!args.exists(_.contentEquals(vclasstype)), "could not append V argument types")
+  //    val argsString = (toVs.appendFE.getArgs ++ args).mkString("(", "", ")")
+  //    val retString = "V" // because this is <init>
+  //    MethodDesc(argsString + retString)
+  //  }
 
   /** Transform all primitive types to corresponding Object types
     *
@@ -235,22 +246,11 @@ case class MethodDesc(descString: String) extends TypeVerifier {
     MethodDesc(argsString + retString)
   }
 
-  /** Change arguments and return type (if not void) to corresponding model class
-    *
-    * @return
-    */
-  def toModels: MethodDesc = {
-    val args = Type.getArgumentTypes(descString)
-    assert(!args.exists(_.getDescriptor == vclasstype), "Arguments are already V types")
-    val argsString: String = args.map(t => TypeDesc(t.getDescriptor).toModel).mkString("(", "", ")")
-    val retString: String = if (isReturnVoid) "V" else getReturnType.get.toModel
-    MethodDesc(argsString + retString)
-  }
 
   /** Change method return type to V
     *
     * @return
-    *         transformed MethodDesc
+    * transformed MethodDesc
     */
   def toVReturnType: MethodDesc = {
     if (isReturnVoid) {
@@ -285,6 +285,14 @@ case class MethodDesc(descString: String) extends TypeVerifier {
 
 object MethodDesc {
   implicit def methodDescToString(md: MethodDesc): String = md.descString
+
+  def lift(policy: LiftingPolicy2, md: MethodDesc): MethodDesc = {
+    val args = Type.getArgumentTypes(md.descString)
+    assert(!args.exists(_.getDescriptor == vclasstype), "Arguments are already V types")
+    val argsString: String = args.map(t => TypeDesc.lift(policy, TypeDesc(t.getDescriptor))).mkString("(", "", ")")
+    val retString: String = if (md.isReturnVoid) "V" else TypeDesc.lift(policy, md.getReturnType.get)
+    MethodDesc(argsString + retString)
+  }
 }
 
 
@@ -339,40 +347,39 @@ case class TypeDesc(desc: String) extends TypeVerifier {
     TypeDesc(desc.tail)
   }
 
-  /** Get the owner (if exists) of this type.
-    *
-    * @return
-    * none if current type is array or primitive
-    */
-  def getOwner: Option[Owner] =
-    if (isArray || isPrimitive)
-      None
-    else
-      Some(Owner(desc.tail.init))
 
   override def toString: String = desc
 
-  /** Transform to corresponding model class
-    *
-    * @return
-    * Object -> model class descriptor
-    * Array -> [baseType.toModel
-    * Primitive -> unchanged
-    */
-  def toModel: TypeDesc = {
-    if (isArray)
-      TypeDesc("[" + getArrayBaseType.toModel)
-    else if (isPrimitive)
-      this
-    else
-      getOwner.get.toModel.getTypeDesc
-  }
 
   def toVArray: TypeDesc = if (isArray) TypeDesc("[" + vclasstype) else this
 }
 
 object TypeDesc {
   implicit def typeDescToString(td: TypeDesc): String = td.desc
+
+  def lift(policy: LiftingPolicy2, td: TypeDesc): TypeDesc = {
+    if (td.isArray)
+      TypeDesc("[" + lift(policy, td.getArrayBaseType))
+    else if (td.isPrimitive)
+      td
+    else
+      getOwnerStr(td).map(Owner.lift(policy, _)).get.getTypeDesc
+  }
+
+  def fromOwner(ownerName: String): TypeDesc =
+    TypeDesc(Type.getObjectType(ownerName).getDescriptor)
+
+  /** Get the owner (if exists) of this type.
+    *
+    * @return
+    * none if current type is array or primitive
+    */
+  private def getOwnerStr(td: TypeDesc): Option[String] =
+    if (td.isArray || td.isPrimitive)
+      None
+    else
+      Some(td.desc.tail.init)
+
 
   def getInt: TypeDesc = TypeDesc("Ljava/lang/Integer;")
   def getString: TypeDesc = TypeDesc("Ljava/lang/String;")

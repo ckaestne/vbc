@@ -42,7 +42,7 @@ class LiftSignatureWriter() extends SignatureWriter() {
     if (descriptor == 'V') {
       super.visitBaseType(descriptor)
     } else {
-      val liftedClsType = TypeDesc(descriptor.toString).toObject.toModel
+      val liftedClsType = TypeDesc(descriptor.toString).toObject/*CHK.toModel*/
       val trimmed = liftedClsType.substring(1, liftedClsType.length - 1)
       visitClassType(trimmed)
       visitEnd()
@@ -66,9 +66,9 @@ class LiftSignatureWriter() extends SignatureWriter() {
     super.visitTypeArgument('=')
   }
 
-  override def visitInnerClassType(name: String): Unit = super.visitInnerClassType(Owner(name).toModel)
+  override def visitInnerClassType(name: String): Unit = super.visitInnerClassType(name/*Owner(name).toModel*/)
 
-  override def visitClassType(name: String): Unit = super.visitClassType(Owner(name).toModel)
+  override def visitClassType(name: String): Unit = super.visitClassType(name/*Owner(name).toModel*/)
 
   def getSignature(): String =
     (this.toString + ">;").replace("Ledu/cmu/cs/varex/V<V>;", "V")

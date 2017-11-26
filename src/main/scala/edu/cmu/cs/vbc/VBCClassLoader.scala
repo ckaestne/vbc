@@ -4,8 +4,8 @@ import java.io._
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.cmu.cs.vbc.loader.Loader
-import edu.cmu.cs.vbc.utils.{Dotifier, LiftingPolicy, MyClassWriter, VBCModel}
-import edu.cmu.cs.vbc.vbytecode.{Owner, VBCClassNode, VBCMethodNode}
+import edu.cmu.cs.vbc.utils.Dotifier
+import edu.cmu.cs.vbc.vbytecode.{VBCClassNode, VBCMethodNode}
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.util.{CheckClassAdapter, Textifier, TraceClassVisitor}
@@ -13,6 +13,18 @@ import org.objectweb.asm.{ClassReader, ClassVisitor, ClassWriter}
 
 import scala.collection.mutable
 import scala.sys.process.Process
+
+object Lifting {
+  val liftedPrefix = "Δ"
+
+  def liftNameSlash(n: String) = liftedPrefix + "/" + n
+
+  def liftNameDot(n: String) = liftedPrefix + "." + n
+
+  def unliftName(n: String) = n.drop(2)
+
+  def isLiftedName(n: String) = n startsWith liftedPrefix
+}
 
 /**
   * Custom class loader to modify bytecode before loading the class.
@@ -27,86 +39,83 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
                      rewriter: (VBCMethodNode, VBCClassNode) => VBCMethodNode = (a, b) => a,
                      config: (String) => Option[Boolean] = (c) => None,
                      toFileDebugging: Boolean = true,
+                     liftingPolicy: LiftingPolicy2 = NoLiftPolicy,
                      configFile: Option[String] = None) extends ClassLoader(parentClassLoader) with LazyLogging {
+
+  import Lifting._
 
   val loader = new Loader()
   //TODO rather pass in the actual configuration object, not a path. this way different client can
   //configure it in different ways (only an interface needed), rather than having to create a file in the
   //specific format used here
-  if (configFile.isDefined) {
-    val config = new ModelConfig(configFile.get)
-    LiftingPolicy.setConfig(config)
-  }
+  //  if (configFile.isDefined) {
+  //    val config = new ModelConfig(configFile.get)
+  //    LiftingPolicy.setConfig(config)
+  //  }
 
   val loadedClasses = mutable.Map[String, Class[_]]()
 
+  def stripLiftedPrefix(n: String): String =
+    if (n startsWith "model.") stripLiftedPrefix(n.drop(6))
+    else if (isLiftedName(n)) stripLiftedPrefix(unliftName(n))
+    else n
+
   override def loadClass(name: String): Class[_] = loadedClasses.getOrElseUpdate(name, {
-    if (name.startsWith(VBCModel.prefix)) {
-      val model = new VBCModel(name)
-      val bytes = model.getModelClassBytes(isLift)
-      if (shouldLift(name)) {
-        val clazz = loader.loadClass(bytes)
-        liftClass(name, clazz)
-      }
-      else {
-        defineClass(name, bytes, 0, bytes.length)
-      }
-    }
-    else if (shouldLift(name))
-      findClass(name)
-    else if (name.startsWith("edu.cmu.cs.vbc.prog") || name.startsWith("org.prevayler") || (name.startsWith("org.eclipse.jetty") && !name.startsWith("org.eclipse.jetty.util.log")) || name.startsWith("javax.servlet"))
-      loadClassAndUseModelClasses(name)
-    else if (name.startsWith("antlr") || name.startsWith("org.eclipse.jetty.util.log")) // todo: do this more systematically
-      loadClassWithoutChanges(name) // avoid LinkageError
+    println(s":: loading $name")
+
+    if (isLiftedName(name))
+      findClass(name) //load and lift
     else
-      super.loadClass(name)
+      super.loadClass(name) // load without lifting
   })
 
 
   override def findClass(name: String): Class[_] = {
-    val resource: String = name.replace('.', '/') + ".class"
+    assert(isLiftedName(name))
+    val resource: String = unliftName(name).replace('.', '/') + ".class"
     val is: InputStream = getResourceAsStream(resource)
-//    assert(is != null, s"Class file not found: $name")
+    //    assert(is != null, s"Class file not found: $name")
     if (is == null) throw new ClassNotFoundException(name)
     val clazz: VBCClassNode = loader.loadClass(is)
     liftClass(name, clazz)
   }
 
-  def loadClassWithoutChanges(name: String): Class[_] = {
-    val resource: String = name.replace('.', '/') + ".class"
-    val is: InputStream = getResourceAsStream(resource)
-    if (is == null) throw new ClassNotFoundException(name)
-    val cr = new ClassReader(is)
-    val cw = new MyClassWriter(ClassWriter.COMPUTE_FRAMES) // COMPUTE_FRAMES implies COMPUTE_MAX
-    cr.accept(cw, 0)
-    defineClass(name, cw.toByteArray, 0, cw.toByteArray.length)
-  }
-
-  def loadClassAndUseModelClasses(name: String): Class[_] = {
-    val resource: String = name.replace('.', '/') + ".class"
-    val is: InputStream = getResourceAsStream(resource)
-    val clazz: VBCClassNode = loader.loadClass(is)
-    val cw = new MyClassWriter(ClassWriter.COMPUTE_FRAMES) // COMPUTE_FRAMES implies COMPUTE_MAX
-    clazz.toByteCode(cw, rewriter, config)
-    if (toFileDebugging)
-      toFile(name, cw)
-    defineClass(name, cw.toByteArray, 0, cw.toByteArray.length)
-  }
+  //  def loadClassWithoutChanges(name: String): Class[_] = {
+  //    val resource: String = name.replace('.', '/') + ".class"
+  //    val is: InputStream = getResourceAsStream(resource)
+  //    if (is == null) throw new ClassNotFoundException(name)
+  //    val cr = new ClassReader(is)
+  //    val cw = new MyClassWriter(ClassWriter.COMPUTE_FRAMES) // COMPUTE_FRAMES implies COMPUTE_MAX
+  //    cr.accept(cw, 0)
+  //    defineClass(name, cw.toByteArray, 0, cw.toByteArray.length)
+  //  }
+  //
+  //  def loadClassAndUseModelClasses(name: String): Class[_] = {
+  //    val resource: String = name.replace('.', '/') + ".class"
+  //    val is: InputStream = getResourceAsStream(resource)
+  //    val clazz: VBCClassNode = loader.loadClass(is)
+  //    val cw = new MyClassWriter(ClassWriter.COMPUTE_FRAMES) // COMPUTE_FRAMES implies COMPUTE_MAX
+  //    clazz.toByteCode(cw, rewriter, config)
+  //    if (toFileDebugging)
+  //      toFile(name, cw)
+  //    defineClass(name, cw.toByteArray, 0, cw.toByteArray.length)
+  //  }
 
   def liftClass(name: String, clazz: VBCClassNode): Class[_] = {
+    println(s":: creating $name")
     import scala.collection.JavaConversions._
-    val cw = new MyClassWriter(ClassWriter.COMPUTE_FRAMES) // COMPUTE_FRAMES implies COMPUTE_MAX
+    val cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES) // COMPUTE_FRAMES implies COMPUTE_MAX
     val dotifier = new Dotifier()
     val textifier = new Textifier()
     val cv = new TraceClassVisitor(new TraceClassVisitor(cw, textifier, null), dotifier, null)
     try {
       if (isLift) {
         logger.info(s"lifting $name")
-        clazz.toVByteCode(cv, rewriter, config)
+        clazz.toVByteCode(cv, rewriter, config, liftingPolicy)
       }
       else {
         logger.info(s"lifting $name")
-        clazz.toByteCode(cv, rewriter, config)
+        clazz.toByteCode(cv, rewriter, config, liftingPolicy)
       }
     } catch {
       case e: Throwable =>
@@ -146,14 +155,6 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
   def getTraceClassVisitor(next: ClassVisitor): ClassVisitor = new TraceClassVisitor(next, null)
 
   def getCheckClassAdapter(next: ClassVisitor): ClassVisitor = new CheckClassAdapter(next)
-
-  /** Filter classes to lift
-    *
-    * @param name (partial) name of the class
-    * @return true if the class needs to be lifted
-    */
-  private def shouldLift(name: String): Boolean = LiftingPolicy.shouldLiftClass(Owner(name.replace('.', '/')))
-
 
   def toFile(name: String, cw: ClassWriter) = {
     val replaced = name.replace(".", "/")

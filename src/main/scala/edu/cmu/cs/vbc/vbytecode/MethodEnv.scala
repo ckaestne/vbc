@@ -1,10 +1,12 @@
 package edu.cmu.cs.vbc.vbytecode
 
+import edu.cmu.cs.vbc.LiftingPolicy2
 import org.objectweb.asm.{Label, MethodVisitor, Type}
 
-class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) extends CFGAnalysis {
+class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode, val policy: LiftingPolicy2) extends CFGAnalysis {
+
   //find all local variables
-  protected val localVars: List[LocalVar] =
+  val localVars: List[LocalVar] =
     (for (block <- blocks; instr <- block.instr; v <- instr.getVariables) yield v).distinct
 
   protected var labels: List[Label] = Nil
@@ -20,7 +22,7 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) extends CFGA
 
   protected var blockLabels: Map[Block, Label] = Map()
 
-  val thisParameter: Parameter = new Parameter(0, "this", Owner(clazz.name).getTypeDesc)
+  val thisParameter: Parameter = new Parameter(0, "this", TypeDesc.fromOwner(clazz.name))
 
   def freshLabel(name: String = "<unknown>") = {
     val l = new Label(name)
@@ -46,7 +48,7 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) extends CFGA
     case l: LocalVar =>
       val localIdxPos = localVars.reverse.indexOf(l)
       if (localIdxPos >= 0) {
-        parameterCount + countSlots(localVars.splitAt(localVars.size - 1 - localIdxPos)._1)
+        parameterCount + countSlots(localVars.take(localVars.size - 1 - localIdxPos))
       }
       else {
         val freshIdxPos = freshVars.reverse.indexOf(l)
@@ -109,5 +111,10 @@ class MethodEnv(val clazz: VBCClassNode, val method: VBCMethodNode) extends CFGA
     clazz.fields.exists(filter)
   }
 
+  def liftOwner(owner: String): Owner = liftOwner(Owner(owner))
+  def liftOwner(owner: Owner): Owner = Owner.lift(policy, owner)
+//  def liftTypeDesc(td: String): TypeDesc = liftTypeDesc(TypeDesc(td))
+  def liftDesc(td: TypeDesc): TypeDesc = TypeDesc.lift(policy, td)
+  def liftDesc(md: MethodDesc): MethodDesc = MethodDesc.lift(policy, md)
 }
 

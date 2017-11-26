@@ -47,7 +47,7 @@ case class InstrLDC(o: Object) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
     mv.visitLdcInsn(o)
     o match {
-      case s: String => wrapString(mv)
+      case s: String => //CHK wrapString(mv)
       case _ => // do nothing
     }
   }
@@ -55,7 +55,7 @@ case class InstrLDC(o: Object) extends Instruction {
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, blockA: Block): Unit = {
     if (env.shouldLiftInstr(this)) {
       o match {
-        case s: String => mv.visitLdcInsn(o); wrapString(mv)
+        case s: String => mv.visitLdcInsn(o); //CHK swrapString(mv)
         case i: Integer => mv.visitLdcInsn(o); int2Integer(mv)
         case l: java.lang.Long => mv.visitLdcInsn(o); long2Long(mv)
         case _: java.lang.Double => mv.visitLdcInsn(o); double2Double(mv)
@@ -66,7 +66,7 @@ case class InstrLDC(o: Object) extends Instruction {
             mv.visitLdcInsn(t)
           }
           else
-            mv.visitLdcInsn(Type.getType(Owner(t.getInternalName).toModel.getTypeDesc))
+            mv.visitLdcInsn(Type.getType(env.liftOwner(t.getInternalName).getTypeDesc))
         case _ => throw new UnsupportedOperationException("Unsupported LDC type: " + o.getClass)
       }
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, blockA))
@@ -77,11 +77,11 @@ case class InstrLDC(o: Object) extends Instruction {
           if (t.getSort == Type.ARRAY)
             mv.visitLdcInsn(t)
           else
-            mv.visitLdcInsn(Type.getType(Owner(t.getInternalName).toModel.getTypeDesc))
+            mv.visitLdcInsn(Type.getType(env.liftOwner(t.getInternalName).getTypeDesc))
         case _ => mv.visitLdcInsn(o)
       }
       o match {
-        case s: String => wrapString(mv)
+        case s: String => //CHK wrapString(mv)
         case i: Integer =>  // do nothing
         case l: java.lang.Long => // do nothing
         case _: java.lang.Double => // do nothing
@@ -91,17 +91,17 @@ case class InstrLDC(o: Object) extends Instruction {
     }
   }
 
-  def wrapString(mv: MethodVisitor) = {
-    val stringOwner = Owner("java/lang/String")
-    if (stringOwner != stringOwner.toModel)
-      mv.visitMethodInsn(
-        INVOKESTATIC,
-        Owner("java/lang/String").toModel,
-        MethodName("valueOf"),
-        MethodDesc(s"(Ljava/lang/String;)${Owner("java/lang/String").toModel.getTypeDesc}"),
-        false
-      )
-  }
+//  def wrapString(mv: MethodVisitor) = {
+//    val stringOwner = Owner("java/lang/String")
+//    if (stringOwner != stringOwner.toModel)
+//      mv.visitMethodInsn(
+//        INVOKESTATIC,
+//        Owner("java/lang/String").toModel,
+//        MethodName("valueOf"),
+//        MethodDesc(s"(Ljava/lang/String;)${Owner("java/lang/String").toModel.getTypeDesc}"),
+//        false
+//      )
+//  }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val newFrame =

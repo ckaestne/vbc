@@ -4,7 +4,7 @@ import de.fosd.typechef.featureexpr.FeatureExprFactory
 import edu.cmu.cs.vbc
 import edu.cmu.cs.vbc.vbytecode._
 import edu.cmu.cs.vbc.vbytecode.instructions._
-import edu.cmu.cs.vbc.{DiffMethodTestInfrastructure, InstrLoadConfig}
+import edu.cmu.cs.vbc.{DiffMethodTestInfrastructure, InstrLoadConfig, NoLiftPolicy}
 import org.objectweb.asm.Opcodes._
 import org.scalatest.FunSuite
 
@@ -28,7 +28,7 @@ class StackAnalysisTest extends FunSuite with DiffMethodTestInfrastructure {
     )
 
     val cn = new VBCClassNode(V1_8, ACC_PUBLIC, "Test", None, "java/lang/Object", Nil, Nil, Nil) // dummy VBCClassNode
-    val env = new VMethodEnv(cn, mn)
+    val env = new VMethodEnv(cn, mn, NoLiftPolicy)
     //    assert(env.getOrderedSuccessorsIndexes(env.getBlock(0)) == List(1, 2, 3))
     //    assert(env.getOrderedSuccessorsIndexes(env.getBlock(1)) == List(3))
     //    assert(env.getOrderedSuccessorsIndexes(env.getBlock(2)) == List(3))
@@ -50,7 +50,7 @@ class StackAnalysisTest extends FunSuite with DiffMethodTestInfrastructure {
     )
 
     val cn = new VBCClassNode(V1_8, ACC_PUBLIC, "Test", None, "java/lang/Object", Nil, Nil, Nil) // dummy VBCClassNode
-    val env = new VMethodEnv(cn, mn)
+    val env = new VMethodEnv(cn, mn, NoLiftPolicy)
     //    assert(env.getOrderedSuccessorsIndexes(env.getBlock(0)) == List(1, 2, 3, 4, 5, 6, 7))
     //    assert(env.getOrderedSuccessorsIndexes(env.getBlock(1)) == List(3, 4, 5, 6, 7))
     //    assert(env.getOrderedSuccessorsIndexes(env.getBlock(2)) == List(3, 4, 5, 6, 7))
@@ -74,7 +74,7 @@ class StackAnalysisTest extends FunSuite with DiffMethodTestInfrastructure {
     )
 
     val cn = new VBCClassNode(V1_8, ACC_PUBLIC, "Test", None, "java/lang/Object", Nil, Nil, Nil) // dummy VBCClassNode
-    val env = new VMethodEnv(cn, mn)
+    val env = new VMethodEnv(cn, mn, NoLiftPolicy)
 
     env.framesBefore.foreach(println)
   }
@@ -91,7 +91,7 @@ class StackAnalysisTest extends FunSuite with DiffMethodTestInfrastructure {
     )
 
     val cn = new VBCClassNode(V1_8, ACC_PUBLIC, "Test", None, "java/lang/Object", Nil, Nil, Nil) // dummy VBCClassNode
-    val env = new VMethodEnv(cn, mn)
+    val env = new VMethodEnv(cn, mn, NoLiftPolicy)
 
     env.framesBefore.foreach(println)
   }

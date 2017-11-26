@@ -3,7 +3,7 @@ package edu.cmu.cs.vbc.vbytecode.instructions
 import edu.cmu.cs.vbc.analysis.VBCFrame.UpdatedFrame
 import edu.cmu.cs.vbc.analysis.{VBCFrame, VBCType, V_TYPE}
 import edu.cmu.cs.vbc.utils.LiftUtils._
-import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, LiftingPolicy, VCall}
+import edu.cmu.cs.vbc.utils.{InvokeDynamicUtils, VCall}
 import edu.cmu.cs.vbc.vbytecode._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm._
@@ -23,28 +23,28 @@ trait FieldInstruction extends Instruction
   */
 case class InstrGETSTATIC(owner: Owner, name: FieldName, desc: TypeDesc) extends FieldInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitFieldInsn(GETSTATIC, owner.toModel, name, desc.toModel)
+    mv.visitFieldInsn(GETSTATIC, env.liftOwner(owner), name, env.liftDesc(desc))
   }
 
   /**
     * Lifting means wrap it into a V
     */
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    val shouldLiftField = LiftingPolicy.shouldLiftField(owner, name, desc)
+    val shouldLiftField = env.policy.shouldLiftField(owner, name, desc)
     if (env.shouldLiftInstr(this)) {
       if (shouldLiftField) {
         // fields are lifted, the desc should be V
-        mv.visitFieldInsn(GETSTATIC, owner.toModel, name, vclasstype)
+        mv.visitFieldInsn(GETSTATIC, env.liftOwner(owner), name, vclasstype)
       }
       else {
         // fields are not lifted but we need a V, so we wrap it into a V
-        mv.visitFieldInsn(GETSTATIC, owner.toModel, name, desc.toModel)
+        mv.visitFieldInsn(GETSTATIC, env.liftOwner(owner), name, env.liftDesc(desc))
         if (desc.isPrimitive) boxField(desc, mv)
         callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))
       }
     }
     else {
-      mv.visitFieldInsn(GETSTATIC, owner.toModel, name, desc.toModel)
+      mv.visitFieldInsn(GETSTATIC, env.liftOwner(owner), name, env.liftDesc(desc))
     }
   }
 
@@ -68,7 +68,7 @@ case class InstrGETSTATIC(owner: Owner, name: FieldName, desc: TypeDesc) extends
     * Lifting means wrap it into a V
     */
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
-    if (LiftingPolicy.shouldLiftField(owner, name, desc)) {
+    if (env.policy.shouldLiftField(owner, name, desc)) {
       // This field should be lifted (e.g. fields that are not from java.lang)
       env.setLift(this)
       (s.push(V_TYPE(TypeDesc(desc).is64Bit), Set(this)), Set())
@@ -96,7 +96,7 @@ case class InstrPUTSTATIC(owner: Owner, name: FieldName, desc: TypeDesc) extends
     if (env.isConditionalField(owner, name, desc)) {
       mv.visitInsn(POP)
     }
-    else mv.visitFieldInsn(PUTSTATIC, owner.toModel, name, desc.toModel)
+    else mv.visitFieldInsn(PUTSTATIC, env.liftOwner(owner), name, env.liftDesc(desc))
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
@@ -137,7 +137,7 @@ case class InstrPUTSTATIC(owner: Owner, name: FieldName, desc: TypeDesc) extends
   */
 case class InstrGETFIELD(owner: Owner, name: FieldName, desc: TypeDesc) extends FieldInstruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitFieldInsn(GETFIELD, owner.toModel, name, desc.toModel)
+    mv.visitFieldInsn(GETFIELD, env.liftOwner(owner), name, env.liftDesc(desc))
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
@@ -169,7 +169,7 @@ case class InstrGETFIELD(owner: Owner, name: FieldName, desc: TypeDesc) extends 
       (visitor: MethodVisitor) => {
         val label = new Label()
         visitor.visitVarInsn(ALOAD, 1) //obj ref
-        if (LiftingPolicy.shouldLiftField(this.owner, this.name, this.desc))
+        if (env.policy.shouldLiftField(this.owner, this.name, this.desc))
           visitor.visitFieldInsn(GETFIELD, owner, name, vclasstype)
         else {
           visitor.visitFieldInsn(GETFIELD, owner, name, desc)
@@ -195,7 +195,7 @@ case class InstrPUTFIELD(owner: Owner, name: FieldName, desc: TypeDesc) extends 
       /* Avoid reassigning to conditional fields */
       mv.visitInsn(POP2)
     }
-    else mv.visitFieldInsn(PUTFIELD, owner.toModel, name, desc.toModel)
+    else mv.visitFieldInsn(PUTFIELD, env.liftOwner(owner), name, env.liftDesc(desc))
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {

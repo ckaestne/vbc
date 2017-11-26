@@ -105,7 +105,7 @@ class Loader {
 
     // adding "this" explicitly, because it may not be included if it's the only parameter
     if (!isStatic)
-      varCache += (0 -> new Parameter(0, "this", Owner(owner).getTypeDesc))
+      varCache += (0 -> new Parameter(0, "this", TypeDesc.fromOwner(owner)))
     if (m.localVariables != null) {
       val localVarList = m.localVariables.toList
       for (i <- 0 until localVarList.size()) {

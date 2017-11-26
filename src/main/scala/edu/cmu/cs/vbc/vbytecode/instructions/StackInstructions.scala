@@ -242,7 +242,7 @@ case class InstrSIPUSH(value: Int) extends Instruction {
         INVOKESTATIC,
         IntClass,
         "valueOf",
-        genSign("I", TypeDesc.getInt.toModel),
+        genSign("I", env.liftDesc(TypeDesc.getInt)),
         false
       )
       callVCreateOne(mv, (m) => loadCurrentCtx(m, env, block))

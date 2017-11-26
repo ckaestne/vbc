@@ -261,7 +261,7 @@ case class InstrNEWARRAY(atype: Int) extends ArrayCreationInstructions {
   * @param owner
   */
 case class InstrANEWARRAY(owner: Owner) extends ArrayCreationInstructions {
-  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitTypeInsn(ANEWARRAY, owner.toModel)
+  override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = mv.visitTypeInsn(ANEWARRAY, env.liftOwner(owner))
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): UpdatedFrame = {
     val (v, prev, f) = s.pop()

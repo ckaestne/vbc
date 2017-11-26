@@ -1,5 +1,6 @@
 package edu.cmu.cs.vbc.vbytecode
 
+import edu.cmu.cs.vbc.LiftingPolicy2
 import edu.cmu.cs.vbc.analysis.{GraphAnalysis, VBCAnalyzer, VBCFrame}
 import edu.cmu.cs.vbc.utils.{LiftUtils, Statistics}
 import edu.cmu.cs.vbc.vbytecode.instructions.{InstrGOTO, Instruction, JumpInstruction}
@@ -15,7 +16,7 @@ import org.objectweb.asm.{Label, Type}
   * 1. decide whether or not to lift each instruction (see tagV section)
   * 1. handle unbalanced stack (see unbalanced stack section)
   */
-class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode) extends MethodEnv(clazz, method) with VBlockAnalysis {
+class VMethodEnv(clazz: VBCClassNode, method: VBCMethodNode, policy: LiftingPolicy2) extends MethodEnv(clazz, method, policy) with VBlockAnalysis {
 
   val exceptionVar: LocalVar = freshLocalVar(name = "$exceptionVar", desc = LiftUtils.vclasstype, LocalVar.initOneNull)
   val ctxParameter: Parameter = new Parameter(-1, "ctx", TypeDesc(LiftUtils.fexprclasstype))

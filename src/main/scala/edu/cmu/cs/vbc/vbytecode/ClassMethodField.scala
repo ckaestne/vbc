@@ -1,6 +1,7 @@
 package edu.cmu.cs.vbc.vbytecode
 
 import com.typesafe.scalalogging.LazyLogging
+import edu.cmu.cs.vbc.{Lifting, LiftingPolicy2, NoLiftPolicy}
 import edu.cmu.cs.vbc.utils.LiftUtils
 import edu.cmu.cs.vbc.vbytecode.instructions.{FieldInitHelper, InstrINVOKESTATIC, InstrRETURN, Instruction}
 import org.objectweb.asm.Opcodes._
@@ -19,25 +20,27 @@ case class VBCMethodNode(access: Int,
 
   import LiftUtils._
 
-  def toByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
-    val newDesc: String = if (isMain) desc else MethodDesc(desc).toModels
-    val mv = cw.visitMethod(access, name, newDesc, signature.getOrElse(null), exceptions.toArray)
+  def toByteCode(cw: ClassVisitor, clazz: VBCClassNode, policy: LiftingPolicy2) = {
+    val newDesc: String = if (isMain) desc else MethodDesc.lift(policy,MethodDesc(desc))
+    val mv = cw.visitMethod(access, name, newDesc, signature.getOrElse(null), exceptions.map(e=>Owner.lift(policy, e).toString).toArray)
     mv.visitCode()
-    body.toByteCode(mv, new MethodEnv(clazz, this))
+    body.toByteCode(mv, new MethodEnv(clazz, this, policy))
     mv.visitMaxs(0, 0)
     mv.visitEnd()
   }
 
-  def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode) = {
+  def toVByteCode(cw: ClassVisitor, clazz: VBCClassNode, policy: LiftingPolicy2) = {
     logger.info(s"\t lifting $name$desc")
     val liftedMethodDesc =
       if (name != "<init>")
         MethodDesc(desc).toVs.appendFE.toVReturnType
       else
-        MethodDesc(desc).toVs_AppendFE_AppendArgs //cpwtodo: exception handling in constructor
+        ???
+//     TODO   MethodDesc(desc).toVs_AppendFE_AppendArgs //cpwtodo: exception handling in constructor
     val mv = cw.visitMethod(
       if (name == "<clinit>") access | ACC_PUBLIC else access,
-      MethodName(name).rename(MethodDesc(desc)).liftCLINIT,
+      ???,
+//      MethodName(name).rename(MethodDesc(desc)).liftCLINIT,
       liftedMethodDesc,
       liftMethodSignature(desc, signature).getOrElse(null),
       exceptions.toArray
@@ -47,7 +50,7 @@ case class VBCMethodNode(access: Int,
     mv.visitLabel(labelStart)
 
     if (body.blocks.nonEmpty) {
-      val env = new VMethodEnv(clazz, this)
+      val env = new VMethodEnv(clazz, this, policy)
       body.toVByteCode(mv, env)
 
       val labelEnd = new Label()
@@ -230,24 +233,28 @@ case class VBCClassNode(
 
   import LiftUtils._
 
-  def toByteCode(cv: ClassVisitor, rewriter: (VBCMethodNode, VBCClassNode) => VBCMethodNode = (a, b) => a, config: String => Option[Boolean]) = {
-    val liftedSuperName = liftSuperName(Owner(superName))
-    cv.visit(version, access, name, signature.getOrElse(null), liftedSuperName, interfaces.map(i => Owner(i).toModel.toString).toArray)
+
+  def toByteCode(cv: ClassVisitor, rewriter: (VBCMethodNode, VBCClassNode) => VBCMethodNode = (a, b) => a, config: String => Option[Boolean], policy: LiftingPolicy2 = NoLiftPolicy) = {
+    val liftedName: String = Owner.lift(policy, name)
+    val liftedSuperName: String = if (superName == null) null else Owner.lift(policy, superName)
+
+    cv.visit(version, access, liftedName, signature.getOrElse(null), liftedSuperName, interfaces.map(i => Owner.lift(policy, i).toString).toArray)
     commonToByteCode(cv)
     //        innerClasses.foreach(_.toByteCode(cv))
-    fields.foreach(_.toByteCode(cv))
+    fields.take(2).foreach(_.toByteCode(cv, policy))
     val m =
       if (hasStaticConditionalFields && !hasCLINIT)
         createCLINIT() :: methods
       else methods
-    m.foreach(m => rewriter(Rewrite.rewrite(m, this, config), this).toByteCode(cv, this))
+    m.foreach(m => rewriter(Rewrite.rewrite(m, this, config), this).toByteCode(cv, this, policy))
     cv.visitEnd()
   }
 
 
-  def toVByteCode(cv: ClassVisitor, rewriter: (VBCMethodNode, VBCClassNode) => VBCMethodNode = (a, b) => a, config: String => Option[Boolean]) = {
-    val liftedSuperName = liftSuperName(Owner(superName))
-    cv.visit(version, access, name, signature.getOrElse(null), liftedSuperName, interfaces.map(i => Owner(i).toModel.toString).toArray)
+  def toVByteCode(cv: ClassVisitor, rewriter: (VBCMethodNode, VBCClassNode) => VBCMethodNode = (a, b) => a, config: String => Option[Boolean], policy: LiftingPolicy2 = NoLiftPolicy) = {
+    val liftedName: String = Owner.lift(policy, name)
+    val liftedSuperName: String = if (superName == null) null else Owner.lift(policy, superName)
+    cv.visit(version, access, liftedName, signature.getOrElse(null), liftedSuperName, interfaces.map(i => Owner.lift(policy, i).toString).toArray)
     commonToByteCode(cv)
     //        innerClasses.foreach(_.toVByteCode(cv))
     fields.foreach(_.toVByteCode(cv))
@@ -255,20 +262,20 @@ case class VBCClassNode(
       if (hasStaticFields && !hasCLINIT)
         createCLINIT() :: methods
       else methods
-    ms.foreach(m => rewriter(Rewrite.rewriteV(m, this, config), this).toVByteCode(cv, this))
+    ms.foreach(m => rewriter(Rewrite.rewriteV(m, this, config), this).toVByteCode(cv, this, policy))
     //if the class has a main method, create also an unlifted main method
     if (methods.exists(_.isMain))
       createUnliftedMain(cv)
-    if (interfaces.contains("java/lang/Runnable"))
-      createUnliftedRun(cv)
-    if (superName == "java/lang/ThreadLocal")
-      createUnliftedInitialValue(cv)
-    if (superName == "java/io/Writer")
-      createUnliftedWriteOfWriter(cv)
-    if (superName == "javax/servlet/ServletOutputStream")
-      createUnliftedWriteOfOutputStream(cv)
-    if (superName == "java/util/TimerTask")
-      createUnliftedRunOfTimerTask(cv)
+//    if (interfaces.contains("java/lang/Runnable"))
+//      createUnliftedRun(cv)
+//    if (superName == "java/lang/ThreadLocal")
+//      createUnliftedInitialValue(cv)
+//    if (superName == "java/io/Writer")
+//      createUnliftedWriteOfWriter(cv)
+//    if (superName == "javax/servlet/ServletOutputStream")
+//      createUnliftedWriteOfOutputStream(cv)
+//    if (superName == "java/util/TimerTask")
+//      createUnliftedRunOfTimerTask(cv)
     // Write lambda methods
     // Lambda methods might be generated while generating other lambda methods (e.g. nested invokedynamic see InvokeDynamicUtils),
     // so we need this while to ensure that all lambda methods are generated
@@ -319,10 +326,10 @@ case class VBCClassNode(
   }
 
 
-  def liftSuperName(superName: Owner): Owner = {
+  def liftSuperName(policy: LiftingPolicy2, superName: Owner): Owner = {
     // Super class of interface must be java/lang/Object, could not be VObject
     if ((access & ACC_INTERFACE) == 0)
-      superName.toModel
+      Owner.lift(policy, superName)
     else
       superName
   }
@@ -346,7 +353,8 @@ case class VBCClassNode(
     mv.visitMethodInsn(
       INVOKESTATIC,
       name,
-      MethodName("main").rename(MethodDesc(mainMethodSig)),
+//      MethodName("main").rename(MethodDesc(mainMethodSig)),
+      MethodDesc(mainMethodSig),
       MethodDesc(mainMethodSig).toVs.appendFE.toVReturnType,
       false
     )
@@ -361,111 +369,111 @@ case class VBCClassNode(
     mv.visitEnd()
   }
 
-  /**
-    * Create a run method that implements java.lang.Runnable#run()
-    *
-    * todo: refactor and organize methods like this
-    */
-  def createUnliftedRun(cv: ClassVisitor) = {
-    val mv = cv.visitMethod(ACC_PUBLIC, "run", "()V", "()V", Array.empty)
-    mv.visitCode()
-    // For now, we assume the thread is executed under context True
-    // todo: avoid this dangerous assumption after figuring out a way to track contexts in Threads
-    mv.visitVarInsn(ALOAD, 0)
-    pushConstantTRUE(mv)
-    mv.visitMethodInsn(INVOKEVIRTUAL, name, MethodName("run").rename(MethodDesc("()V")), MethodDesc("()V").appendFE.toVReturnType, false)
-    mv.visitInsn(RETURN)
-    mv.visitMaxs(10, 10)
-    mv.visitEnd()
-  }
-
-  def createUnliftedRunOfTimerTask(cv: ClassVisitor) = {
-    val mv = cv.visitMethod(ACC_PUBLIC, "run", "()V", "()V", Array.empty)
-    mv.visitCode()
-    // For now, we assume the thread is executed under context True
-    // todo: avoid this dangerous assumption after figuring out a way to track contexts in Threads
-    mv.visitVarInsn(ALOAD, 0)
-    pushConstantTRUE(mv)
-    mv.visitMethodInsn(INVOKEVIRTUAL, name, MethodName("run").rename(MethodDesc("()V")), MethodDesc("()V").appendFE.toVReturnType, false)
-    mv.visitInsn(RETURN)
-    mv.visitMaxs(10, 10)
-    mv.visitEnd()
-  }
-
-  /**
-    * Create a initialValue() method that implements java.lang.ThreadLocal#initialValue()
-    *
-    * todo: refactor and organize methods like this
-    */
-  def createUnliftedInitialValue(cv: ClassVisitor) = {
-    val mv = cv.visitMethod(ACC_PROTECTED | ACC_SYNTHETIC | ACC_BRIDGE, "initialValue", "()Ljava/lang/Object;", "()Ljava/lang/Object;", Array.empty)
-    mv.visitCode()
-    // For now, we assume the thread is executed under context True
-    // todo: avoid this dangerous assumption after figuring out a way to track contexts in Threads
-    mv.visitVarInsn(ALOAD, 0)
-    pushConstantTRUE(mv)
-    mv.visitMethodInsn(INVOKEVIRTUAL, name, MethodName("initialValue").rename(MethodDesc("()Ljava/lang/Object;")), MethodDesc("()Ljava/lang/Object;").toVs.appendFE.toVReturnType, false)
-    mv.visitInsn(ARETURN)
-    mv.visitMaxs(10, 10)
-    mv.visitEnd()
-  }
-
-  /**
-    * Create a run() method that implements java.security.PrivilegedAction#initialValue()
-    *
-    * todo: refactor and organize methods like this
-    */
-  def createUnliftedRunOfPrivilegedAction(cv: ClassVisitor) = {
-    val mv = cv.visitMethod(ACC_PUBLIC, "run", "()Ljava/lang/Object;", "()Ljava/lang/Object;", Array.empty)
-    mv.visitCode()
-    // For now, we assume the thread is executed under context True
-    // todo: avoid this dangerous assumption after figuring out a way to track contexts in Threads
-    mv.visitVarInsn(ALOAD, 0)
-    pushConstantTRUE(mv)
-    mv.visitMethodInsn(INVOKEVIRTUAL, name, MethodName("run").rename(MethodDesc("()Ljava/lang/Object;")), MethodDesc("()Ljava/lang/Object;").toVs.appendFE, false)
-    mv.visitInsn(ARETURN)
-    mv.visitMaxs(10, 10)
-    mv.visitEnd()
-  }
-
-  def createUnliftedWriteOfWriter(cv: ClassVisitor) = {
-    val mv = cv.visitMethod(ACC_PUBLIC, "write", "([CII)V", "([CII)V", Array("java/io/Exception"))
-    mv.visitCode()
-    // For now, we assume the thread is executed under context True
-    // todo: avoid this dangerous assumption after figuring out a way to track contexts in Threads
-    mv.visitVarInsn(ALOAD, 0)
-    mv.visitVarInsn(ALOAD, 1)
-    pushConstantTRUE(mv)
-    mv.visitMethodInsn(INVOKESTATIC, Owner.getArrayOps, "CArray2VArray", MethodDesc(s"([C$fexprclasstype)[$vclasstype"), false)
-    callVCreateOne(mv, loadCtx = pushConstantTRUE(_))
-    mv.visitVarInsn(ILOAD, 2)
-    int2Integer(mv)
-    callVCreateOne(mv, loadCtx = pushConstantTRUE(_))
-    mv.visitVarInsn(ILOAD, 3)
-    int2Integer(mv)
-    callVCreateOne(mv, loadCtx = pushConstantTRUE(_))
-    pushConstantTRUE(mv)
-    mv.visitMethodInsn(INVOKEVIRTUAL, name, MethodName("write").rename(MethodDesc("([CII)V")), MethodDesc("([CII)V").toVs.appendFE.toVReturnType, false)
-    mv.visitInsn(RETURN)
-    mv.visitMaxs(10, 10)
-    mv.visitEnd()
-  }
-
-  def createUnliftedWriteOfOutputStream(cv: ClassVisitor) = {
-    val mv = cv.visitMethod(ACC_PUBLIC, "write", "(I)V", "(I)V", Array("java/io/Exception"))
-    mv.visitCode()
-    // For now, we assume the thread is executed under context True
-    // todo: avoid this dangerous assumption after figuring out a way to track contexts in Threads
-    mv.visitVarInsn(ALOAD, 0)
-    mv.visitVarInsn(ILOAD, 1)
-    int2Integer(mv)
-    callVCreateOne(mv, loadCtx = pushConstantTRUE(_))
-    pushConstantTRUE(mv)
-    mv.visitMethodInsn(INVOKEVIRTUAL, name, MethodName("write").rename(MethodDesc("(I)V")), MethodDesc("(I)V").toVs.appendFE.toVReturnType, false)
-    mv.visitInsn(RETURN)
-    mv.visitMaxs(10, 10)
-    mv.visitEnd()
-  }
+//  /**
+//    * Create a run method that implements java.lang.Runnable#run()
+//    *
+//    * todo: refactor and organize methods like this
+//    */
+//  def createUnliftedRun(cv: ClassVisitor) = {
+//    val mv = cv.visitMethod(ACC_PUBLIC, "run", "()V", "()V", Array.empty)
+//    mv.visitCode()
+//    // For now, we assume the thread is executed under context True
+//    // todo: avoid this dangerous assumption after figuring out a way to track contexts in Threads
+//    mv.visitVarInsn(ALOAD, 0)
+//    pushConstantTRUE(mv)
+//    mv.visitMethodInsn(INVOKEVIRTUAL, name, MethodName("run").rename(MethodDesc("()V")), MethodDesc("()V").appendFE.toVReturnType, false)
+//    mv.visitInsn(RETURN)
+//    mv.visitMaxs(10, 10)
+//    mv.visitEnd()
+//  }
+//
+//  def createUnliftedRunOfTimerTask(cv: ClassVisitor) = {
+//    val mv = cv.visitMethod(ACC_PUBLIC, "run", "()V", "()V", Array.empty)
+//    mv.visitCode()
+//    // For now, we assume the thread is executed under context True
+//    // todo: avoid this dangerous assumption after figuring out a way to track contexts in Threads
+//    mv.visitVarInsn(ALOAD, 0)
+//    pushConstantTRUE(mv)
+//    mv.visitMethodInsn(INVOKEVIRTUAL, name, MethodName("run").rename(MethodDesc("()V")), MethodDesc("()V").appendFE.toVReturnType, false)
+//    mv.visitInsn(RETURN)
+//    mv.visitMaxs(10, 10)
+//    mv.visitEnd()
+//  }
+//
+//  /**
+//    * Create a initialValue() method that implements java.lang.ThreadLocal#initialValue()
+//    *
+//    * todo: refactor and organize methods like this
+//    */
+//  def createUnliftedInitialValue(cv: ClassVisitor) = {
+//    val mv = cv.visitMethod(ACC_PROTECTED | ACC_SYNTHETIC | ACC_BRIDGE, "initialValue", "()Ljava/lang/Object;", "()Ljava/lang/Object;", Array.empty)
+//    mv.visitCode()
+//    // For now, we assume the thread is executed under context True
+//    // todo: avoid this dangerous assumption after figuring out a way to track contexts in Threads
+//    mv.visitVarInsn(ALOAD, 0)
+//    pushConstantTRUE(mv)
+//    mv.visitMethodInsn(INVOKEVIRTUAL, name, MethodName("initialValue").rename(MethodDesc("()Ljava/lang/Object;")), MethodDesc("()Ljava/lang/Object;").toVs.appendFE.toVReturnType, false)
+//    mv.visitInsn(ARETURN)
+//    mv.visitMaxs(10, 10)
+//    mv.visitEnd()
+//  }
+//
+//  /**
+//    * Create a run() method that implements java.security.PrivilegedAction#initialValue()
+//    *
+//    * todo: refactor and organize methods like this
+//    */
+//  def createUnliftedRunOfPrivilegedAction(cv: ClassVisitor) = {
+//    val mv = cv.visitMethod(ACC_PUBLIC, "run", "()Ljava/lang/Object;", "()Ljava/lang/Object;", Array.empty)
+//    mv.visitCode()
+//    // For now, we assume the thread is executed under context True
+//    // todo: avoid this dangerous assumption after figuring out a way to track contexts in Threads
+//    mv.visitVarInsn(ALOAD, 0)
+//    pushConstantTRUE(mv)
+//    mv.visitMethodInsn(INVOKEVIRTUAL, name, MethodName("run").rename(MethodDesc("()Ljava/lang/Object;")), MethodDesc("()Ljava/lang/Object;").toVs.appendFE, false)
+//    mv.visitInsn(ARETURN)
+//    mv.visitMaxs(10, 10)
+//    mv.visitEnd()
+//  }
+//
+//  def createUnliftedWriteOfWriter(cv: ClassVisitor) = {
+//    val mv = cv.visitMethod(ACC_PUBLIC, "write", "([CII)V", "([CII)V", Array("java/io/Exception"))
+//    mv.visitCode()
+//    // For now, we assume the thread is executed under context True
+//    // todo: avoid this dangerous assumption after figuring out a way to track contexts in Threads
+//    mv.visitVarInsn(ALOAD, 0)
+//    mv.visitVarInsn(ALOAD, 1)
+//    pushConstantTRUE(mv)
+//    mv.visitMethodInsn(INVOKESTATIC, Owner.getArrayOps, "CArray2VArray", MethodDesc(s"([C$fexprclasstype)[$vclasstype"), false)
+//    callVCreateOne(mv, loadCtx = pushConstantTRUE(_))
+//    mv.visitVarInsn(ILOAD, 2)
+//    int2Integer(mv)
+//    callVCreateOne(mv, loadCtx = pushConstantTRUE(_))
+//    mv.visitVarInsn(ILOAD, 3)
+//    int2Integer(mv)
+//    callVCreateOne(mv, loadCtx = pushConstantTRUE(_))
+//    pushConstantTRUE(mv)
+//    mv.visitMethodInsn(INVOKEVIRTUAL, name, MethodName("write").rename(MethodDesc("([CII)V")), MethodDesc("([CII)V").toVs.appendFE.toVReturnType, false)
+//    mv.visitInsn(RETURN)
+//    mv.visitMaxs(10, 10)
+//    mv.visitEnd()
+//  }
+//
+//  def createUnliftedWriteOfOutputStream(cv: ClassVisitor) = {
+//    val mv = cv.visitMethod(ACC_PUBLIC, "write", "(I)V", "(I)V", Array("java/io/Exception"))
+//    mv.visitCode()
+//    // For now, we assume the thread is executed under context True
+//    // todo: avoid this dangerous assumption after figuring out a way to track contexts in Threads
+//    mv.visitVarInsn(ALOAD, 0)
+//    mv.visitVarInsn(ILOAD, 1)
+//    int2Integer(mv)
+//    callVCreateOne(mv, loadCtx = pushConstantTRUE(_))
+//    pushConstantTRUE(mv)
+//    mv.visitMethodInsn(INVOKEVIRTUAL, name, MethodName("write").rename(MethodDesc("(I)V")), MethodDesc("(I)V").toVs.appendFE.toVReturnType, false)
+//    mv.visitInsn(RETURN)
+//    mv.visitMaxs(10, 10)
+//    mv.visitEnd()
+//  }
 
 
   /**
@@ -508,8 +516,8 @@ case class VBCFieldNode(
 
   import LiftUtils._
 
-  def toByteCode(cv: ClassVisitor) = {
-    val fv = cv.visitField(access, name, TypeDesc(desc).toModel, signature, value)
+  def toByteCode(cv: ClassVisitor, policy: LiftingPolicy2) = {
+    val fv = cv.visitField(access, name, TypeDesc.lift(policy, TypeDesc(desc)), signature, value)
 
     commonToByteCode(fv)
 

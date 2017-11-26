@@ -21,7 +21,7 @@ object LiftUtils {
   val lamdaFactoryDesc = "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;"
 
   def liftMethodSignature(desc: String, sig: Option[String]): Option[String] = {
-    val sigReader = new SignatureReader(sig.getOrElse(MethodDesc(desc).toObjects.toModels))
+    val sigReader = new SignatureReader(sig.getOrElse(MethodDesc(desc).toObjects/*CHK .toModels*/))
     val sw = new LiftSignatureWriter()
     sigReader.accept(sw)
     val newSig = sw.getSignature()

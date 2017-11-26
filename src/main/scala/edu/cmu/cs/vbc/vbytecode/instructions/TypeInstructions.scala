@@ -14,11 +14,11 @@ import org.objectweb.asm.Opcodes._
 
 case class InstrNEW(t: String) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitTypeInsn(NEW, Owner(t).toModel)
+    mv.visitTypeInsn(NEW, env.liftOwner(t))
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
-    mv.visitTypeInsn(NEW, Owner(t).toModel)
+    mv.visitTypeInsn(NEW, env.liftOwner(t))
   }
 
   /**
@@ -57,7 +57,7 @@ case class InstrNEW(t: String) extends Instruction {
   */
 case class InstrCHECKCAST(clsName: Owner) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitTypeInsn(CHECKCAST, clsName.toModel)
+    mv.visitTypeInsn(CHECKCAST, env.liftOwner(clsName))
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
@@ -76,13 +76,13 @@ case class InstrCHECKCAST(clsName: Owner) extends Instruction {
       InvokeDynamicUtils.invoke(VCall.smap, mv, env, loadCurrentCtx(_, env, block), "checkcast", "Ljava/lang/Object;()Ljava/lang/Object;") {
         (visitor: MethodVisitor) => {
           visitor.visitVarInsn(ALOAD, 1)  // ref
-          visitor.visitTypeInsn(CHECKCAST, toVArray(clsName).toModel)
+          visitor.visitTypeInsn(CHECKCAST, env.liftOwner(toVArray(clsName)))
           visitor.visitInsn(ARETURN)
         }
       }
     }
     else {
-      mv.visitTypeInsn(CHECKCAST, toVArray(clsName).toModel)
+      mv.visitTypeInsn(CHECKCAST, env.liftOwner(toVArray(clsName)))
     }
   }
 
@@ -149,7 +149,7 @@ case class InstrI2C() extends Instruction {
   */
 case class InstrINSTANCEOF(owner: Owner) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    mv.visitTypeInsn(INSTANCEOF, owner.toModel)
+    mv.visitTypeInsn(INSTANCEOF, env.liftOwner(owner))
   }
 
   /** Lifting means invoking INSTANCEOF on V */
@@ -165,14 +165,14 @@ case class InstrINSTANCEOF(owner: Owner) extends Instruction {
       ) {
         (mv: MethodVisitor) => {
           mv.visitVarInsn(ALOAD, 1) // objref
-          mv.visitTypeInsn(INSTANCEOF, owner.toModel)
+          mv.visitTypeInsn(INSTANCEOF, env.liftOwner(owner))
           int2Integer(mv)
           mv.visitInsn(ARETURN)
         }
       }
     }
     else
-      mv.visitTypeInsn(INSTANCEOF, owner.toModel)
+      mv.visitTypeInsn(INSTANCEOF,env.liftOwner(owner))
   }
 
   override def updateStack(s: VBCFrame, env: VMethodEnv): (VBCFrame, Set[Instruction]) = {
