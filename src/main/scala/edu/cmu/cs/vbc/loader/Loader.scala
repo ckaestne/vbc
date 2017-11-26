@@ -128,28 +128,37 @@ class Loader {
 
     // typically we initialize all variables and parameters from the table, but that table is technically optional,
     // so we need a fallback option and generate them on the fly with name "$unknown"
-    def lookupVariable(idx: Int, opCode: Int): Variable =
-      if (varCache contains idx)
-        varCache(idx)
-      else {
-        val newVar =
-          if (idx < parameterRange) {
-            opCode match {
-              case LLOAD | LSTORE => new Parameter(idx, "$unknown", TypeDesc("J"), is64Bit = true)
-              case DLOAD | DSTORE => new Parameter(idx, "$unknown", TypeDesc("D"), is64Bit = true)
-              case _ => new Parameter(idx, "$unknown", TypeDesc("Ljava/lang/Object;"))
-            }
-          }
-          else {
-            opCode match {
-              case LLOAD | LSTORE => new LocalVar("$unknown", TypeDesc("J"), is64Bit = true)
-              case DLOAD | DSTORE => new LocalVar("$unknown", TypeDesc("D"), is64Bit = true)
-              case _ => new LocalVar("$unknown", "V")
-            }
-          }
-        varCache += (idx -> newVar)
-        newVar
+    // note that a variable may be used multiple times with different types; thus even if we have seen a variable
+    // already, we need to make sure that we don't see it again as a 64 bit variable
+    def lookupVariable(idx: Int, opCode: Int): Variable = {
+      val is64Bit = Set(LLOAD, LSTORE, DLOAD, DSTORE) contains opCode
+
+
+      if (varCache contains idx) {
+        val knownVariable = varCache(idx)
+        //if previously known as 32 bit, but now 64 bit, we need to replace the variable
+        if (knownVariable.is64Bit || !is64Bit)
+          return knownVariable
       }
+
+      val newVar =
+        if (idx < parameterRange) {
+          opCode match {
+            case LLOAD | LSTORE => new Parameter(idx, "$unknown", TypeDesc("J"), is64Bit = true)
+            case DLOAD | DSTORE => new Parameter(idx, "$unknown", TypeDesc("D"), is64Bit = true)
+            case _ => new Parameter(idx, "$unknown", TypeDesc("Ljava/lang/Object;"))
+          }
+        }
+        else {
+          opCode match {
+            case LLOAD | LSTORE => new LocalVar("$unknown", TypeDesc("J"), is64Bit = true)
+            case DLOAD | DSTORE => new LocalVar("$unknown", TypeDesc("D"), is64Bit = true)
+            case _ => new LocalVar("$unknown", "V")
+          }
+        }
+      varCache += (idx -> newVar)
+      newVar
+    }
 
     def createBlock(start: Int, end: Int): Block = {
       val instrList = for (instrIdx <- start until end;
