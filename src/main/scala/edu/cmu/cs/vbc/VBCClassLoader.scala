@@ -30,6 +30,9 @@ class VBCClassLoader(parentClassLoader: ClassLoader,
                      configFile: Option[String] = None) extends ClassLoader(parentClassLoader) with LazyLogging {
 
   val loader = new Loader()
+  //TODO rather pass in the actual configuration object, not a path. this way different client can
+  //configure it in different ways (only an interface needed), rather than having to create a file in the
+  //specific format used here
   if (configFile.isDefined) {
     val config = new ModelConfig(configFile.get)
     LiftingPolicy.setConfig(config)
