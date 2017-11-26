@@ -70,7 +70,14 @@ trait Instruction {
 
 case class UNKNOWN(opCode: Int = -1) extends Instruction {
   override def toByteCode(mv: MethodVisitor, env: MethodEnv, block: Block): Unit = {
-    throw new RuntimeException("Unknown Instruction in " + s"${env.clazz.name}#${env.method.name}" + ": " + OpcodePrint.print(opCode))
+//    throw new RuntimeException("Unknown Instruction in " + s"${env.clazz.name}#${env.method.name}" + ": " + OpcodePrint.print(opCode))
+    val err="Unknown Instruction in " + s"${env.clazz.name}#${env.method.name}" + ": " + OpcodePrint.print(opCode)
+    System.err.println(err)
+    mv.visitLdcInsn(err)
+    mv.visitTypeInsn(NEW, "java/lang/RuntimeException")
+    mv.visitInsn(DUP)
+    mv.visitMethodInsn(INVOKESPECIAL, "java/lang/RuntimeException","<init>","(Ljava/lang/String;)V",false)
+    mv.visitInsn(ATHROW)
   }
 
   override def toVByteCode(mv: MethodVisitor, env: VMethodEnv, block: Block): Unit = {
